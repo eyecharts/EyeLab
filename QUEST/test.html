@@ -3647,9 +3647,9 @@ Verifique se o arquivo segue o formato correto:
 `
 }
 
-function gerarRelatorioPaper(tabela, metrics){
+function gerarRelatorioPaper(tabela, metricsSet, metricsGlobal, metricsSloan){
 
-if(!tabela || !metrics) return ""
+if(!tabela || !metricsSet) return ""
 
 let thresholds = tabela.map(t=>t.threshold || 0)
 if(thresholds.length === 0) return ""
@@ -3660,16 +3660,22 @@ let sd = Math.sqrt(
 thresholds.map(x=>(x-mean)**2).reduce((a,b)=>a+b,0)/thresholds.length
 )
 
-// 🔥 métricas seguras (evita crash)
-let Cmax = metrics.maxConf ?? 0
-let LPI  = metrics.LPI ?? 0
-let V    = metrics.variability ?? 0
-let D    = metrics.sd ?? 0
-let O    = metrics.outliers ?? 0
-let dist = metrics.dist ?? 0
+// ===== SAFE METRICS =====
 
-// 🔥 conversão logMAR → letras
-let letrasEquivalente = dist / 0.02
+let Cmax = metricsSet.maxConf ?? 0
+let LPI  = metricsSet.LPI ?? 0
+let V    = metricsSet.variability ?? 0
+let D    = metricsSet.sd ?? 0
+let O    = metricsSet.outliers ?? 0
+let dist = metricsSet.dist ?? 0
+
+// ===== COMPARAÇÃO =====
+
+let Cmax_global = metricsGlobal?.maxConf ?? 0
+let Cmax_sloan  = metricsSloan?.maxConf ?? 0
+
+let LPI_global = metricsGlobal?.LPI ?? 0
+let LPI_sloan  = metricsSloan?.LPI ?? 0
 
 let texto = `
 <h2>10. Results</h2>
@@ -3681,18 +3687,27 @@ No meaningful influence of demographic variables on psychophysical performance w
 
 <p>
 The mean threshold across optotypes was <b>${mean.toFixed(3)} logMAR</b> (SD = ${sd.toFixed(3)}), indicating a relatively homogeneous baseline level of difficulty. 
-However, threshold uniformity alone was insufficient to fully characterize perceptual performance across optotypes.
+However, threshold uniformity alone was insufficient to fully characterize perceptual performance.
 </p>
 
 <p>
-Within the optimized set (SLOAN 2.0), maximum pairwise confusion (C<sub>max</sub>) was 
-<b>${Cmax.toFixed(3)}</b>, while the Line Penalty Index (LPI) reached 
-<b>${LPI.toFixed(3)}</b>. 
-These findings indicate effective suppression of highly confusable optotype pairs and improved robustness under line-based (crowding) conditions.
+Maximum pairwise confusion (C<sub>max</sub>) in the optimized set (SLOAN 2.0) was 
+<b>${Cmax.toFixed(3)}</b>, compared to 
+<b>${Cmax_sloan.toFixed(3)}</b> in the classical Sloan set and 
+<b>${Cmax_global.toFixed(3)}</b> across all optotypes. 
+This represents a substantial reduction in highly confusable optotype pairs.
 </p>
 
 <p>
-Inter-subject variability (V) was <b>${V.toFixed(3)}</b>, confirming stable psychometric behavior across individuals.
+The Line Penalty Index (LPI), reflecting crowding-related interactions, was 
+<b>${LPI.toFixed(3)}</b> in the optimized set, compared to 
+<b>${LPI_sloan.toFixed(3)}</b> (Sloan) and 
+<b>${LPI_global.toFixed(3)}</b> (global). 
+This indicates improved robustness under line-based visual acuity conditions.
+</p>
+
+<p>
+Inter-subject variability (V) remained low at <b>${V.toFixed(3)}</b>, confirming stable psychometric behavior across individuals.
 </p>
 
 <p>
@@ -3701,20 +3716,20 @@ Intra-set threshold dispersion (D) was <b>${D.toFixed(3)}</b>, with
 </p>
 
 <p>
-Perceptual distance (Δ) reached <b>${dist.toFixed(3)}</b>, corresponding to approximately 
-<b>${letrasEquivalente.toFixed(1)} optotype letters</b>. 
-This magnitude reflects meaningful perceptual separation between optotypes, reducing redundancy and enhancing discriminative efficiency.
+Perceptual distance (Δ) reached <b>${dist.toFixed(3)}</b>. 
+Importantly, this metric reflects separation in perceptual (confusion) space rather than visual acuity units, 
+indicating increased discriminability and reduced redundancy among optotypes.
 </p>
 
 <p>
-Overall, the optimized set demonstrated a favorable balance between threshold uniformity, reduced confusion, and increased perceptual separability. 
-Importantly, these results indicate that optotypes within the same line are not only matched in difficulty but also remain perceptually distinct.
+Overall, the optimized set demonstrated a superior balance between reduced confusion, maintained threshold uniformity, 
+and increased perceptual separability when compared to both the full optotype set and the classical Sloan subset.
 </p>
 
 <p>
-From a clinical perspective, this configuration is expected to improve both the reliability and interpretability of visual acuity measurements, 
-particularly in conditions where crowding and perceptual overlap are critical determinants of performance. 
-These findings support the concept that optotype selection must be driven by perceptual discriminability rather than threshold uniformity alone.
+From a clinical perspective, this configuration is expected to improve the reliability and interpretability of visual acuity measurements, 
+particularly under conditions where crowding and perceptual overlap are critical determinants of performance. 
+These findings support the concept that optotype selection should be driven by perceptual discriminability rather than threshold uniformity alone.
 </p>
 `
 
