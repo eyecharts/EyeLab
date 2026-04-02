@@ -3660,9 +3660,16 @@ let sd = Math.sqrt(
 thresholds.map(x=>(x-mean)**2).reduce((a,b)=>a+b,0)/thresholds.length
 )
 
-// 🔥 conversão logMAR → letras (1 letra ≈ 0.02 logMAR)
-let delta = (metrics.dist || 0)
-let letrasEquivalente = (delta / 0.02)
+// 🔥 métricas seguras (evita crash)
+let Cmax = metrics.maxConf ?? 0
+let LPI  = metrics.LPI ?? 0
+let V    = metrics.variability ?? 0
+let D    = metrics.sd ?? 0
+let O    = metrics.outliers ?? 0
+let dist = metrics.dist ?? 0
+
+// 🔥 conversão logMAR → letras
+let letrasEquivalente = dist / 0.02
 
 let texto = `
 <h2>10. Results</h2>
@@ -3678,24 +3685,24 @@ However, threshold uniformity alone was insufficient to fully characterize perce
 </p>
 
 <p>
-Within the optimized set (SLOAN 2.0), maximum pairwise confusion (C<sub>max</sub>) was reduced to 
-<b>${(metricsSet.maxConf || 0).toFixed(3)}</b>, while the Line Penalty Index (LPI) reached 
-<b>${(metricsSet.LPI || 0).toFixed(3)}</b>. 
+Within the optimized set (SLOAN 2.0), maximum pairwise confusion (C<sub>max</sub>) was 
+<b>${Cmax.toFixed(3)}</b>, while the Line Penalty Index (LPI) reached 
+<b>${LPI.toFixed(3)}</b>. 
 These findings indicate effective suppression of highly confusable optotype pairs and improved robustness under line-based (crowding) conditions.
 </p>
 
 <p>
-Inter-subject variability (V) was <b>${(metricsSet.variability || 0).toFixed(3)}</b>, confirming stable psychometric behavior across individuals.
+Inter-subject variability (V) was <b>${V.toFixed(3)}</b>, confirming stable psychometric behavior across individuals.
 </p>
 
 <p>
-Intra-set threshold dispersion (D) was <b>${(metricsSet.sd || 0).toFixed(3)}</b>, with 
-<b>${metricsSet.outliers || 0}</b> outlier(s), supporting a structurally balanced optotype set without disproportionately easy or difficult elements.
+Intra-set threshold dispersion (D) was <b>${D.toFixed(3)}</b>, with 
+<b>${O}</b> outlier(s), supporting a structurally balanced optotype set without disproportionately easy or difficult elements.
 </p>
 
 <p>
-Perceptual distance (Δ) reached <b>${metricsSet.dist.toFixed(3)}</b>, corresponding to approximately 
-<b>${(metricsSet.dist / 0.02).toFixed(1)} optotype letters</b>. 
+Perceptual distance (Δ) reached <b>${dist.toFixed(3)}</b>, corresponding to approximately 
+<b>${letrasEquivalente.toFixed(1)} optotype letters</b>. 
 This magnitude reflects meaningful perceptual separation between optotypes, reducing redundancy and enhancing discriminative efficiency.
 </p>
 
@@ -3706,7 +3713,8 @@ Importantly, these results indicate that optotypes within the same line are not 
 
 <p>
 From a clinical perspective, this configuration is expected to improve both the reliability and interpretability of visual acuity measurements, 
-particularly in conditions where crowding and perceptual overlap are critical determinants of performance. These findings support the concept that optotype selection must be driven by perceptual discriminability rather than threshold uniformity alone.
+particularly in conditions where crowding and perceptual overlap are critical determinants of performance. 
+These findings support the concept that optotype selection must be driven by perceptual discriminability rather than threshold uniformity alone.
 </p>
 `
 
