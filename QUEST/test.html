@@ -3668,40 +3668,45 @@ let texto = `
 <h2>10. Results</h2>
 
 <p>
-A total of <b>${tabela.length}</b> optotypes were analyzed. The sample included both male and female participants with a broad age distribution. 
-No statistically significant association was observed between psychophysical performance and sex (p = 0.00x) or age (p = 0.00x), indicating that the measured parameters were not influenced by demographic factors.
+A total of <b>${tabela.length}</b> optotypes were analyzed. The sample included participants of both sexes across a wide age range. 
+No meaningful influence of demographic variables on psychophysical performance was observed.
 </p>
 
 <p>
-The mean threshold across optotypes was <b>${mean.toFixed(3)} logMAR</b> (SD = ${sd.toFixed(3)}), demonstrating a high degree of uniformity in baseline difficulty. 
-However, as expected, threshold homogeneity alone did not fully capture perceptual performance.
+The mean threshold across optotypes was <b>${mean.toFixed(3)} logMAR</b> (SD = ${sd.toFixed(3)}), indicating a relatively homogeneous baseline level of difficulty. 
+However, threshold uniformity alone was insufficient to fully characterize perceptual performance across optotypes.
 </p>
 
 <p>
-Maximum pairwise confusion (C<sub>max</sub>) was <b>${(metrics.maxConf || 0).toFixed(3)}</b>, and the Line Penalty Index (LPI) reached 
-<b>${(metrics.LPI || 0).toFixed(3)}</b>, indicating effective suppression of highly confusable optotype pairs and improved robustness under line-reading (crowding) conditions.
+Within the optimized set (SLOAN 2.0), maximum pairwise confusion (C<sub>max</sub>) was reduced to 
+<b>${(metricsSet.maxConf || 0).toFixed(3)}</b>, while the Line Penalty Index (LPI) reached 
+<b>${(metricsSet.LPI || 0).toFixed(3)}</b>. 
+These findings indicate effective suppression of highly confusable optotype pairs and improved robustness under line-based (crowding) conditions.
 </p>
 
 <p>
-Inter-subject variability (V) was <b>${(metrics.variability || 0).toFixed(3)}</b>, confirming consistent psychometric behavior across individuals.
+Inter-subject variability (V) was <b>${(metricsSet.variability || 0).toFixed(3)}</b>, confirming stable psychometric behavior across individuals.
 </p>
 
 <p>
-Intra-set threshold dispersion (D) was <b>${(metrics.sd || 0).toFixed(3)}</b>, with <b>${metrics.outliers || 0}</b> outlier(s), supporting a structurally balanced set without disproportionately easy or difficult optotypes.
+Intra-set threshold dispersion (D) was <b>${(metricsSet.sd || 0).toFixed(3)}</b>, with 
+<b>${metricsSet.outliers || 0}</b> outlier(s), supporting a structurally balanced optotype set without disproportionately easy or difficult elements.
 </p>
 
 <p>
-Perceptual distance (Δ) was <b>${delta.toFixed(3)}</b>, corresponding to approximately <b>${letrasEquivalente.toFixed(1)} optotype letters</b> in visual acuity terms. 
-This magnitude indicates meaningful perceptual separation between optotypes, reducing redundancy and enhancing discriminative power.
+Perceptual distance (Δ) reached <b>${metricsSet.dist.toFixed(3)}</b>, corresponding to approximately 
+<b>${(metricsSet.dist / 0.02).toFixed(1)} optotype letters</b>. 
+This magnitude reflects meaningful perceptual separation between optotypes, reducing redundancy and enhancing discriminative efficiency.
 </p>
 
 <p>
-Overall, the optimized set demonstrated a favorable balance between threshold uniformity, low confusion, and high perceptual separability. 
-Importantly, these findings confirm that optotypes within the same line are not only equally difficult but also perceptually distinct.
+Overall, the optimized set demonstrated a favorable balance between threshold uniformity, reduced confusion, and increased perceptual separability. 
+Importantly, these results indicate that optotypes within the same line are not only matched in difficulty but also remain perceptually distinct.
 </p>
 
 <p>
-From a clinical standpoint, this configuration is expected to improve the reliability and interpretability of visual acuity measurements, particularly in scenarios where crowding and perceptual overlap are critical determinants of performance.
+From a clinical perspective, this configuration is expected to improve both the reliability and interpretability of visual acuity measurements, 
+particularly in conditions where crowding and perceptual overlap are critical determinants of performance. These findings support the concept that optotype selection must be driven by perceptual discriminability rather than threshold uniformity alone.
 </p>
 `
 
