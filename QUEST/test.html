@@ -2409,7 +2409,7 @@ ${letrasSloanFixas}
 </tr>
 
 </table>
-
+<canvas id="metricsChart" width="800" height="400" style="margin-top:30px;"></canvas>
 
 <h2>7. Matriz de Confusão</h2>
 <canvas id="confusionHeatmap" width="700" height="700"></canvas>
@@ -2420,7 +2420,7 @@ ${letrasSloanFixas}
 
 html += tabelaComp
 
-
+desenharGraficoComparativo(metricsGlobal, metricsSloan, metricsSet)
 html += `
 <h2>7. Curvas Psicométricas</h2>
 
@@ -2509,7 +2509,131 @@ info:info
 return resultados
 
 }
+function desenharGraficoComparativo(metricsGlobal, metricsSloan, metricsSet){
 
+let canvas = document.getElementById("metricsChart")
+if(!canvas) return
+
+let ctx = canvas.getContext("2d")
+
+ctx.clearRect(0,0,800,400)
+
+// ================= DADOS =================
+
+let dados = [
+{
+nome:"Cmax",
+g: metricsGlobal.maxConf || 0,
+s: metricsSloan.maxConf || 0,
+o: metricsSet.maxConf || 0,
+invert:false
+},
+{
+nome:"LPI",
+g: metricsGlobal.LPI || 0,
+s: metricsSloan.LPI || 0,
+o: metricsSet.LPI || 0,
+invert:false
+},
+{
+nome:"Variability",
+g: metricsGlobal.variability || 0,
+s: metricsSloan.variability || 0,
+o: metricsSet.variability || 0,
+invert:false
+},
+{
+nome:"Outliers",
+g: metricsGlobal.outliers || 0,
+s: metricsSloan.outliers || 0,
+o: metricsSet.outliers || 0,
+invert:false
+},
+{
+nome:"Dispersion",
+g: metricsGlobal.sd || 0,
+s: metricsSloan.sd || 0,
+o: metricsSet.sd || 0,
+invert:false
+},
+{
+nome:"Δ (Perceptual)",
+g: metricsGlobal.dist || 0,
+s: metricsSloan.dist || 0,
+o: metricsSet.dist || 0,
+invert:true   // 🔥 inverter aqui
+}
+]
+
+// ================= NORMALIZAÇÃO =================
+
+dados.forEach(m=>{
+
+let max = Math.max(m.g, m.s, m.o, 0.0001)
+
+m.gn = m.g / max
+m.sn = m.s / max
+m.on = m.o / max
+
+// 🔥 inverter Δ
+if(m.invert){
+m.gn = 1 - m.gn
+m.sn = 1 - m.sn
+m.on = 1 - m.on
+}
+
+})
+
+// ================= DESENHO =================
+
+let barWidth = 18
+let gap = 30
+let startX = 80
+let baseY = 350
+
+ctx.font = "13px Arial"
+
+// legenda
+ctx.fillStyle = "black"
+ctx.fillText("Global", 80, 20)
+ctx.fillText("Sloan", 180, 20)
+ctx.fillText("SLOAN 2.0", 280, 20)
+
+dados.forEach((m,i)=>{
+
+let x = startX + i * 110
+
+// valores normalizados
+let hg = m.gn * 200
+let hs = m.sn * 200
+let ho = m.on * 200
+
+// GLOBAL
+ctx.fillStyle = "#999"
+ctx.fillRect(x, baseY - hg, barWidth, hg)
+
+// SLOAN
+ctx.fillStyle = "#007bff"
+ctx.fillRect(x + barWidth + 5, baseY - hs, barWidth, hs)
+
+// SLOAN 2.0 (🔥 destaque)
+ctx.fillStyle = "#28a745"
+ctx.fillRect(x + 2*(barWidth + 5), baseY - ho, barWidth, ho)
+
+// label métrica
+ctx.fillStyle = "black"
+ctx.textAlign = "center"
+ctx.fillText(m.nome, x + barWidth, baseY + 15)
+
+})
+
+// eixo
+ctx.beginPath()
+ctx.moveTo(50,350)
+ctx.lineTo(750,350)
+ctx.stroke()
+
+}
 function letterSetOptimization(tabela, matriz, variabilidadeLetra){
 
 
