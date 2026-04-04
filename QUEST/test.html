@@ -2546,19 +2546,43 @@ dados.forEach(m=>{
 let min = Math.min(m.g, m.s, m.o)
 let max = Math.max(m.g, m.s, m.o)
 
-// 🔥 zoom normal
-if(m.zoom === true && (max - min) < 0.02){
-let padding = (max - min) * 0.3 || 0.005
-min -= padding
-max += padding
+// 🔥 MÉTRICAS ONDE MENOR = MELHOR (Cmax, LPI, etc)
+if(m.invert){
+
+// 🔥 CASO CRÍTICO: valores muito próximos → usar best-ratio
+if((max - min) < 0.01){
+
+let best = min
+
+m.gn = best / (m.g || 0.0001)
+m.sn = best / (m.s || 0.0001)
+m.on = best / (m.o || 0.0001)
+
+// normalizar para 0–1
+let maxVal = Math.max(m.gn, m.sn, m.on)
+
+m.gn /= maxVal
+m.sn /= maxVal
+m.on /= maxVal
+
+}else{
+
+// normal normal
+let range = Math.max(max - min, 0.0001)
+
+m.gn = (m.g - min) / range
+m.sn = (m.s - min) / range
+m.on = (m.o - min) / range
+
+m.gn = 1 - m.gn
+m.sn = 1 - m.sn
+m.on = 1 - m.on
+
 }
 
-// 🔥 zoom FORTE para dispersion
-if(m.zoom === "strong"){
-let padding = (max - min) * 0.8 || 0.01
-min -= padding
-max += padding
-}
+}else{
+
+// 🔵 MÉTRICAS ONDE MAIOR = MELHOR (Δ)
 
 let range = Math.max(max - min, 0.0001)
 
@@ -2566,13 +2590,9 @@ m.gn = (m.g - min) / range
 m.sn = (m.s - min) / range
 m.on = (m.o - min) / range
 
-if(m.invert){
-m.gn = 1 - m.gn
-m.sn = 1 - m.sn
-m.on = 1 - m.on
 }
 
-// evitar sumir
+// evitar desaparecer
 m.gn = Math.max(m.gn, 0.08)
 m.sn = Math.max(m.sn, 0.08)
 m.on = Math.max(m.on, 0.08)
