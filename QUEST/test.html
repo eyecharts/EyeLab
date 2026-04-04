@@ -2519,88 +2519,63 @@ if(!canvas) return
 
 let ctx = canvas.getContext("2d")
 
-canvas.width = 950
-canvas.height = 480
+canvas.width = 1000
+canvas.height = 520
 
 ctx.clearRect(0,0,canvas.width,canvas.height)
 
 // ================= DADOS =================
 
 let dados = [
-{
-nome:"Cmax",
-g: metricsGlobal.maxConf || 0,
-s: metricsSloan.maxConf || 0,
-o: metricsSet.maxConf || 0,
-invert:true
-},
-{
-nome:"LPI",
-g: metricsGlobal.LPI || 0,
-s: metricsSloan.LPI || 0,
-o: metricsSet.LPI || 0,
-invert:true
-},
-{
-nome:"Variability",
-g: metricsGlobal.variability || 0,
-s: metricsSloan.variability || 0,
-o: metricsSet.variability || 0,
-invert:true
-},
-{
-nome:"Outliers",
-g: metricsGlobal.outliers || 0,
-s: metricsSloan.outliers || 0,
-o: metricsSet.outliers || 0,
-invert:true
-},
-{
-nome:"Dispersion",
-g: metricsGlobal.sd || 0,
-s: metricsSloan.sd || 0,
-o: metricsSet.sd || 0,
-invert:true
-},
-{
-nome:"Δ (Perceptual)",
-g: metricsGlobal.dist || 0,
-s: metricsSloan.dist || 0,
-o: metricsSet.dist || 0,
-invert:false
-}
+{nome:"Cmax ↓", g:metricsGlobal.maxConf, s:metricsSloan.maxConf, o:metricsSet.maxConf, invert:true},
+{nome:"LPI ↓", g:metricsGlobal.LPI, s:metricsSloan.LPI, o:metricsSet.LPI, invert:true},
+{nome:"Variability ↓", g:metricsGlobal.variability, s:metricsSloan.variability, o:metricsSet.variability, invert:true, zoom:true},
+{nome:"Outliers ↓", g:metricsGlobal.outliers, s:metricsSloan.outliers, o:metricsSet.outliers, invert:true},
+{nome:"Dispersion ↓", g:metricsGlobal.sd, s:metricsSloan.sd, o:metricsSet.sd, invert:true, zoom:true},
+{nome:"Δ (Perceptual) ↑", g:metricsGlobal.dist, s:metricsSloan.dist, o:metricsSet.dist, invert:false}
 ]
 
 // ================= NORMALIZAÇÃO =================
 
 dados.forEach(m=>{
 
-let max = Math.max(m.g, m.s, m.o, 0.0001)
+let min = Math.min(m.g, m.s, m.o)
+let max = Math.max(m.g, m.s, m.o)
 
-m.gn = m.g / max
-m.sn = m.s / max
-m.on = m.o / max
+// 🔥 ZOOM para métricas próximas
+if(m.zoom && (max - min) < 0.02){
+let padding = (max - min) * 0.2 || 0.005
+min -= padding
+max += padding
+}
 
+let range = Math.max(max - min, 0.0001)
+
+m.gn = (m.g - min) / range
+m.sn = (m.s - min) / range
+m.on = (m.o - min) / range
+
+// inverter se necessário
 if(m.invert){
 m.gn = 1 - m.gn
 m.sn = 1 - m.sn
 m.on = 1 - m.on
 }
 
-// evitar barra invisível
-m.gn = Math.max(m.gn, 0.06)
-m.sn = Math.max(m.sn, 0.06)
-m.on = Math.max(m.on, 0.06)
+// evitar desaparecer
+m.gn = Math.max(m.gn, 0.08)
+m.sn = Math.max(m.sn, 0.08)
+m.on = Math.max(m.on, 0.08)
 
 })
 
 // ================= CONFIG =================
 
-let barWidth = 24
-let gap = 130
+let barWidth = 26
+let gap = 140
 let startX = 110
-let baseY = 360
-let maxHeight = 240
+let baseY = 380
+let maxHeight = 260
 
 // ================= TÍTULO =================
 
@@ -2608,21 +2583,29 @@ ctx.textAlign = "center"
 ctx.font = "bold 16px Arial"
 ctx.fillText("Figure 2. Comparative performance across optotype sets", canvas.width/2, 30)
 
-// ================= LEGENDA =================
+// ================= LEGENDA PRINCIPAL =================
 
 ctx.textAlign = "left"
 ctx.font = "12px Arial"
 
 function legenda(x, cor, txt){
 ctx.fillStyle = cor
-ctx.fillRect(x, 55, 18, 18)
+ctx.fillRect(x, 60, 18, 18)
 ctx.fillStyle = "black"
-ctx.fillText(txt, x+25, 69)
+ctx.fillText(txt, x+25, 74)
 }
 
-legenda(250,"#999","Global (A–Z)")
-legenda(450,"#007bff","Classical Sloan")
-legenda(670,"#28a745","SLOAN 2.0")
+legenda(220,"#999","Global (A–Z)")
+legenda(420,"#007bff","Classical Sloan")
+legenda(650,"#28a745","SLOAN 2.0")
+
+// ================= LEGENDA EXPLICATIVA =================
+
+ctx.font = "11px Arial"
+ctx.fillStyle = "#333"
+
+ctx.fillText("↓ Lower values indicate better performance (inverted scale)", 200, 100)
+ctx.fillText("↑ Higher values indicate better performance", 200, 115)
 
 // ================= DESENHO =================
 
@@ -2636,8 +2619,8 @@ let ho = m.on * maxHeight
 
 let xs = [
 x,
-x + barWidth + 8,
-x + 2*(barWidth + 8)
+x + barWidth + 10,
+x + 2*(barWidth + 10)
 ]
 
 let hsArr = [hg, hs, ho]
@@ -2646,10 +2629,8 @@ let vals = [m.g, m.s, m.o]
 
 // barras
 xs.forEach((xx,j)=>{
-
 ctx.fillStyle = cores[j]
 ctx.fillRect(xx, baseY - hsArr[j], barWidth, hsArr[j])
-
 })
 
 // valores
@@ -2673,19 +2654,22 @@ ctx.fillText(txt, xs[j] + barWidth/2, baseY - hsArr[j] - 6)
 
 })
 
-// label métrica
+// label
 ctx.font = "11px Arial"
-ctx.fillText(m.nome, x + barWidth, baseY + 18)
+ctx.fillText(m.nome, x + barWidth, baseY + 20)
 
 })
 
 // eixo
 ctx.beginPath()
 ctx.moveTo(90, baseY)
-ctx.lineTo(canvas.width-50, baseY)
+ctx.lineTo(canvas.width-60, baseY)
 ctx.stroke()
 
 }
+
+
+
 
 function letterSetOptimization(tabela, matriz, variabilidadeLetra){
 
