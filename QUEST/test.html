@@ -3989,9 +3989,9 @@ function extractThresholdsFromTable(){
 function renderLine(){
 
   clinicalArea.innerHTML = "";
-
+const effectiveLine = lineIndex % 12;
   // 🔥 logMAR correto (usa linha anterior pois você incrementa depois)
-  const logMAR = getLogMARFromSystem(lineIndex - 1);
+  const logMAR = getLogMARFromSystem(effectiveLine);
 
   // 🔥 info no topo
   const info = document.createElement("div");
@@ -4003,7 +4003,7 @@ function renderLine(){
   clinicalArea.appendChild(info);
 
   // 👉 tamanho base
-  const baseSize = getBaseSizeFromSystem(lineIndex - 1);
+  const baseSize = getBaseSizeFromSystem(effectiveLine);
 
   // 🔥 linha de letras
   const lineDiv = document.createElement("div");
@@ -4066,7 +4066,7 @@ function processLine(){
     time: time
   });
 
-  if(lineIndex < 12){
+  if(lineIndex < 24){
     nextLine();
   } else {
     finishClinical();
