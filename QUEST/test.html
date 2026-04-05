@@ -3933,35 +3933,58 @@ return texto
 window.SLOAN20_FACTORS = {};
 
 // função para extrair da tabela já gerada
+
+
 function extractThresholdsFromTable(){
 
-  const rows = document.querySelectorAll("table tr");
+  // tenta encontrar tabela pelo título
+  const tables = document.querySelectorAll("table");
+
+  let targetTable = null;
+
+  tables.forEach(table => {
+    if(table.innerText.includes("Compensação de Tamanho por Optótipo")){
+      targetTable = table;
+    }
+  });
+
+  if(!targetTable){
+    console.warn("Tabela de compensação não encontrada.");
+    return;
+  }
+
+  const rows = targetTable.querySelectorAll("tr");
 
   let data = [];
 
-  rows.forEach(row => {
+  rows.forEach((row, index) => {
+
+    // pula header
+    if(index === 0) return;
+
     const cells = row.querySelectorAll("td");
 
-    if(cells.length >= 2){
+    if(cells.length < 2) return;
 
-      const letter = cells[0].innerText.trim();
-      const thr = parseFloat(cells[1].innerText);
+    const letter = cells[0].innerText.trim();
+    const thr = parseFloat(cells[1].innerText);
 
-      if(letter && !isNaN(thr)){
-        data.push({letter, thr});
-      }
+    if(letter && !isNaN(thr)){
+      data.push({letter, thr});
     }
   });
 
   if(data.length === 0){
-    console.warn("Tabela de thresholds não encontrada.");
+    console.warn("Nenhum threshold encontrado na tabela.");
     return;
   }
 
   // média
   const mean = data.reduce((a,b)=>a+b.thr,0)/data.length;
 
-  // calcular fatores
+  // limpa antes
+  window.SLOAN20_FACTORS = {};
+
   data.forEach(d=>{
     const delta = d.thr - mean;
     const fator = Math.pow(10, delta);
@@ -3969,76 +3992,7 @@ function extractThresholdsFromTable(){
     window.SLOAN20_FACTORS[d.letter] = fator;
   });
 
-  console.log("Fatores carregados:", window.SLOAN20_FACTORS);
-}
-
-// chama automaticamente após upload
-setTimeout(extractThresholdsFromTable, 1500);
-
-
-// ==============================
-// 🔬 TESTE CLÍNICO ETDRS
-// ==============================
-
-const SLOAN_CLASSICO = ["C","D","H","K","N","O","R","S","V","Z"];
-
-// INPUT
-const inputContainer = document.createElement("div");
-inputContainer.innerHTML = `
-<br><label><b>SLOAN 2.0:</b></label>
-<input id="sloan2_input" value="APXNVDSKC" style="font-size:18px;">
-<button onclick="startClinicalTest()">▶ Teste Clínico</button>
-`;
-document.body.appendChild(inputContainer);
-
-// AREA
-const clinicalArea = document.createElement("div");
-clinicalArea.style.textAlign = "center";
-clinicalArea.style.marginTop = "30px";
-document.body.appendChild(clinicalArea);
-
-// estado
-let clinicalMode = false;
-let dataClinical = [];
-let lettersLine = [];
-let responses = [];
-let chartType = "";
-let lineIndex = 0;
-let startTime = 0;
-
-// iniciar
-function startClinicalTest(){
-
-  if(Object.keys(window.SLOAN20_FACTORS).length === 0){
-    alert("Carregue o CSV primeiro!");
-    return;
-  }
-
-  clinicalMode = true;
-  dataClinical = [];
-  lineIndex = 0;
-
-  nextLine();
-}
-
-// próxima linha
-function nextLine(){
-
-  responses = [];
-
-  chartType = (lineIndex % 2 === 0) ? "CLASSICO" : "SLOAN20";
-
-  const sloan2 = document.getElementById("sloan2_input").value.toUpperCase().split("");
-
-  const pool = (chartType === "CLASSICO") ? SLOAN_CLASSICO : sloan2;
-
-  lettersLine = shuffle(pool).slice(0,5);
-
-  renderLine();
-
-  startTime = performance.now();
-
-  lineIndex++;
+  console.log("✔ Fatores calculados:", window.SLOAN20_FACTORS);
 }
 
 // render
