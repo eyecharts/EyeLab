@@ -4180,8 +4180,10 @@ function nextLine(){
     chartType = "SLOAN20";
   }
 
-  const sloan2 = document.getElementById("sloan2_input").value.toUpperCase().split("");
+  const raw = document.getElementById("sloan2_input").value.toUpperCase();
 
+// remove vírgula, espaço, etc
+const sloan2 = Object.keys(window.SLOAN20_FACTORS);
   const pool = (chartType === "CLASSICO")
     ? ["C","D","H","K","N","O","R","S","V","Z"]
     : sloan2;
