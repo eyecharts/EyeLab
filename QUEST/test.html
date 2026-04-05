@@ -4123,9 +4123,12 @@ let startTime = 0;
 // iniciar teste
 function startClinicalTest(){
 
-  if(Object.keys(window.SLOAN20_FACTORS).length === 0){
-    extractThresholdsFromTable();
-  }
+  extractThresholdsFromTable();
+
+if(Object.keys(window.SLOAN20_FACTORS).length === 0){
+  alert("Tabela ainda não detectada.");
+  return;
+}
 
   if(Object.keys(window.SLOAN20_FACTORS).length === 0){
     alert("Tabela de compensação ainda não foi gerada.");
