@@ -3925,6 +3925,428 @@ These findings support the concept that optotype selection should be driven by p
 
 return texto
 }
+
+    // ==============================
+// 🔬 INTEGRAÇÃO COM CSV / TABELA EXISTENTE
+// ==============================
+
+window.SLOAN20_FACTORS = {};
+
+// função para extrair da tabela já gerada
+function extractThresholdsFromTable(){
+
+  const rows = document.querySelectorAll("table tr");
+
+  let data = [];
+
+  rows.forEach(row => {
+    const cells = row.querySelectorAll("td");
+
+    if(cells.length >= 2){
+
+      const letter = cells[0].innerText.trim();
+      const thr = parseFloat(cells[1].innerText);
+
+      if(letter && !isNaN(thr)){
+        data.push({letter, thr});
+      }
+    }
+  });
+
+  if(data.length === 0){
+    console.warn("Tabela de thresholds não encontrada.");
+    return;
+  }
+
+  // média
+  const mean = data.reduce((a,b)=>a+b.thr,0)/data.length;
+
+  // calcular fatores
+  data.forEach(d=>{
+    const delta = d.thr - mean;
+    const fator = Math.pow(10, delta);
+
+    window.SLOAN20_FACTORS[d.letter] = fator;
+  });
+
+  console.log("Fatores carregados:", window.SLOAN20_FACTORS);
+}
+
+// chama automaticamente após upload
+setTimeout(extractThresholdsFromTable, 1500);
+
+
+// ==============================
+// 🔬 TESTE CLÍNICO ETDRS
+// ==============================
+
+const SLOAN_CLASSICO = ["C","D","H","K","N","O","R","S","V","Z"];
+
+// INPUT
+const inputContainer = document.createElement("div");
+inputContainer.innerHTML = `
+<br><label><b>SLOAN 2.0:</b></label>
+<input id="sloan2_input" value="APXNVDSKC" style="font-size:18px;">
+<button onclick="startClinicalTest()">▶ Teste Clínico</button>
+`;
+document.body.appendChild(inputContainer);
+
+// AREA
+const clinicalArea = document.createElement("div");
+clinicalArea.style.textAlign = "center";
+clinicalArea.style.marginTop = "30px";
+document.body.appendChild(clinicalArea);
+
+// estado
+let clinicalMode = false;
+let dataClinical = [];
+let lettersLine = [];
+let responses = [];
+let chartType = "";
+let lineIndex = 0;
+let startTime = 0;
+
+// iniciar
+function startClinicalTest(){
+
+  if(Object.keys(window.SLOAN20_FACTORS).length === 0){
+    alert("Carregue o CSV primeiro!");
+    return;
+  }
+
+  clinicalMode = true;
+  dataClinical = [];
+  lineIndex = 0;
+
+  nextLine();
+}
+
+// próxima linha
+function nextLine(){
+
+  responses = [];
+
+  chartType = (lineIndex % 2 === 0) ? "CLASSICO" : "SLOAN20";
+
+  const sloan2 = document.getElementById("sloan2_input").value.toUpperCase().split("");
+
+  const pool = (chartType === "CLASSICO") ? SLOAN_CLASSICO : sloan2;
+
+  lettersLine = shuffle(pool).slice(0,5);
+
+  renderLine();
+
+  startTime = performance.now();
+
+  lineIndex++;
+}
+
+// render
+function renderLine(){
+
+  clinicalArea.innerHTML = "";
+
+  // 👉 usa seu sistema atual (pegando do DOM ou variável existente)
+  const baseSize = getBaseSizeFromSystem(lineIndex);
+
+  lettersLine.forEach(letter => {
+
+    let size = baseSize;
+
+    if(chartType === "SLOAN20" && window.SLOAN20_FACTORS[letter]){
+      size = baseSize * window.SLOAN20_FACTORS[letter];
+    }
+
+    const span = document.createElement("span");
+    span.innerText = letter;
+    span.style.fontSize = size + "px";
+    span.style.margin = "10px";
+
+    clinicalArea.appendChild(span);
+  });
+
+}
+
+// teclado
+document.addEventListener("keydown", function(e){
+
+  if(!clinicalMode) return;
+
+  responses.push(e.key.toUpperCase());
+
+  if(responses.length === lettersLine.length){
+    processLine();
+  }
+
+});
+
+// processar
+function processLine(){
+
+  const time = Math.round(performance.now() - startTime);
+
+  let correct = 0;
+
+  for(let i=0;i<lettersLine.length;i++){
+    if(responses[i] === lettersLine[i]){
+      correct++;
+    }
+  }
+
+  const logMAR = getLogMARFromSystem(lineIndex);
+
+  dataClinical.push({
+    chart: chartType,
+    line: lineIndex,
+    logMAR: logMAR,
+    letters: lettersLine.join(""),
+    responses: responses.join(""),
+    correct: correct,
+    time: time
+  });
+
+  if(lineIndex < 12){
+    nextLine();
+  } else {
+    finishClinical();
+  }
+}
+
+// finalizar
+function finishClinical(){
+
+  clinicalMode = false;
+
+  let csv = "chart,line,logMAR,letters,responses,correct,time\n";
+
+  dataClinical.forEach(d=>{
+    csv += `${d.chart},${d.line},${d.logMAR},${d.letters},${d.responses},${d.correct},${d.time}\n`;
+  });
+
+  downloadCSV(csv);
+}
+
+// download
+function downloadCSV(content){
+
+  const blob = new Blob([content], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "clinical_result.csv";
+  a.click();
+}
+
+// util
+function shuffle(a){
+  return a.sort(()=>Math.random()-0.5);
+}
+
+// ==============================
+// 🔴 LIGA COM SEU SISTEMA ATUAL
+// ==============================
+
+// 👉 AJUSTE AQUI para seu código real
+
+function getBaseSizeFromSystem(line){
+  return window.currentOptotypeSize || (40 - line * 3);
+}
+
+function getLogMARFromSystem(line){
+  return window.currentLogMAR || (line * 0.1);
+}
+
+    // ==============================
+// 📂 UPLOAD CSV MULTI-PACIENTES
+// ==============================
+
+const uploadDiv = document.createElement("div");
+uploadDiv.innerHTML = `
+<br><hr>
+<h3>📊 Análise Clínica (Sloan vs SLOAN 2.0)</h3>
+<input type="file" id="csvUpload" accept=".csv">
+<button onclick="processCSV()">Processar CSV</button>
+<div id="analysisOutput"></div>
+<canvas id="plotCanvas" width="600" height="400" style="border:1px solid #ccc;"></canvas>
+`;
+document.body.appendChild(uploadDiv);
+
+// ==============================
+// 📥 PROCESSAR CSV
+// ==============================
+
+function processCSV(){
+
+  const file = document.getElementById("csvUpload").files[0];
+  if(!file){
+    alert("Selecione um CSV");
+    return;
+  }
+
+  const reader = new FileReader();
+
+  reader.onload = function(e){
+    const text = e.target.result;
+    analyzeCSV(text);
+  };
+
+  reader.readAsText(file);
+}
+
+// ==============================
+// 🧠 PARSE + ANÁLISE
+// ==============================
+
+function analyzeCSV(text){
+
+  const lines = text.trim().split("\n");
+  const header = lines[0].split(",");
+
+  const data = lines.slice(1).map(l => {
+    const v = l.split(",");
+    return {
+      chart: v[0],
+      logMAR: parseFloat(v[2]),
+      correct: parseFloat(v[5])
+    };
+  });
+
+  // separar grupos
+  let sloan = [];
+  let sloan20 = [];
+
+  data.forEach(d=>{
+    if(d.chart === "CLASSICO") sloan.push(d.correct);
+    if(d.chart === "SLOAN20") sloan20.push(d.correct);
+  });
+
+  // garantir pareamento simples
+  const n = Math.min(sloan.length, sloan20.length);
+
+  sloan = sloan.slice(0,n);
+  sloan20 = sloan20.slice(0,n);
+
+  // ==============================
+  // 📊 ESTATÍSTICAS
+  // ==============================
+
+  const mean = arr => arr.reduce((a,b)=>a+b,0)/arr.length;
+
+  const sd = arr => {
+    const m = mean(arr);
+    return Math.sqrt(arr.reduce((a,b)=>a+(b-m)**2,0)/(arr.length-1));
+  };
+
+  const diffs = sloan20.map((v,i)=>v - sloan[i]);
+
+  const meanDiff = mean(diffs);
+  const sdDiff = sd(diffs);
+
+  const t = meanDiff / (sdDiff / Math.sqrt(n));
+
+  const ci_low = meanDiff - 1.96 * sdDiff;
+  const ci_high = meanDiff + 1.96 * sdDiff;
+
+  // ==============================
+  // 📋 OUTPUT TEXTO
+  // ==============================
+
+  document.getElementById("analysisOutput").innerHTML = `
+  <b>N:</b> ${n}<br>
+  <b>Sloan Média:</b> ${mean(sloan).toFixed(3)}<br>
+  <b>SLOAN 2.0 Média:</b> ${mean(sloan20).toFixed(3)}<br>
+  <b>Diferença média:</b> ${meanDiff.toFixed(3)}<br>
+  <b>t:</b> ${t.toFixed(3)}<br>
+  <b>IC95%:</b> ${ci_low.toFixed(3)} a ${ci_high.toFixed(3)}
+  `;
+
+  // ==============================
+  // 📈 GRÁFICO (SCATTER)
+  // ==============================
+
+  drawScatter(sloan, sloan20);
+
+  // ==============================
+  // 📉 BLAND-ALTMAN
+  // ==============================
+
+  drawBlandAltman(sloan, sloan20);
+}
+
+// ==============================
+// 📈 SCATTER PLOT
+// ==============================
+
+function drawScatter(x, y){
+
+  const canvas = document.getElementById("plotCanvas");
+  const ctx = canvas.getContext("2d");
+
+  ctx.clearRect(0,0,600,400);
+
+  ctx.fillText("Sloan vs SLOAN 2.0", 200, 20);
+
+  for(let i=0;i<x.length;i++){
+    const px = x[i]*20 + 100;
+    const py = y[i]*20 + 100;
+
+    ctx.beginPath();
+    ctx.arc(px, py, 3, 0, Math.PI*2);
+    ctx.fill();
+  }
+}
+
+// ==============================
+// 📉 BLAND-ALTMAN
+// ==============================
+
+function drawBlandAltman(a, b){
+
+  const canvas = document.getElementById("plotCanvas");
+  const ctx = canvas.getContext("2d");
+
+  ctx.clearRect(0,0,600,400);
+
+  const means = a.map((v,i)=>(v+b[i])/2);
+  const diffs = a.map((v,i)=>b[i]-v);
+
+  const meanDiff = means.reduce((x,y)=>x+y,0)/means.length;
+  const sdDiff = Math.sqrt(diffs.reduce((x,y)=>x+(y-meanDiff)**2,0)/(diffs.length-1));
+
+  ctx.fillText("Bland-Altman", 220, 20);
+
+  for(let i=0;i<means.length;i++){
+    const px = means[i]*20 + 100;
+    const py = diffs[i]*20 + 200;
+
+    ctx.beginPath();
+    ctx.arc(px, py, 3, 0, Math.PI*2);
+    ctx.fill();
+  }
+
+  // linhas
+  const meanY = 200 - meanDiff*20;
+  const upper = 200 - (meanDiff + 1.96*sdDiff)*20;
+  const lower = 200 - (meanDiff - 1.96*sdDiff)*20;
+
+  ctx.strokeStyle = "red";
+
+  ctx.beginPath();
+  ctx.moveTo(0, meanY);
+  ctx.lineTo(600, meanY);
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.moveTo(0, upper);
+  ctx.lineTo(600, upper);
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.moveTo(0, lower);
+  ctx.lineTo(600, lower);
+  ctx.stroke();
+}
 </script>
 
 </body>
