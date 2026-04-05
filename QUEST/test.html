@@ -4157,31 +4157,36 @@ function nextLine(){
 
   const totalLines = 12;
 
-if(lineIndex < totalLines){
-  chartType = "CLASSICO";
-} else {
-  chartType = "SLOAN20";
-}
+  if(lineIndex < totalLines){
+    chartType = "CLASSICO";
+  } else {
+    chartType = "SLOAN20";
+  }
+
   const sloan2 = document.getElementById("sloan2_input").value.toUpperCase().split("");
 
   const pool = (chartType === "CLASSICO")
     ? ["C","D","H","K","N","O","R","S","V","Z"]
     : sloan2;
 
-  
-function getNextLetters(pool, lineIndex){
+  // 🔥 FUNÇÃO FORA (mas pode ficar aqui também)
+  function getNextLetters(pool, lineIndex){
 
-  const size = 5;
-  const start = (lineIndex * size) % pool.length;
+    const size = 5;
+    const start = (lineIndex * size) % pool.length;
 
-  let result = [];
+    let result = [];
 
-  for(let i=0; i<size; i++){
-    result.push(pool[(start + i) % pool.length]);
+    for(let i=0; i<size; i++){
+      result.push(pool[(start + i) % pool.length]);
+    }
+
+    return shuffle(result);
   }
 
-  return shuffle(result);
-}
+  // 🔥 ESSA LINHA É O QUE FALTAVA
+  lettersLine = getNextLetters(pool, lineIndex);
+
   renderLine();
 
   startTime = performance.now();
