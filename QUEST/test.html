@@ -4094,11 +4094,14 @@ function shuffle(a){
 // 👉 AJUSTE AQUI para seu código real
 
 function getBaseSizeFromSystem(line){
-  return window.currentOptotypeSize || (40 - line * 3);
+
+  const base = 100; // tamanho inicial
+  return base * Math.pow(10, -(line * 0.1));
 }
 
 function getLogMARFromSystem(line){
-  return window.currentLogMAR || (line * 0.1);
+  const start = 1.0; // linha inicial (20/200)
+  return start - (line * 0.1);
 }
 // ==============================
 // 🔬 TESTE CLÍNICO - UI + CONTROLE
@@ -4152,8 +4155,13 @@ function nextLine(){
 
   responses = [];
 
-  chartType = (lineIndex % 2 === 0) ? "CLASSICO" : "SLOAN20";
+  const totalLines = 12;
 
+if(lineIndex < totalLines){
+  chartType = "CLASSICO";
+} else {
+  chartType = "SLOAN20";
+}
   const sloan2 = document.getElementById("sloan2_input").value.toUpperCase().split("");
 
   const pool = (chartType === "CLASSICO")
@@ -4212,31 +4220,54 @@ function processCSV(){
 function analyzeCSV(text){
 
   const lines = text.trim().split("\n");
-  const header = lines[0].split(",");
 
   const data = lines.slice(1).map(l => {
     const v = l.split(",");
     return {
       chart: v[0],
+      line: parseInt(v[1]),            // 🔥 CORREÇÃO ESSENCIAL
       logMAR: parseFloat(v[2]),
       correct: parseFloat(v[5])
     };
   });
 
-  // separar grupos
+  // ==============================
+  // 🔗 PAREAMENTO POR LINHA
+  // ==============================
+
+  const grouped = {};
+
+  data.forEach(d => {
+
+    if(isNaN(d.line)) return; // segurança
+
+    if(!grouped[d.line]) grouped[d.line] = {};
+
+    grouped[d.line][d.chart] = d.correct;
+  });
+
   let sloan = [];
   let sloan20 = [];
 
-  data.forEach(d=>{
-    if(d.chart === "CLASSICO") sloan.push(d.correct);
-    if(d.chart === "SLOAN20") sloan20.push(d.correct);
+  Object.values(grouped).forEach(g => {
+
+    if(
+      g.CLASSICO !== undefined &&
+      g.SLOAN20 !== undefined &&
+      !isNaN(g.CLASSICO) &&
+      !isNaN(g.SLOAN20)
+    ){
+      sloan.push(g.CLASSICO);
+      sloan20.push(g.SLOAN20);
+    }
   });
 
-  // garantir pareamento simples
-  const n = Math.min(sloan.length, sloan20.length);
+  const n = sloan.length; // 🔥 AGORA CORRETO
 
-  sloan = sloan.slice(0,n);
-  sloan20 = sloan20.slice(0,n);
+  if(n === 0){
+    document.getElementById("analysisOutput").innerHTML = "Sem dados pareados suficientes.";
+    return;
+  }
 
   // ==============================
   // 📊 ESTATÍSTICAS
