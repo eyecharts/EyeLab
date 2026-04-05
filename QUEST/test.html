@@ -4301,6 +4301,26 @@ function drawBlandAltman(a, b){
   ctx.lineTo(600, lower);
   ctx.stroke();
 }
+
+    // observa quando a tabela aparece no DOM
+const observer = new MutationObserver(() => {
+
+  const tables = document.querySelectorAll("table");
+
+  tables.forEach(table => {
+    if(table.innerText.includes("Compensação de Tamanho por Optótipo")){
+      
+      extractThresholdsFromTable();
+
+      console.log("✔ Tabela detectada automaticamente");
+
+      observer.disconnect(); // roda só uma vez
+    }
+  });
+
+});
+
+observer.observe(document.body, { childList: true, subtree: true });
 </script>
 
 </body>
