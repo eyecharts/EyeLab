@@ -4020,7 +4020,10 @@ const effectiveLine = lineIndex % 12;
     const span = document.createElement("span");
     span.innerText = letter;
     span.style.fontSize = size + "px";
-    span.style.margin = "10px";
+    span.style.display = "inline-block";
+span.style.width = size + "px";   // 🔥 largura = altura
+span.style.textAlign = "center";
+      span.style.fontFamily = "'Sloan2', sans-serif";
 
     lineDiv.appendChild(span);
   });
@@ -4117,8 +4120,13 @@ function getBaseSizeFromSystem(line){
 }
 
 function getLogMARFromSystem(line){
-  const start = 1.0; // linha inicial (20/200)
-  return start - (line * 0.1);
+
+  const start = 0.3;
+
+  // 🔥 mantém escala ETDRS dentro de cada bloco
+  const effectiveLine = line % 12;
+
+  return start - (effectiveLine * 0.1);
 }
 // ==============================
 // 🔬 TESTE CLÍNICO - UI + CONTROLE
