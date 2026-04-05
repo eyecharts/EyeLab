@@ -3937,7 +3937,6 @@ window.SLOAN20_FACTORS = {};
 
 function extractThresholdsFromTable(){
 
-  // tenta encontrar tabela pelo título
   const tables = document.querySelectorAll("table");
 
   let targetTable = null;
@@ -3949,50 +3948,31 @@ function extractThresholdsFromTable(){
   });
 
   if(!targetTable){
-    console.warn("Tabela de compensação não encontrada.");
+    console.warn("Tabela não encontrada.");
     return;
   }
 
   const rows = targetTable.querySelectorAll("tr");
 
-  let data = [];
+  window.SLOAN20_FACTORS = {};
 
   rows.forEach((row, index) => {
 
-    // pula header
     if(index === 0) return;
 
     const cells = row.querySelectorAll("td");
 
-    if(cells.length < 2) return;
+    if(cells.length < 4) return;
 
     const letter = cells[0].innerText.trim();
-    const thr = parseFloat(cells[1].innerText);
+    const fator = parseFloat(cells[3].innerText);
 
-    if(letter && !isNaN(thr)){
-      data.push({letter, thr});
+    if(letter && !isNaN(fator)){
+      window.SLOAN20_FACTORS[letter] = fator;
     }
   });
 
-  if(data.length === 0){
-    console.warn("Nenhum threshold encontrado na tabela.");
-    return;
-  }
-
-  // média
-  const mean = data.reduce((a,b)=>a+b.thr,0)/data.length;
-
-  // limpa antes
-  window.SLOAN20_FACTORS = {};
-
-  data.forEach(d=>{
-    const delta = d.thr - mean;
-    const fator = Math.pow(10, delta);
-
-    window.SLOAN20_FACTORS[d.letter] = fator;
-  });
-
-  console.log("✔ Fatores calculados:", window.SLOAN20_FACTORS);
+  console.log("✔ Fatores carregados DIRETO da tabela:", window.SLOAN20_FACTORS);
 }
 
 // render
