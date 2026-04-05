@@ -3990,13 +3990,29 @@ function renderLine(){
 
   clinicalArea.innerHTML = "";
 
-  // 👉 usa seu sistema atual (pegando do DOM ou variável existente)
-  const baseSize = getBaseSizeFromSystem(lineIndex);
+  // 🔥 logMAR correto (usa linha anterior pois você incrementa depois)
+  const logMAR = getLogMARFromSystem(lineIndex - 1);
+
+  // 🔥 info no topo
+  const info = document.createElement("div");
+  info.innerText = `logMAR: ${logMAR.toFixed(2)} | ${chartType}`;
+  info.style.fontSize = "20px";
+  info.style.marginBottom = "20px";
+  info.style.fontWeight = "bold";
+
+  clinicalArea.appendChild(info);
+
+  // 👉 tamanho base
+  const baseSize = getBaseSizeFromSystem(lineIndex - 1);
+
+  // 🔥 linha de letras
+  const lineDiv = document.createElement("div");
 
   lettersLine.forEach(letter => {
 
     let size = baseSize;
 
+    // 🔥 aplica compensação SLOAN 2.0
     if(chartType === "SLOAN20" && window.SLOAN20_FACTORS[letter]){
       size = baseSize * window.SLOAN20_FACTORS[letter];
     }
@@ -4006,9 +4022,10 @@ function renderLine(){
     span.style.fontSize = size + "px";
     span.style.margin = "10px";
 
-    clinicalArea.appendChild(span);
+    lineDiv.appendChild(span);
   });
 
+  clinicalArea.appendChild(lineDiv);
 }
 
 // teclado
