@@ -3934,7 +3934,6 @@ window.SLOAN20_FACTORS = {};
 
 // função para extrair da tabela já gerada
 
-
 function extractThresholdsFromTable(){
 
   const tables = document.querySelectorAll("table");
@@ -3942,13 +3941,23 @@ function extractThresholdsFromTable(){
   let targetTable = null;
 
   tables.forEach(table => {
-    if(table.innerText.includes("Compensação de Tamanho por Optótipo")){
-      targetTable = table;
+
+    const headers = table.querySelectorAll("th");
+
+    if(headers.length >= 5){
+
+      const h0 = headers[0].innerText.toLowerCase();
+      const h1 = headers[1].innerText.toLowerCase();
+
+      // identifica tabela correta pela estrutura
+      if(h0.includes("letra") && h1.includes("threshold")){
+        targetTable = table;
+      }
     }
   });
 
   if(!targetTable){
-    console.warn("Tabela não encontrada.");
+    console.warn("Tabela correta NÃO encontrada.");
     return;
   }
 
@@ -3972,8 +3981,9 @@ function extractThresholdsFromTable(){
     }
   });
 
-  console.log("✔ Fatores carregados DIRETO da tabela:", window.SLOAN20_FACTORS);
+  console.log("✔ Fatores carregados:", window.SLOAN20_FACTORS);
 }
+
 
 // render
 function renderLine(){
@@ -4125,13 +4135,8 @@ function startClinicalTest(){
 
   extractThresholdsFromTable();
 
-if(Object.keys(window.SLOAN20_FACTORS).length === 0){
-  alert("Tabela ainda não detectada.");
-  return;
-}
-
   if(Object.keys(window.SLOAN20_FACTORS).length === 0){
-    alert("Tabela de compensação ainda não foi gerada.");
+    alert("Tabela ainda não detectada.");
     return;
   }
 
