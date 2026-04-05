@@ -4168,8 +4168,20 @@ if(lineIndex < totalLines){
     ? ["C","D","H","K","N","O","R","S","V","Z"]
     : sloan2;
 
-  lettersLine = shuffle(pool).slice(0,5);
+  
+function getNextLetters(pool, lineIndex){
 
+  const size = 5;
+  const start = (lineIndex * size) % pool.length;
+
+  let result = [];
+
+  for(let i=0; i<size; i++){
+    result.push(pool[(start + i) % pool.length]);
+  }
+
+  return shuffle(result);
+}
   renderLine();
 
   startTime = performance.now();
