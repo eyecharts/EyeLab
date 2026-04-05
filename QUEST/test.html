@@ -4110,7 +4110,76 @@ function getBaseSizeFromSystem(line){
 function getLogMARFromSystem(line){
   return window.currentLogMAR || (line * 0.1);
 }
+// ==============================
+// 🔬 TESTE CLÍNICO - UI + CONTROLE
+// ==============================
 
+// container do teste clínico
+const clinicalUI = document.createElement("div");
+clinicalUI.innerHTML = `
+<br><hr>
+<h3>👁️ Teste Clínico ETDRS</h3>
+<label>SLOAN 2.0:</label>
+<input id="sloan2_input" value="APXNVDSKC" style="font-size:18px;">
+<button onclick="startClinicalTest()">▶ Iniciar Teste Clínico</button>
+`;
+document.body.appendChild(clinicalUI);
+
+// área onde aparecem as letras
+const clinicalArea = document.createElement("div");
+clinicalArea.style.textAlign = "center";
+clinicalArea.style.marginTop = "30px";
+document.body.appendChild(clinicalArea);
+
+// estado
+let clinicalMode = false;
+let dataClinical = [];
+let lettersLine = [];
+let responses = [];
+let chartType = "";
+let lineIndex = 0;
+let startTime = 0;
+
+// iniciar teste
+function startClinicalTest(){
+
+  if(Object.keys(window.SLOAN20_FACTORS).length === 0){
+    extractThresholdsFromTable();
+  }
+
+  if(Object.keys(window.SLOAN20_FACTORS).length === 0){
+    alert("Tabela de compensação ainda não foi gerada.");
+    return;
+  }
+
+  clinicalMode = true;
+  dataClinical = [];
+  lineIndex = 0;
+
+  nextLine();
+}
+
+// próxima linha
+function nextLine(){
+
+  responses = [];
+
+  chartType = (lineIndex % 2 === 0) ? "CLASSICO" : "SLOAN20";
+
+  const sloan2 = document.getElementById("sloan2_input").value.toUpperCase().split("");
+
+  const pool = (chartType === "CLASSICO")
+    ? ["C","D","H","K","N","O","R","S","V","Z"]
+    : sloan2;
+
+  lettersLine = shuffle(pool).slice(0,5);
+
+  renderLine();
+
+  startTime = performance.now();
+
+  lineIndex++;
+}
     // ==============================
 // 📂 UPLOAD CSV MULTI-PACIENTES
 // ==============================
