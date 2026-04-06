@@ -177,7 +177,9 @@ Digite a letra (A–Z) ou 0
 <br><br><br><br>
 </div>
 
-
+<div id="clinico" class="aba" style="display:none;">
+  <div id="clinicalContainer"></div>
+</div>
 <!-- ================= CALIBRAÇÃO ================= -->
 
 <div id="configPanel" style="display:none;border:1px solid #ccc;padding:15px;margin:20px;">
@@ -4159,13 +4161,13 @@ clinicalUI.innerHTML = `
 <input id="sloan2_input" value="APXNVDSKC" style="font-size:18px;">
 <button onclick="startClinicalTest()">▶ Iniciar Teste Clínico</button>
 `;
-document.body.appendChild(clinicalUI);
+
 
 // área onde aparecem as letras
 const clinicalArea = document.createElement("div");
 clinicalArea.style.textAlign = "center";
 clinicalArea.style.marginTop = "30px";
-document.body.appendChild(clinicalArea);
+
 
 // estado
 let clinicalMode = false;
@@ -4248,7 +4250,15 @@ uploadDiv.innerHTML = `
 <div id="analysisOutput"></div>
 <canvas id="plotCanvas" width="600" height="400" style="border:1px solid #ccc;"></canvas>
 `;
-document.body.appendChild(uploadDiv);
+window.addEventListener("DOMContentLoaded", () => {
+
+  const container = document.getElementById("clinicalContainer");
+
+  container.appendChild(clinicalUI);
+  container.appendChild(clinicalArea);
+  container.appendChild(uploadDiv);
+
+});
 
 // ==============================
 // 📥 PROCESSAR CSV
