@@ -4031,6 +4031,14 @@ function renderLine(){
 
   clinicalArea.innerHTML = "";
 
+  // 🔥 container branco (igual teste psicométrico)
+  const card = document.createElement("div");
+  card.style.background = "white";
+  card.style.padding = "40px";
+  card.style.borderRadius = "10px";
+  card.style.boxShadow = "0 0 10px rgba(0,0,0,0.1)";
+  card.style.display = "inline-block";
+
   const effectiveLine = lineIndex % TOTAL_LINES_PER_BLOCK;
 
   const logMAR = getLogMARFromSystem(lineIndex);
@@ -4041,7 +4049,7 @@ function renderLine(){
   info.style.marginBottom = "20px";
   info.style.fontWeight = "bold";
 
-  clinicalArea.appendChild(info);
+  card.appendChild(info);
 
   const baseSize = getBaseSizeFromSystem(effectiveLine);
 
@@ -4050,8 +4058,6 @@ function renderLine(){
   lineDiv.style.display = "flex";
   lineDiv.style.justifyContent = "center";
   lineDiv.style.alignItems = "center";
-
-  // 🔥 GAP baseado no tamanho base (ETDRS correto)
   lineDiv.style.gap = baseSize + "px";
 
   lettersLine.forEach(letter => {
@@ -4065,14 +4071,14 @@ function renderLine(){
     const span = document.createElement("span");
     span.innerText = letter;
     span.style.fontSize = size + "px";
-    span.style.display = "inline-block";
-    span.style.textAlign = "center";
     span.style.fontFamily = "'Sloan', sans-serif";
 
     lineDiv.appendChild(span);
   });
 
-  clinicalArea.appendChild(lineDiv);
+  card.appendChild(lineDiv);
+
+  clinicalArea.appendChild(card);
 }
 
 // teclado
