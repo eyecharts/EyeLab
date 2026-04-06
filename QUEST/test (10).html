@@ -4006,7 +4006,6 @@ function renderLine(){
 
   clinicalArea.innerHTML = "";
 
-  // 🔥 usar variável GLOBAL corretamente
   const effectiveLine = lineIndex % TOTAL_LINES_PER_BLOCK;
 
   const logMAR = getLogMARFromSystem(lineIndex);
@@ -4023,12 +4022,12 @@ function renderLine(){
 
   const lineDiv = document.createElement("div");
 
-lineDiv.style.display = "flex";
-lineDiv.style.justifyContent = "center";
-lineDiv.style.alignItems = "center";
+  lineDiv.style.display = "flex";
+  lineDiv.style.justifyContent = "center";
+  lineDiv.style.alignItems = "center";
 
-// 🔥 espaçamento psicofísico real
-lineDiv.style.gap = size + "px";
+  // 🔥 GAP baseado no tamanho base (ETDRS correto)
+  lineDiv.style.gap = baseSize + "px";
 
   lettersLine.forEach(letter => {
 
@@ -4043,7 +4042,7 @@ lineDiv.style.gap = size + "px";
     span.style.fontSize = size + "px";
     span.style.display = "inline-block";
     span.style.textAlign = "center";
-    span.style.fontFamily = "'Sloan', sans-serif"; // 🔥 corrigido
+    span.style.fontFamily = "'Sloan', sans-serif";
 
     lineDiv.appendChild(span);
   });
