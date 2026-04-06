@@ -142,9 +142,9 @@ Distância do paciente (metros):
 
 <div class="tabs">
 
-<button onclick="abrirAba('test')">🧪 Testar</button>
+<button onclick="abrirAba('test')">🧪 Teste psicométrico</button>
 
-<button onclick="abrirAba('csv')">📊 Analisar Resultados</button>
+<button onclick="abrirAba('csv')">📊 Analisar Resultados (Teste psicométrico)</button>
 
 <button onclick="abrirAba('config')">⚙️ Configurações</button>
 <button onclick="toggleFullscreen()" style="margin:10px;font-size:14px;">
@@ -4023,7 +4023,7 @@ const effectiveLine = lineIndex % 12;
     span.style.display = "inline-block";
 span.style.width = size + "px";   // 🔥 largura = altura
 span.style.textAlign = "center";
-      span.style.fontFamily = "'Sloan2', sans-serif";
+      span.style.fontFamily = "Sloan2";
 
     lineDiv.appendChild(span);
   });
@@ -4069,7 +4069,7 @@ function processLine(){
     time: time
   });
 
-  if(lineIndex < 24){
+  if(lineIndex < 12){
     nextLine();
   } else {
     finishClinical();
