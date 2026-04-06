@@ -145,7 +145,7 @@ Distância do paciente (metros):
 <button onclick="abrirAba('test')">🧪 Teste psicométrico</button>
 
 <button onclick="abrirAba('csv')">📊 Analisar Resultados (Teste psicométrico)</button>
-
+<button onclick="abrirAba('clinico')">👁️ Teste clínico em linha</button>
 <button onclick="abrirAba('config')">⚙️ Configurações</button>
 <button onclick="toggleFullscreen()" style="margin:10px;font-size:14px;">
 ⛶ Tela cheia
@@ -268,7 +268,10 @@ Altura medida (mm):
 
 </div>
 
-
+<div id="clinico" class="aba" style="display:none;">
+  <h2>Teste clínico ETDRS</h2>
+  <div id="clinicalArea"></div>
+</div>
 <script>
 // ================= RANDOM COM SEED (REPRODUTÍVEL) =================
 
@@ -3399,7 +3402,20 @@ document.getElementById("csvPanel").style.display="block"
 if(nome==="config"){
 document.getElementById("configPanel").style.display="block"
 }
+if(nome === "clinico"){
 
+  if(!window.SLOAN20_FACTORS || Object.keys(window.SLOAN20_FACTORS).length === 0){
+    alert("⚠️ Primeiro execute a análise do teste psicométrico.");
+    return;
+  }
+
+  // inicia teste clínico
+  lineIndex = 0;
+  dataClinical = [];
+  clinicalMode = true;
+
+  nextLine();
+}
 }
 
 function atualizarGuessingRate(){
