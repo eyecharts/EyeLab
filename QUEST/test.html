@@ -3384,44 +3384,62 @@ ctx.fillText("Slope",10,40)
 
 function abrirAba(nome){
 
-document.getElementById("testArea").style.display="none"
-document.getElementById("csvPanel").style.display="none"
-document.getElementById("configPanel").style.display="none"
+  // 🔥 esconder tudo
+  document.getElementById("testArea").style.display="none";
+  document.getElementById("csvPanel").style.display="none";
+  document.getElementById("configPanel").style.display="none";
+  
+  // 🔥 IMPORTANTE: esconder clínico também
+  const clinico = document.getElementById("clinico");
+  if(clinico) clinico.style.display="none";
 
-testRunning=false
+  testRunning = false;
 
-if(nome==="test"){
+  // =========================
+  // 🧪 TESTE PSICOMÉTRICO
+  // =========================
+  if(nome==="test"){
+    document.getElementById("testArea").style.display="block";
+    startTest();
+  }
 
-document.getElementById("testArea").style.display="block"
+  // =========================
+  // 📊 CSV / ANÁLISE
+  // =========================
+  if(nome==="csv"){
+    document.getElementById("csvPanel").style.display="block";
+  }
 
-startTest()
+  // =========================
+  // ⚙️ CONFIG
+  // =========================
+  if(nome==="config"){
+    document.getElementById("configPanel").style.display="block";
+  }
 
-}
+  // =========================
+  // 👁️ CLÍNICO
+  // =========================
+  if(nome==="clinico"){
 
-if(nome==="csv"){
-document.getElementById("csvPanel").style.display="block"
-}
+    // 🔥 MOSTRA A ABA (isso faltava)
+    if(clinico) clinico.style.display="block";
 
-if(nome==="config"){
-document.getElementById("configPanel").style.display="block"
-}
-if(nome === "clinico"){
+    // 🔥 gera fatores
+    extractThresholdsFromTable();
 
- // 🔥 força gerar fatores antes de validar
-extractThresholdsFromTable();
+    if(!window.SLOAN20_FACTORS || Object.keys(window.SLOAN20_FACTORS).length === 0){
+      alert("Erro: execute a análise psicométrica primeiro.");
+      return;
+    }
 
-if(!window.SLOAN20_FACTORS || Object.keys(window.SLOAN20_FACTORS).length === 0){
-  alert("Erro: fatores do SLOAN 2.0 não encontrados. Execute a análise psicométrica.");
-  return;
-}
+    // 🔥 inicia teste
+    lineIndex = 0;
+    dataClinical = [];
+    clinicalMode = true;
 
-  // inicia teste clínico
-  lineIndex = 0;
-  dataClinical = [];
-  clinicalMode = true;
-
-  nextLine();
-}
+    nextLine();
+  }
 }
 
 function atualizarGuessingRate(){
