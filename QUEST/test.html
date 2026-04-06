@@ -252,7 +252,7 @@ Altura medida (mm):
 <div id="csvPanel" style="display:none;border:1px solid #f0f0f0;padding:15px;margin:20px; background-color:#fff">
 <div id="csvBox"><h2>Análise de banco de dados externo (CSV)</h2>
 
-<input type="file" id="csvUpload" multiple>
+<input type="file" id="csvUploadAnalysis" multiple>
 
 <br><br>
 
@@ -1359,20 +1359,21 @@ return null // ✅ válido
 
 function analisarCSV(){
 
-let test=document.getElementById("testArea")
-if(test){
-test.style.display="none"
-}
+  let test = document.getElementById("testArea");
+  if(test){
+    test.style.display = "none";
+  }
 
-let files=document.getElementById("csvUpload").files
+  const input = document.getElementById("csvUploadAnalysis");
+  const files = input ? input.files : null;
 
-if(files.length===0){
-alert("Selecione CSV")
-return
-}
+  if(!files || files.length === 0){
+    alert("Selecione o CSV do teste psicométrico");
+    return;
+  }
 
-let dados=[]
-let pendentes=files.length
+  let dados = [];
+  let pendentes = files.length;
 
 for(let f of files){
 
@@ -4245,8 +4246,8 @@ const uploadDiv = document.createElement("div");
 uploadDiv.innerHTML = `
 <br><hr>
 <h3>📊 Análise Clínica (Sloan vs SLOAN 2.0)</h3>
-<input type="file" id="csvUpload" accept=".csv">
-<button onclick="processCSV()">Processar CSV</button>
+<input type="file" id="csvUploadClinical" multiple>
+<button onclick="processCSV()">Processar CSV Clínico</button>
 <div id="analysisOutput"></div>
 <canvas id="plotCanvas" width="600" height="400" style="border:1px solid #ccc;"></canvas>
 `;
@@ -4266,18 +4267,18 @@ window.addEventListener("DOMContentLoaded", () => {
 
 function processCSV(){
 
- const input = document.querySelector("#clinico #csvUpload");
-const file = input ? input.files[0] : null;
+  const input = document.getElementById("csvUploadClinical");
+  const file = input ? input.files[0] : null;
+
   if(!file){
-    alert("Selecione um CSV na aba correta");
+    alert("Selecione o CSV clínico");
     return;
   }
 
   const reader = new FileReader();
 
   reader.onload = function(e){
-    const text = e.target.result;
-    analyzeCSV(text);
+    analyzeCSV(e.target.result);
   };
 
   reader.readAsText(file);
