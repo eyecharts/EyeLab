@@ -4005,7 +4005,9 @@ function extractThresholdsFromTable(){
 function renderLine(){
 
   clinicalArea.innerHTML = "";
-const effectiveLine = lineIndex % 12;
+const TOTAL_LINES_PER_BLOCK = 7;
+
+const effectiveLine = line % TOTAL_LINES_PER_BLOCK;
   // 🔥 logMAR correto (usa linha anterior pois você incrementa depois)
   const logMAR = getLogMARFromSystem(effectiveLine);
 
@@ -4085,7 +4087,7 @@ function processLine(){
     time: time
   });
 
-  if(lineIndex < 12){
+  if(lineIndex < TOTAL_LINES){
     nextLine();
   } else {
     finishClinical();
@@ -4138,11 +4140,13 @@ function getBaseSizeFromSystem(line){
 function getLogMARFromSystem(line){
 
   const start = 0.3;
+  const step = 0.1;
 
-  // 🔥 mantém escala ETDRS dentro de cada bloco
-  const effectiveLine = line % 12;
+  const TOTAL_LINES_PER_BLOCK = 7;
 
-  return start - (effectiveLine * 0.1);
+  const effectiveLine = line % TOTAL_LINES_PER_BLOCK;
+
+  return start - (effectiveLine * step);
 }
 // ==============================
 // 🔬 TESTE CLÍNICO - UI + CONTROLE
@@ -4173,6 +4177,8 @@ let responses = [];
 let chartType = "";
 let lineIndex = 0;
 let startTime = 0;
+const TOTAL_LINES_PER_BLOCK = 7;
+const TOTAL_LINES = TOTAL_LINES_PER_BLOCK * 2;
 
 // iniciar teste
 function startClinicalTest(){
