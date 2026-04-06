@@ -4005,13 +4005,12 @@ function extractThresholdsFromTable(){
 function renderLine(){
 
   clinicalArea.innerHTML = "";
-const TOTAL_LINES_PER_BLOCK = 7;
 
-const effectiveLine = line % TOTAL_LINES_PER_BLOCK;
-  // 🔥 logMAR correto (usa linha anterior pois você incrementa depois)
-  const logMAR = getLogMARFromSystem(effectiveLine);
+  // 🔥 usar variável GLOBAL corretamente
+  const effectiveLine = lineIndex % TOTAL_LINES_PER_BLOCK;
 
-  // 🔥 info no topo
+  const logMAR = getLogMARFromSystem(lineIndex);
+
   const info = document.createElement("div");
   info.innerText = `logMAR: ${logMAR.toFixed(2)} | ${chartType}`;
   info.style.fontSize = "20px";
@@ -4020,17 +4019,14 @@ const effectiveLine = line % TOTAL_LINES_PER_BLOCK;
 
   clinicalArea.appendChild(info);
 
-  // 👉 tamanho base
   const baseSize = getBaseSizeFromSystem(effectiveLine);
 
-  // 🔥 linha de letras
   const lineDiv = document.createElement("div");
 
   lettersLine.forEach(letter => {
 
     let size = baseSize;
 
-    // 🔥 aplica compensação SLOAN 2.0
     if(chartType === "SLOAN20" && window.SLOAN20_FACTORS[letter]){
       size = baseSize * window.SLOAN20_FACTORS[letter];
     }
@@ -4039,9 +4035,9 @@ const effectiveLine = line % TOTAL_LINES_PER_BLOCK;
     span.innerText = letter;
     span.style.fontSize = size + "px";
     span.style.display = "inline-block";
-span.style.width = size + "px";   // 🔥 largura = altura
-span.style.textAlign = "center";
-      span.style.fontFamily = "Sloan2";
+    span.style.width = size + "px";
+    span.style.textAlign = "center";
+    span.style.fontFamily = "'Sloan', sans-serif"; // 🔥 corrigido
 
     lineDiv.appendChild(span);
   });
@@ -4075,11 +4071,11 @@ function processLine(){
     }
   }
 
-  const logMAR = getLogMARFromSystem(lineIndex);
+  const logMAR = getLogMARFromSystem(lineIndex - 1); // 🔥 corrigido
 
   dataClinical.push({
     chart: chartType,
-    line: lineIndex,
+    line: lineIndex - 1,
     logMAR: logMAR,
     letters: lettersLine.join(""),
     responses: responses.join(""),
@@ -4093,7 +4089,6 @@ function processLine(){
     finishClinical();
   }
 }
-
 // finalizar
 function finishClinical(){
 
@@ -4141,8 +4136,6 @@ function getLogMARFromSystem(line){
 
   const start = 0.3;
   const step = 0.1;
-
-  const TOTAL_LINES_PER_BLOCK = 7;
 
   const effectiveLine = line % TOTAL_LINES_PER_BLOCK;
 
@@ -4202,23 +4195,19 @@ function nextLine(){
 
   responses = [];
 
-  const totalLines = 12;
-
-  if(lineIndex < totalLines){
+  // 🔥 usa constante global
+  if(lineIndex < TOTAL_LINES_PER_BLOCK){
     chartType = "CLASSICO";
   } else {
     chartType = "SLOAN20";
   }
 
-  const raw = document.getElementById("sloan2_input").value.toUpperCase();
+  const sloan2 = Object.keys(window.SLOAN20_FACTORS);
 
-// remove vírgula, espaço, etc
-const sloan2 = Object.keys(window.SLOAN20_FACTORS);
   const pool = (chartType === "CLASSICO")
     ? ["C","D","H","K","N","O","R","S","V","Z"]
     : sloan2;
 
-  // 🔥 FUNÇÃO FORA (mas pode ficar aqui também)
   function getNextLetters(pool, lineIndex){
 
     const size = 5;
@@ -4233,7 +4222,6 @@ const sloan2 = Object.keys(window.SLOAN20_FACTORS);
     return shuffle(result);
   }
 
-  // 🔥 ESSA LINHA É O QUE FALTAVA
   lettersLine = getNextLetters(pool, lineIndex);
 
   renderLine();
