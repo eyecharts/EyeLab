@@ -3407,10 +3407,13 @@ document.getElementById("configPanel").style.display="block"
 }
 if(nome === "clinico"){
 
-  if(!window.SLOAN20_FACTORS || Object.keys(window.SLOAN20_FACTORS).length === 0){
-    alert("⚠️ Primeiro execute a análise do teste psicométrico.");
-    return;
-  }
+ // 🔥 força gerar fatores antes de validar
+extractThresholdsFromTable();
+
+if(!window.SLOAN20_FACTORS || Object.keys(window.SLOAN20_FACTORS).length === 0){
+  alert("Erro: fatores do SLOAN 2.0 não encontrados. Execute a análise psicométrica.");
+  return;
+}
 
   // inicia teste clínico
   lineIndex = 0;
@@ -3963,20 +3966,21 @@ function extractThresholdsFromTable(){
 
     const headers = table.querySelectorAll("th");
 
-    if(headers.length >= 5){
+    if(headers.length >= 4){
 
       const h0 = headers[0].innerText.toLowerCase();
-      const h1 = headers[1].innerText.toLowerCase();
+      const h3 = headers[3].innerText.toLowerCase();
 
-      // identifica tabela correta pela estrutura
-      if(h0.includes("letra") && h1.includes("threshold")){
+      // 🔥 identifica pela coluna Fator
+      if(h0.includes("letra") && h3.includes("fator")){
         targetTable = table;
       }
     }
   });
 
   if(!targetTable){
-    console.warn("Tabela correta NÃO encontrada.");
+    console.warn("Tabela de compensação NÃO encontrada.");
+    window.SLOAN20_FACTORS = {};
     return;
   }
 
@@ -4184,10 +4188,13 @@ const TOTAL_LINES = TOTAL_LINES_PER_BLOCK * 2;
 // iniciar teste
 function startClinicalTest(){
 
+  // 🔥 tenta extrair SEMPRE antes
   extractThresholdsFromTable();
 
-  if(Object.keys(window.SLOAN20_FACTORS).length === 0){
-    alert("Tabela ainda não detectada.");
+  console.log("Fatores atuais:", window.SLOAN20_FACTORS);
+
+  if(!window.SLOAN20_FACTORS || Object.keys(window.SLOAN20_FACTORS).length === 0){
+    alert("Primeiro execute a análise psicométrica e gere a tabela de compensação.");
     return;
   }
 
