@@ -4027,29 +4027,33 @@ function extractThresholdsFromTable(){
 
 
 // render
-function renderLine(){
+
+
+    function renderLine(){
 
   clinicalArea.innerHTML = "";
 
-  // 🔥 container branco (igual teste psicométrico)
+  const effectiveLine = lineIndex % TOTAL_LINES_PER_BLOCK;
+
+  const logMAR = getLogMARFromSystem(lineIndex);
+
+  // 🔥 TEXTO FORA DO BLOCO
+  const info = document.createElement("div");
+  info.innerText = `logMAR: ${logMAR.toFixed(2)} | ${chartType}`;
+  info.style.fontSize = "20px";
+  info.style.marginBottom = "15px";
+  info.style.fontWeight = "bold";
+  info.style.textAlign = "center";
+
+  clinicalArea.appendChild(info);
+
+  // 🔥 BLOCO BRANCO (SÓ LETRAS)
   const card = document.createElement("div");
   card.style.background = "white";
   card.style.padding = "40px";
   card.style.borderRadius = "10px";
   card.style.boxShadow = "0 0 10px rgba(0,0,0,0.1)";
   card.style.display = "inline-block";
-
-  const effectiveLine = lineIndex % TOTAL_LINES_PER_BLOCK;
-
-  const logMAR = getLogMARFromSystem(lineIndex);
-
-  const info = document.createElement("div");
-  info.innerText = `logMAR: ${logMAR.toFixed(2)} | ${chartType}`;
-  info.style.fontSize = "20px";
-  info.style.marginBottom = "20px";
-  info.style.fontWeight = "bold";
-
-  card.appendChild(info);
 
   const baseSize = getBaseSizeFromSystem(effectiveLine);
 
@@ -4079,7 +4083,7 @@ function renderLine(){
   card.appendChild(lineDiv);
 
   clinicalArea.appendChild(card);
-}
+    }
 
 // teclado
 document.addEventListener("keydown", function(e){
