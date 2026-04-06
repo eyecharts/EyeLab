@@ -4023,6 +4023,13 @@ function renderLine(){
 
   const lineDiv = document.createElement("div");
 
+lineDiv.style.display = "flex";
+lineDiv.style.justifyContent = "center";
+lineDiv.style.alignItems = "center";
+
+// 🔥 espaçamento psicofísico real
+lineDiv.style.gap = size + "px";
+
   lettersLine.forEach(letter => {
 
     let size = baseSize;
@@ -4035,7 +4042,6 @@ function renderLine(){
     span.innerText = letter;
     span.style.fontSize = size + "px";
     span.style.display = "inline-block";
-    span.style.width = size + "px";
     span.style.textAlign = "center";
     span.style.fontFamily = "'Sloan', sans-serif"; // 🔥 corrigido
 
