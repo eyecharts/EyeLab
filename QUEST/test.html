@@ -1,7 +1,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Sloan 2.xy – Híbrido Científico Completo</title>
+<title>Sloan 2.xyy – Híbrido Científico Completo</title>
 
 <style>
 body { font-family: Arial; text-align: center; }
@@ -4170,17 +4170,21 @@ function getBaseSizeFromSystem(line){
 
   const logMAR = getLogMARFromSystem(line);
 
- const distance = parseFloat(document.getElementById("distance").value);
+  const distance = parseFloat(document.getElementById("distance")?.value) || 6;
+
   const pxPerMM = window.pixelPerMM || window.pxPerMM || 3.78;
 
-  // 5 arcmin → tamanho da letra
-  const angle = 5 / 60; // graus
-
-  const sizeMM = 2 * distance * 1000 * Math.tan((angle * Math.PI) / 180)
+  // 🔥 fórmula correta ETDRS (sem exagero)
+  const sizeMM = distance * 1000 * Math.tan((5/60) * Math.PI / 180);
 
   const sizeAtLogMAR = sizeMM * Math.pow(10, logMAR);
 
-  return sizeAtLogMAR * pxPerMM;
+  let sizePx = sizeAtLogMAR * pxPerMM;
+
+  // 🔒 CLAMP DE SEGURANÇA (ESSENCIAL)
+  sizePx = Math.max(8, Math.min(sizePx, 300));
+
+  return sizePx;
 }
 
 function getLogMARFromSystem(line){
