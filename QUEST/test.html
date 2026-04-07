@@ -4353,7 +4353,7 @@ const grouped = {};
 data.forEach(d => {
 
 ```
-const key = d.line; // 👉 pode evoluir para subject+line depois
+const key = d.subject + "_" + d.line;
 
 if(!grouped[key]) grouped[key] = {};
 
