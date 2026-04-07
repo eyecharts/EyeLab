@@ -1,7 +1,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Sloan 2.xyy – Híbrido Científico Completo</title>
+<title>Sloan 2.xz – Híbrido Científico Completo</title>
 
 <style>
 body { font-family: Arial; text-align: center; }
@@ -4165,23 +4165,29 @@ function shuffle(a){
 // ==============================
 
 // 👉 AJUSTE AQUI para seu código real
+function updateSystemParameters(){
 
+  const distanceInput = document.getElementById("distance");
+  const calibInput = document.getElementById("calibration");
+
+  window.TEST_DISTANCE = distanceInput ? parseFloat(distanceInput.value) : 6;
+  window.TEST_PX_PER_MM = calibInput ? parseFloat(calibInput.value) : 3.78;
+
+  console.log("Atualizado:", window.TEST_DISTANCE, window.TEST_PX_PER_MM);
+}
 function getBaseSizeFromSystem(line){
 
   const logMAR = getLogMARFromSystem(line);
 
-  const distance = parseFloat(document.getElementById("distance")?.value) || 6;
+  const distance = window.TEST_DISTANCE || 6;
+  const pxPerMM = window.TEST_PX_PER_MM || 3.78;
 
-  const pxPerMM = window.pixelPerMM || window.pxPerMM || 3.78;
-
-  // 🔥 fórmula correta ETDRS (sem exagero)
   const sizeMM = distance * 1000 * Math.tan((5/60) * Math.PI / 180);
 
   const sizeAtLogMAR = sizeMM * Math.pow(10, logMAR);
 
   let sizePx = sizeAtLogMAR * pxPerMM;
 
-  // 🔒 CLAMP DE SEGURANÇA (ESSENCIAL)
   sizePx = Math.max(8, Math.min(sizePx, 300));
 
   return sizePx;
@@ -4230,7 +4236,7 @@ const TOTAL_LINES = TOTAL_LINES_PER_BLOCK * 2;
 
 // iniciar teste
 function startClinicalTest(){
-
+updateSystemParameters();
   // 🔥 tenta extrair SEMPRE antes
   extractThresholdsFromTable();
 
