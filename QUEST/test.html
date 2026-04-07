@@ -4114,11 +4114,12 @@ function processLine(){
     }
   }
 
-  const logMAR = getLogMARFromSystem(lineIndex - 1);
+  const currentLine = lineIndex - 1; // 🔥 linha correta exibida
+  const logMAR = getLogMARFromSystem(currentLine);
 
   dataClinical.push({
     chart: chartType,
-    line: lineIndex - 1,
+    line: currentLine,
     repetition: repetition,
     logMAR: logMAR,
     letters: lettersLine.join(""),
@@ -4127,21 +4128,27 @@ function processLine(){
     time: time
   });
 
-  // 🔥 CONTROLE DE REPETIÇÃO
   repetition++;
 
+  // 🔴 ainda repetindo mesma linha
   if(repetition < REPETITIONS_PER_LINE){
-    nextLineSameLevel();
+
+    // 🔥 desfaz incremento indevido
+    lineIndex--;
+
+    nextLine();
     return;
   }
 
+  // 🔴 terminou repetições
   repetition = 0;
 
-  if(lineIndex < TOTAL_LINES){
-    nextLine();
-  } else {
+  if(lineIndex >= TOTAL_LINES){
     finishClinical();
+    return;
   }
+
+  nextLine();
 }
 
     function nextLineSameLevel(){
@@ -4190,6 +4197,42 @@ function downloadCSV(content){
 function shuffle(a){
   return a.sort(()=>Math.random()-0.5);
 }
+
+    function getNextLetters(pool){
+
+  const size = 5;
+
+  let available = [...pool]; // cópia
+  let result = [];
+
+  // 🔴 SLOAN 2.0 → força exclusivas
+  if(chartType === "SLOAN20"){
+
+    const exclusivas = getExclusiveLetters();
+    let exclusivasDisponiveis = [...exclusivas];
+
+    for(let i=0; i<2 && exclusivasDisponiveis.length > 0; i++){
+      const idx = Math.floor(Math.random()*exclusivasDisponiveis.length);
+      result.push(exclusivasDisponiveis[idx]);
+      exclusivasDisponiveis.splice(idx,1);
+    }
+  }
+
+  // 🔴 completar sem repetição
+  while(result.length < size && available.length > 0){
+
+    const idx = Math.floor(Math.random()*available.length);
+    const letra = available[idx];
+
+    if(!result.includes(letra)){
+      result.push(letra);
+    }
+
+    available.splice(idx,1);
+  }
+
+  return shuffle(result);
+    }
 
 function getExclusiveLetters(){
 
@@ -4291,41 +4334,7 @@ function nextLine(){
     ? ["C","D","H","K","N","O","R","S","V","Z"]
     : sloan2;
 
-  function getNextLetters(pool){
-
-  const size = 5;
-
-  let available = [...pool]; // cópia
-  let result = [];
-
-  // 🔴 SLOAN 2.0 → força exclusivas
-  if(chartType === "SLOAN20"){
-
-    const exclusivas = getExclusiveLetters();
-    let exclusivasDisponiveis = [...exclusivas];
-
-    for(let i=0; i<2 && exclusivasDisponiveis.length > 0; i++){
-      const idx = Math.floor(Math.random()*exclusivasDisponiveis.length);
-      result.push(exclusivasDisponiveis[idx]);
-      exclusivasDisponiveis.splice(idx,1);
-    }
-  }
-
-  // 🔴 completar sem repetição
-  while(result.length < size && available.length > 0){
-
-    const idx = Math.floor(Math.random()*available.length);
-    const letra = available[idx];
-
-    if(!result.includes(letra)){
-      result.push(letra);
-    }
-
-    available.splice(idx,1);
-  }
-
-  return shuffle(result);
-}
+  
 
     
   lettersLine = getNextLetters(pool);
