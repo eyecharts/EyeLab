@@ -1,7 +1,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Sloan 2.xx – Híbrido Científico Completo</title>
+<title>Sloan 2.xy – Híbrido Científico Completo</title>
 
 <style>
 body { font-family: Arial; text-align: center; }
@@ -4170,13 +4170,13 @@ function getBaseSizeFromSystem(line){
 
   const logMAR = getLogMARFromSystem(line);
 
-  const distance = parseFloat(document.getElementById("distanceInput").value); // metros
-  const pxPerMM = window.pxPerMM || 3.78; // sua calibração
+ const distance = parseFloat(document.getElementById("distance").value);
+  const pxPerMM = window.pixelPerMM || window.pxPerMM || 3.78;
 
   // 5 arcmin → tamanho da letra
   const angle = 5 / 60; // graus
 
-  const sizeMM = 2 * distance * 1000 * Math.tan((angle * Math.PI) / 360);
+  const sizeMM = 2 * distance * 1000 * Math.tan((angle * Math.PI) / 180)
 
   const sizeAtLogMAR = sizeMM * Math.pow(10, logMAR);
 
