@@ -4168,8 +4168,19 @@ function shuffle(a){
 
 function getBaseSizeFromSystem(line){
 
-  const base = 100; // tamanho inicial
-  return base * Math.pow(10, -(line * 0.1));
+  const logMAR = getLogMARFromSystem(line);
+
+  const distance = parseFloat(document.getElementById("distanceInput").value); // metros
+  const pxPerMM = window.pxPerMM || 3.78; // sua calibração
+
+  // 5 arcmin → tamanho da letra
+  const angle = 5 / 60; // graus
+
+  const sizeMM = 2 * distance * 1000 * Math.tan((angle * Math.PI) / 360);
+
+  const sizeAtLogMAR = sizeMM * Math.pow(10, logMAR);
+
+  return sizeAtLogMAR * pxPerMM;
 }
 
 function getLogMARFromSystem(line){
