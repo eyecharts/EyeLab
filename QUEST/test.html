@@ -1,7 +1,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Sloan 2.xz – Híbrido Científico Completo</title>
+<title>Sloan 2.xze – Híbrido Científico Completo</title>
 
 <style>
 body { font-family: Arial; text-align: center; }
@@ -4055,7 +4055,7 @@ function extractThresholdsFromTable(){
   card.style.boxShadow = "0 0 10px rgba(0,0,0,0.1)";
   card.style.display = "inline-block";
 
-  const baseSize = getBaseSizeFromSystem(effectiveLine);
+  const baseSize = window.optotypeSize || window.currentOptotypeSize;
 
   const lineDiv = document.createElement("div");
 
