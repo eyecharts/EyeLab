@@ -1,7 +1,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Sloan 2.xzet – Híbrido Científico Completo</title>
+<title>Sloan 2.4 – Híbrido Científico Completo</title>
 
 <style>
 body { font-family: Arial; text-align: center; }
@@ -118,7 +118,7 @@ background:#ddd;
 
 <body style="background:#D0D0D0">
 
-<h1>OptoLab (v3.2) corrigido</h1>
+<h1>OptoLab (v3.4) </h1>
 <h3>Psychophysical Analysis Platform for Visual Optotypes - Projeto SLOAN 2.00</h3>
 
 <input type="text" id="subjectID" placeholder="ID voluntário">
@@ -4344,16 +4344,22 @@ function analyzeCSV(text){
   );
 
   // ==============================
-  // 🔗 PAREAMENTO POR LINHA
+  // 🔗 PAREAMENTO POR LOGMAR (Corrigido)
   // ==============================
 
   const grouped = {};
 
   data.forEach(d => {
+    
+    // Arredonda o logMAR para 2 casas decimais para parear as dificuldades corretamente.
+    // O if(rounded === -0) evita o bug visual/matemático do JS criar "-0.00" e não parear com "0.00"
+    let rounded = Math.round(d.logMAR * 100) / 100;
+    if (rounded === -0) rounded = 0;
+    const logMarKey = rounded.toFixed(2);
 
-    if(!grouped[d.line]) grouped[d.line] = {};
+    if(!grouped[logMarKey]) grouped[logMarKey] = {};
 
-    grouped[d.line][d.chart] = d.correct;
+    grouped[logMarKey][d.chart] = d.correct;
 
   });
 
@@ -4376,7 +4382,7 @@ function analyzeCSV(text){
   console.log("Pareados:", n, sloan, sloan20);
 
   if(n < 3){
-    alert("Sem dados pareados suficientes");
+    alert("Sem dados pareados suficientes. Foram pareados apenas " + n + " linhas.");
     return;
   }
 
@@ -4402,7 +4408,7 @@ function analyzeCSV(text){
   const ci_high = meanDiff + 1.96 * sdDiff;
 
   document.getElementById("analysisOutput").innerHTML = `
-    <b>N:</b> ${n}<br>
+    <b>N (Linhas Pareadas):</b> ${n}<br>
     <b>Sloan Média:</b> ${mean(sloan).toFixed(3)}<br>
     <b>SLOAN 2.0 Média:</b> ${mean(sloan20).toFixed(3)}<br>
     <b>Diferença média:</b> ${meanDiff.toFixed(3)}<br>
