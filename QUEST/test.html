@@ -4154,7 +4154,7 @@ function processLine(){
     ? SLOAN_CLASSICO
     : sloan2;
 
-  lettersLine = getNextLetters(pool, lineIndex);
+  lettersLine = getNextLetters(pool);
 
   renderLine();
 
@@ -4277,10 +4277,13 @@ function nextLine(){
 
   // 🔥 usa constante global
   if(lineIndex < TOTAL_LINES_PER_BLOCK){
-    chartType = "CLASSICO";
-  } else {
-    chartType = "SLOAN20";
-  }
+  chartType = "CLASSICO";
+} else if(lineIndex < TOTAL_LINES){
+  chartType = "SLOAN20";
+} else {
+  finishClinical();
+  return;
+}
 
   const sloan2 = Object.keys(window.SLOAN20_FACTORS);
 
@@ -4288,41 +4291,44 @@ function nextLine(){
     ? ["C","D","H","K","N","O","R","S","V","Z"]
     : sloan2;
 
-  function getNextLetters(pool, lineIndex){
+  function getNextLetters(pool){
 
   const size = 5;
+
+  let available = [...pool]; // cópia
   let result = [];
 
+  // 🔴 SLOAN 2.0 → força exclusivas
   if(chartType === "SLOAN20"){
 
     const exclusivas = getExclusiveLetters();
+    let exclusivasDisponiveis = [...exclusivas];
 
-    // 🔴 força 2 exclusivas
-    let forced = [];
+    for(let i=0; i<2 && exclusivasDisponiveis.length > 0; i++){
+      const idx = Math.floor(Math.random()*exclusivasDisponiveis.length);
+      result.push(exclusivasDisponiveis[idx]);
+      exclusivasDisponiveis.splice(idx,1);
+    }
+  }
 
-    for(let i=0; i<2 && exclusivas.length > 0; i++){
-      forced.push(exclusivas[Math.floor(Math.random()*exclusivas.length)]);
+  // 🔴 completar sem repetição
+  while(result.length < size && available.length > 0){
+
+    const idx = Math.floor(Math.random()*available.length);
+    const letra = available[idx];
+
+    if(!result.includes(letra)){
+      result.push(letra);
     }
 
-    result = [...forced];
-
-    // completa até 5
-    while(result.length < size){
-      result.push(pool[Math.floor(Math.random()*pool.length)]);
-    }
-
-  } else {
-
-    while(result.length < size){
-      result.push(pool[Math.floor(Math.random()*pool.length)]);
-    }
+    available.splice(idx,1);
   }
 
   return shuffle(result);
-  }
+}
 
     
-  lettersLine = getNextLetters(pool, lineIndex);
+  lettersLine = getNextLetters(pool);
 
   renderLine();
 
