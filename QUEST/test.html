@@ -4378,37 +4378,100 @@ if(n < 3){
 alert("Sem dados pareados suficientes");
 return;
 }
+function analyzeCSV(text){
 
-// ==============================
-// 📊 ESTATÍSTICAS
-// ==============================
+  try {
 
-const mean = arr => arr.reduce((a,b)=>a+b,0)/arr.length;
+    const lines = text.trim().split("\n");
 
-const sd = arr => {
-const m = mean(arr);
-return Math.sqrt(arr.reduce((a,b)=>a+(b-m)**2,0)/(arr.length-1));
-};
+    const data = lines.slice(1).map(l => {
 
-const diffs = sloan20.map((v,i)=>v - sloan[i]);
+      const v = l.split(",");
 
-const meanDiff = mean(diffs);
-const sdDiff = sd(diffs);
+      if(v.length < 6) return null;
 
-const t = meanDiff / (sdDiff / Math.sqrt(n));
+      return {
+        chart: v[0]?.trim(),
+        line: parseInt(v[1]),
+        logMAR: parseFloat(v[2]),
+        correct: parseFloat(v[5])
+      };
 
-const ci_low = meanDiff - 1.96 * sdDiff;
-const ci_high = meanDiff + 1.96 * sdDiff;
+    }).filter(d =>
+      d &&
+      (d.chart === "CLASSICO" || d.chart === "SLOAN20") &&
+      !isNaN(d.line) &&
+      !isNaN(d.logMAR) &&
+      !isNaN(d.correct)
+    );
 
-// ==============================
-// 📋 OUTPUT
-// ==============================
+    console.log("Dados válidos:", data);
 
-document.getElementById("analysisOutput").innerHTML = `   <b>N:</b> ${n}<br>   <b>Sloan Média:</b> ${mean(sloan).toFixed(3)}<br>   <b>SLOAN 2.0 Média:</b> ${mean(sloan20).toFixed(3)}<br>   <b>Diferença média:</b> ${meanDiff.toFixed(3)}<br>   <b>t:</b> ${t.toFixed(3)}<br>   <b>IC95%:</b> ${ci_low.toFixed(3)} a ${ci_high.toFixed(3)}
-  `;
+    const grouped = {};
 
-drawScatter(sloan, sloan20);
-drawBlandAltman(sloan, sloan20);
+    data.forEach(d => {
+
+      const key = d.line;
+
+      if(!grouped[key]) grouped[key] = {};
+
+      grouped[key][d.chart] = d.correct;
+    });
+
+    let sloan = [];
+    let sloan20 = [];
+
+    Object.values(grouped).forEach(g => {
+      if(g.CLASSICO !== undefined && g.SLOAN20 !== undefined){
+        sloan.push(g.CLASSICO);
+        sloan20.push(g.SLOAN20);
+      }
+    });
+
+    const n = sloan.length;
+
+    console.log("Pareados:", n, sloan, sloan20);
+
+    if(n < 3){
+      alert("Sem dados pareados suficientes");
+      return;
+    }
+
+    const mean = arr => arr.reduce((a,b)=>a+b,0)/arr.length;
+
+    const sd = arr => {
+      const m = mean(arr);
+      return Math.sqrt(arr.reduce((a,b)=>a+(b-m)**2,0)/(arr.length-1));
+    };
+
+    const diffs = sloan20.map((v,i)=>v - sloan[i]);
+
+    const meanDiff = mean(diffs);
+    const sdDiff = sd(diffs);
+
+    const t = meanDiff / (sdDiff / Math.sqrt(n));
+
+    const ci_low = meanDiff - 1.96 * sdDiff;
+    const ci_high = meanDiff + 1.96 * sdDiff;
+
+    document.getElementById("analysisOutput").innerHTML = `
+      <b>N:</b> ${n}<br>
+      <b>Sloan Média:</b> ${mean(sloan).toFixed(3)}<br>
+      <b>SLOAN 2.0 Média:</b> ${mean(sloan20).toFixed(3)}<br>
+      <b>Diferença média:</b> ${meanDiff.toFixed(3)}<br>
+      <b>t:</b> ${t.toFixed(3)}<br>
+      <b>IC95%:</b> ${ci_low.toFixed(3)} a ${ci_high.toFixed(3)}
+    `;
+
+    drawScatter(sloan, sloan20);
+    drawBlandAltman(sloan, sloan20);
+
+  } catch (err) {
+
+    console.error("Erro no analyzeCSV:", err);
+    alert("Erro ao processar CSV — veja console");
+
+  }
 }
 
 
