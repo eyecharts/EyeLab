@@ -313,7 +313,7 @@ let testRunning=false
 
 let repetition = 0;
 const REPETITIONS_PER_LINE = 2; // pode testar 3 depois
-
+let currentLine = 0;
 //=====CARREGAR CONFIGURAÇÕES======
 
 function carregarConfig(){
@@ -4102,6 +4102,7 @@ document.addEventListener("keydown", function(e){
 });
 
 // processar
+
 function processLine(){
 
   const time = Math.round(performance.now() - startTime);
@@ -4114,12 +4115,11 @@ function processLine(){
     }
   }
 
-  const currentLine = lineIndex - 1; // 🔥 linha correta exibida
-  const logMAR = getLogMARFromSystem(currentLine);
+  const logMAR = getLogMARFromSystem(currentLine - 1);
 
   dataClinical.push({
     chart: chartType,
-    line: currentLine,
+    line: currentLine - 1,
     repetition: repetition,
     logMAR: logMAR,
     letters: lettersLine.join(""),
@@ -4130,26 +4130,32 @@ function processLine(){
 
   repetition++;
 
-  // 🔴 ainda repetindo mesma linha
+  // 🔴 repetir mesma linha
   if(repetition < REPETITIONS_PER_LINE){
 
-    // 🔥 desfaz incremento indevido
-    lineIndex--;
+    responses = [];
 
-    nextLine();
+    const sloan2 = Object.keys(window.SLOAN20_FACTORS);
+
+    const pool = (chartType === "CLASSICO")
+      ? SLOAN_CLASSICO
+      : sloan2;
+
+    lettersLine = getNextLetters(pool);
+
+    renderLine();
+
+    startTime = performance.now();
+
     return;
   }
 
-  // 🔴 terminou repetições
+  // 🔴 terminou repetições → próxima linha
   repetition = 0;
-
-  if(lineIndex >= TOTAL_LINES){
-    finishClinical();
-    return;
-  }
 
   nextLine();
 }
+  
 
     function nextLineSameLevel(){
 
@@ -4296,19 +4302,19 @@ const TOTAL_LINES = TOTAL_LINES_PER_BLOCK * 2;
 // iniciar teste
 function startClinicalTest(){
 
-  // 🔥 tenta extrair SEMPRE antes
   extractThresholdsFromTable();
 
-  console.log("Fatores atuais:", window.SLOAN20_FACTORS);
-
-  if(!window.SLOAN20_FACTORS || Object.keys(window.SLOAN20_FACTORS).length === 0){
-    alert("Primeiro execute a análise psicométrica e gere a tabela de compensação.");
+  if(Object.keys(window.SLOAN20_FACTORS).length === 0){
+    alert("Tabela ainda não detectada.");
     return;
   }
 
   clinicalMode = true;
   dataClinical = [];
+
   lineIndex = 0;
+  currentLine = 0;
+  repetition = 0;
 
   nextLine();
 }
@@ -4318,15 +4324,14 @@ function nextLine(){
 
   responses = [];
 
-  // 🔥 usa constante global
-  if(lineIndex < TOTAL_LINES_PER_BLOCK){
-  chartType = "CLASSICO";
-} else if(lineIndex < TOTAL_LINES){
-  chartType = "SLOAN20";
-} else {
-  finishClinical();
-  return;
-}
+  if(currentLine < TOTAL_LINES_PER_BLOCK){
+    chartType = "CLASSICO";
+  } else if(currentLine < TOTAL_LINES){
+    chartType = "SLOAN20";
+  } else {
+    finishClinical();
+    return;
+  }
 
   const sloan2 = Object.keys(window.SLOAN20_FACTORS);
 
@@ -4343,7 +4348,8 @@ function nextLine(){
 
   startTime = performance.now();
 
-  lineIndex++;
+  currentLine++;
+lineIndex = currentLine;
 }
     // ==============================
 // 📂 UPLOAD CSV MULTI-PACIENTES
