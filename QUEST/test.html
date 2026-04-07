@@ -4323,155 +4323,95 @@ function processCSV(){
 
 function analyzeCSV(text){
 
-const lines = text.trim().split("\n");
+  const lines = text.trim().split("\n");
 
-// 🔴 parse correto com TODAS colunas
-const data = lines.slice(1).map(l => {
-const v = l.split(",");
+  const data = lines.slice(1).map(l => {
 
-```
-return {
-  chart: v[0].trim(),
-  line: parseInt(v[1]),           // 🔥 ESSENCIAL
-  logMAR: parseFloat(v[2]),
-  correct: parseFloat(v[5])
-};
-```
+    const v = l.split(",");
 
-}).filter(d =>
-!isNaN(d.line) &&
-!isNaN(d.logMAR) &&
-!isNaN(d.correct)
-);
-
-// ==============================
-// 🔗 PAREAMENTO CORRETO
-// ==============================
-
-const grouped = {};
-
-data.forEach(d => {
-
-```
-const key = d.subject + "_" + d.line;
-
-if(!grouped[key]) grouped[key] = {};
-
-grouped[key][d.chart] = d.correct;
-```
-
-});
-
-let sloan = [];
-let sloan20 = [];
-
-Object.values(grouped).forEach(g => {
-if(g.CLASSICO !== undefined && g.SLOAN20 !== undefined){
-sloan.push(g.CLASSICO);
-sloan20.push(g.SLOAN20);
-}
-});
-
-const n = sloan.length;
-
-if(n < 3){
-alert("Sem dados pareados suficientes");
-return;
-}
-function analyzeCSV(text){
-
-  try {
-
-    const lines = text.trim().split("\n");
-
-    const data = lines.slice(1).map(l => {
-
-      const v = l.split(",");
-
-      if(v.length < 6) return null;
-
-      return {
-        chart: v[0]?.trim(),
-        line: parseInt(v[1]),
-        logMAR: parseFloat(v[2]),
-        correct: parseFloat(v[5])
-      };
-
-    }).filter(d =>
-      d &&
-      (d.chart === "CLASSICO" || d.chart === "SLOAN20") &&
-      !isNaN(d.line) &&
-      !isNaN(d.logMAR) &&
-      !isNaN(d.correct)
-    );
-
-    console.log("Dados válidos:", data);
-
-    const grouped = {};
-
-    data.forEach(d => {
-
-      const key = d.line;
-
-      if(!grouped[key]) grouped[key] = {};
-
-      grouped[key][d.chart] = d.correct;
-    });
-
-    let sloan = [];
-    let sloan20 = [];
-
-    Object.values(grouped).forEach(g => {
-      if(g.CLASSICO !== undefined && g.SLOAN20 !== undefined){
-        sloan.push(g.CLASSICO);
-        sloan20.push(g.SLOAN20);
-      }
-    });
-
-    const n = sloan.length;
-
-    console.log("Pareados:", n, sloan, sloan20);
-
-    if(n < 3){
-      alert("Sem dados pareados suficientes");
-      return;
-    }
-
-    const mean = arr => arr.reduce((a,b)=>a+b,0)/arr.length;
-
-    const sd = arr => {
-      const m = mean(arr);
-      return Math.sqrt(arr.reduce((a,b)=>a+(b-m)**2,0)/(arr.length-1));
+    return {
+      chart: v[0] ? v[0].trim().toUpperCase() : "",
+      line: parseInt(v[1]),
+      logMAR: parseFloat(v[2]),
+      correct: parseFloat(v[5])
     };
 
-    const diffs = sloan20.map((v,i)=>v - sloan[i]);
+  }).filter(d =>
+    d.chart &&
+    !isNaN(d.line) &&
+    !isNaN(d.logMAR) &&
+    !isNaN(d.correct)
+  );
 
-    const meanDiff = mean(diffs);
-    const sdDiff = sd(diffs);
+  // ==============================
+  // 🔗 PAREAMENTO POR LINHA
+  // ==============================
 
-    const t = meanDiff / (sdDiff / Math.sqrt(n));
+  const grouped = {};
 
-    const ci_low = meanDiff - 1.96 * sdDiff;
-    const ci_high = meanDiff + 1.96 * sdDiff;
+  data.forEach(d => {
 
-    document.getElementById("analysisOutput").innerHTML = `
-      <b>N:</b> ${n}<br>
-      <b>Sloan Média:</b> ${mean(sloan).toFixed(3)}<br>
-      <b>SLOAN 2.0 Média:</b> ${mean(sloan20).toFixed(3)}<br>
-      <b>Diferença média:</b> ${meanDiff.toFixed(3)}<br>
-      <b>t:</b> ${t.toFixed(3)}<br>
-      <b>IC95%:</b> ${ci_low.toFixed(3)} a ${ci_high.toFixed(3)}
-    `;
+    if(!grouped[d.line]) grouped[d.line] = {};
 
-    drawScatter(sloan, sloan20);
-    drawBlandAltman(sloan, sloan20);
+    grouped[d.line][d.chart] = d.correct;
 
-  } catch (err) {
+  });
 
-    console.error("Erro no analyzeCSV:", err);
-    alert("Erro ao processar CSV — veja console");
+  let sloan = [];
+  let sloan20 = [];
 
+  Object.values(grouped).forEach(g => {
+
+    if(g.CLASSICO !== undefined && g.SLOAN20 !== undefined){
+
+      sloan.push(g.CLASSICO);
+      sloan20.push(g.SLOAN20);
+
+    }
+
+  });
+
+  const n = sloan.length;
+
+  console.log("Pareados:", n, sloan, sloan20);
+
+  if(n < 3){
+    alert("Sem dados pareados suficientes");
+    return;
   }
+
+  // ==============================
+  // 📊 ESTATÍSTICAS
+  // ==============================
+
+  const mean = arr => arr.reduce((a,b)=>a+b,0)/arr.length;
+
+  const sd = arr => {
+    const m = mean(arr);
+    return Math.sqrt(arr.reduce((a,b)=>a+(b-m)**2,0)/(arr.length-1));
+  };
+
+  const diffs = sloan20.map((v,i)=>v - sloan[i]);
+
+  const meanDiff = mean(diffs);
+  const sdDiff = sd(diffs);
+
+  const t = meanDiff / (sdDiff / Math.sqrt(n));
+
+  const ci_low = meanDiff - 1.96 * sdDiff;
+  const ci_high = meanDiff + 1.96 * sdDiff;
+
+  document.getElementById("analysisOutput").innerHTML = `
+    <b>N:</b> ${n}<br>
+    <b>Sloan Média:</b> ${mean(sloan).toFixed(3)}<br>
+    <b>SLOAN 2.0 Média:</b> ${mean(sloan20).toFixed(3)}<br>
+    <b>Diferença média:</b> ${meanDiff.toFixed(3)}<br>
+    <b>t:</b> ${t.toFixed(3)}<br>
+    <b>IC95%:</b> ${ci_low.toFixed(3)} a ${ci_high.toFixed(3)}
+  `;
+
+  drawScatter(sloan, sloan20);
+  drawBlandAltman(sloan, sloan20);
 }
 
 
