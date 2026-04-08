@@ -4102,20 +4102,19 @@ document.addEventListener("keydown", function(e){
 
 // processar
 function processLine(){
-
   const time = Math.round(performance.now() - startTime);
-
   let correct = 0;
-
-  for(let i=0;i<lettersLine.length;i++){
-    if(responses[i] === lettersLine[i]){
-      correct++;
-    }
+  
+  for(let i=0; i<lettersLine.length; i++){
+    if(responses[i] === lettersLine[i]) correct++;
   }
 
-  const logMAR = getLogMARFromSystem(lineIndex - 1); // 🔥 corrigido
+  let blockIndex = Math.floor((lineIndex - 1) / TOTAL_LINES_PER_BLOCK); 
+  let currentRun = (blockIndex < 2) ? 1 : 2; // 🔥 Registra se é Teste(1) ou Reteste(2)
+  const logMAR = getLogMARFromSystem(lineIndex - 1);
 
   dataClinical.push({
+    run: currentRun,
     chart: chartType,
     line: lineIndex - 1,
     logMAR: logMAR,
@@ -4133,15 +4132,12 @@ function processLine(){
 }
 // finalizar
 function finishClinical(){
-
   clinicalMode = false;
-
-  let csv = "chart,line,logMAR,letters,responses,correct,time\n";
-
-  dataClinical.forEach(d=>{
-    csv += `${d.chart},${d.line},${d.logMAR},${d.letters},${d.responses},${d.correct},${d.time}\n`;
+  // 🔥 Nova coluna 'run' inserida no CSV para pareamento do Reteste
+  let csv = "run,chart,line,logMAR,letters,responses,correct,time\n";
+  dataClinical.forEach(d => {
+    csv += `${d.run},${d.chart},${d.line},${d.logMAR},${d.letters},${d.responses},${d.correct},${d.time}\n`;
   });
-
   downloadCSVclinical(csv);
 }
 
@@ -4209,7 +4205,7 @@ let chartType = "";
 let lineIndex = 0;
 let startTime = 0;
 const TOTAL_LINES_PER_BLOCK = 7;
-const TOTAL_LINES = TOTAL_LINES_PER_BLOCK * 2;
+const TOTAL_LINES = TOTAL_LINES_PER_BLOCK * 4;
 
 // iniciar teste
 function startClinicalTest(){
@@ -4233,42 +4229,35 @@ function startClinicalTest(){
 
 // próxima linha
 function nextLine(){
-
   responses = [];
-
-  // 🔥 usa constante global
-  if(lineIndex < TOTAL_LINES_PER_BLOCK){
+  
+  // 🔥 Identifica o bloco atual (0 = Classico 1, 1 = Sloan20 1, 2 = Classico 2, 3 = Sloan20 2)
+  let blockIndex = Math.floor(lineIndex / TOTAL_LINES_PER_BLOCK);
+  
+  if(blockIndex === 0 || blockIndex === 2){
     chartType = "CLASSICO";
   } else {
     chartType = "SLOAN20";
   }
 
-  const sloan2 = Object.keys(window.SLOAN20_FACTORS);
-
+  const sloan2 = Object.keys(window.SLOAN20_FACTORS || {});
   const pool = (chartType === "CLASSICO")
     ? ["C","D","H","K","N","O","R","S","V","Z"]
     : sloan2;
 
   function getNextLetters(pool, lineIndex){
-
     const size = 5;
     const start = (lineIndex * size) % pool.length;
-
     let result = [];
-
     for(let i=0; i<size; i++){
       result.push(pool[(start + i) % pool.length]);
     }
-
     return shuffle(result);
   }
 
   lettersLine = getNextLetters(pool, lineIndex);
-
   renderLine();
-
   startTime = performance.now();
-
   lineIndex++;
 }
     // ==============================
@@ -4321,99 +4310,298 @@ function processCSV(){
 // 🧠 PARSE + ANÁLISE
 // ==============================
 
+// ==============================
+// SUBSTITUA A FUNÇÃO ANALYZECSV()
+// ==============================
 function analyzeCSV(text){
-
   const lines = text.trim().split("\n");
+  const headers = lines[0].split(",").map(h => h.trim().toLowerCase());
+  const hasRun = headers.includes("run"); // Suporta arquivos CSVs novos e antigos
 
-  const data = lines.slice(1).map(l => {
-
+  const data = lines.slice(1).map((l, i) => {
     const v = l.split(",");
+    let obj = {};
+    if(hasRun){
+      obj.run = parseInt(v[0]);
+      obj.chart = v[1] ? v[1].trim().toUpperCase() : "";
+      obj.line = parseInt(v[2]);
+      obj.logMAR = parseFloat(v[3]);
+      obj.letters = v[4];
+      obj.responses = v[5];
+      obj.correct = parseFloat(v[6]);
+      obj.time = parseFloat(v[7]);
+    } else {
+      // Compatibilidade com arquivos antigos (força Run = 1)
+      obj.run = i < 14 ? 1 : 2; 
+      obj.chart = v[0] ? v[0].trim().toUpperCase() : "";
+      obj.line = parseInt(v[1]);
+      obj.logMAR = parseFloat(v[2]);
+      obj.letters = v[3];
+      obj.responses = v[4];
+      obj.correct = parseFloat(v[5]);
+      obj.time = parseFloat(v[6]);
+    }
+    return obj;
+  }).filter(d => d.chart && !isNaN(d.line) && !isNaN(d.logMAR) && !isNaN(d.correct));
 
-    return {
-      chart: v[0] ? v[0].trim().toUpperCase() : "",
-      line: parseInt(v[1]),
-      logMAR: parseFloat(v[2]),
-      correct: parseFloat(v[5])
-    };
-
-  }).filter(d =>
-    d.chart &&
-    !isNaN(d.line) &&
-    !isNaN(d.logMAR) &&
-    !isNaN(d.correct)
-  );
-
-  // ==============================
-  // 🔗 PAREAMENTO POR LINHA
-  // ==============================
-
-  const grouped = {};
+  // Acumuladores de métricas
+  let results = {
+    CLASSICO: { correct: 0, errors: 0, time: 0, count: 0, acuity: 0 },
+    SLOAN20: { correct: 0, errors: 0, time: 0, count: 0, acuity: 0 }
+  };
+  let confusion = {};
 
   data.forEach(d => {
+    let ch = d.chart;
+    if(!results[ch]) results[ch] = { correct: 0, errors: 0, time: 0, count: 0, acuity: 0 };
+    
+    results[ch].correct += d.correct;
+    results[ch].errors += (5 - d.correct); // Sempre 5 letras por linha
+    results[ch].time += (d.time || 0);
+    results[ch].count++;
 
-    if(!grouped[d.line]) grouped[d.line] = {};
-
-    grouped[d.line][d.chart] = d.correct;
-
+    // Alimentar Matriz de confusão isolada
+    if(d.letters && d.responses){
+      for(let i=0; i<d.letters.length; i++){
+        let L = d.letters[i];
+        let R = d.responses[i];
+        if(!confusion[L]) confusion[L] = {};
+        if(!confusion[L][R]) confusion[L][R] = 0;
+        confusion[L][R]++;
+      }
+    }
   });
 
-  let sloan = [];
-  let sloan20 = [];
+  // Cálculo da Acuidade ETDRS logMAR oficial (Base + 0.1 - 0.02 * acertos)
+  let runsCLASSICO = [...new Set(data.filter(d=>d.chart==='CLASSICO').map(d=>d.run))];
+  let runsSLOAN20  = [...new Set(data.filter(d=>d.chart==='SLOAN20').map(d=>d.run))];
+  
+  function calcETDRS(chartName){
+     let runs = [...new Set(data.filter(d=>d.chart===chartName).map(d=>d.run))];
+     let acuities = runs.map(r => {
+         let runData = data.filter(d => d.chart === chartName && d.run === r);
+         if(runData.length === 0) return 0;
+         let maxLogMar = Math.max(...runData.map(d=>d.logMAR));
+         let base = maxLogMar + 0.1; // Se começa em 0.3 logMAR, a base de erro total é 0.4
+         let totalCorrect = runData.reduce((acc, curr) => acc + curr.correct, 0);
+         return base - (totalCorrect * 0.02);
+     });
+     return acuities.reduce((a,b)=>a+b,0) / (acuities.length || 1);
+  }
+  
+  results.CLASSICO.acuity = calcETDRS('CLASSICO');
+  results.SLOAN20.acuity = calcETDRS('SLOAN20');
 
+  // Teste T e Agrupamento
+  const grouped = {};
+  data.forEach(d => {
+    let rounded = Math.round(d.logMAR * 100) / 100;
+    if (rounded === -0) rounded = 0;
+    const key = rounded.toFixed(2) + "_run" + d.run; // Pareia apenas linhas e "Runs" idênticos
+
+    if(!grouped[key]) grouped[key] = {};
+    grouped[key][d.chart] = d.correct;
+  });
+
+  let sloan = [], sloan20 = [];
   Object.values(grouped).forEach(g => {
-
     if(g.CLASSICO !== undefined && g.SLOAN20 !== undefined){
-
       sloan.push(g.CLASSICO);
       sloan20.push(g.SLOAN20);
-
     }
-
   });
 
   const n = sloan.length;
-
-  console.log("Pareados:", n, sloan, sloan20);
-
-  if(n < 3){
-    alert("Sem dados pareados suficientes");
-    return;
+  let tTestHTML = "";
+  if(n >= 3){
+    const mean = arr => arr.reduce((a,b)=>a+b,0)/arr.length;
+    const sd = arr => {
+      const m = mean(arr);
+      return Math.sqrt(arr.reduce((a,b)=>a+(b-m)**2,0)/(arr.length-1));
+    };
+    const diffs = sloan20.map((v,i)=>v - sloan[i]);
+    const meanDiff = mean(diffs);
+    const sdDiff = sd(diffs);
+    const t = meanDiff / (sdDiff / Math.sqrt(n) || 0.0001);
+    const ci_low = meanDiff - 1.96 * sdDiff;
+    const ci_high = meanDiff + 1.96 * sdDiff;
+    
+    tTestHTML = `
+      <b>N (Pares de Linhas):</b> ${n}<br>
+      <b>Acertos p/ linha (Clássico):</b> ${mean(sloan).toFixed(2)} letras<br>
+      <b>Acertos p/ linha (SLOAN 2.0):</b> ${mean(sloan20).toFixed(2)} letras<br>
+      <b>Diferença Média (Ganho):</b> ${meanDiff > 0 ? '+' : ''}${meanDiff.toFixed(2)} letras a favor do Sloan 2.0<br>
+      <b>Teste T (pareado):</b> ${t.toFixed(3)}<br>
+      <b>IC95% da diferença:</b> ${ci_low.toFixed(2)} a ${ci_high.toFixed(2)}<br>
+    `;
+    drawScatter(sloan, sloan20);
+    drawBlandAltman(sloan, sloan20);
+  } else {
+    tTestHTML = "<i>Sem dados pareados suficientes para gerar Teste T ou Bland-Altman.</i>";
   }
 
-  // ==============================
-  // 📊 ESTATÍSTICAS
-  // ==============================
+  // Correlação Teste-Reteste
+  let retestHTML = "";
+  if(runsCLASSICO.length >= 2 && runsSLOAN20.length >= 2){
+     function getRunAcuity(chart, r){
+         let runData = data.filter(d => d.chart === chart && d.run === r);
+         let maxLogMar = Math.max(...runData.map(d=>d.logMAR));
+         let totalCorrect = runData.reduce((acc, curr) => acc + curr.correct, 0);
+         return (maxLogMar + 0.1) - (totalCorrect * 0.02);
+     }
+     let c1 = getRunAcuity('CLASSICO', 1), c2 = getRunAcuity('CLASSICO', 2);
+     let s1 = getRunAcuity('SLOAN20', 1),  s2 = getRunAcuity('SLOAN20', 2);
+     
+     retestHTML = `
+       <b>Variabilidade do Clássico (Teste 1 vs 2):</b> ${c1.toFixed(3)} vs ${c2.toFixed(3)} logMAR <i>(Δ = ${Math.abs(c1-c2).toFixed(3)})</i><br>
+       <b>Variabilidade do SLOAN 2.0 (Teste 1 vs 2):</b> ${s1.toFixed(3)} vs ${s2.toFixed(3)} logMAR <i>(Δ = ${Math.abs(s1-s2).toFixed(3)})</i><br>
+       <br><i>* Diferenças (Δ) próximas a zero indicam maior estabilidade e robustez do teste na mesma pessoa.</i>
+     `;
+  } else {
+     retestHTML = "<i>O CSV atual não contém dados da 2ª rodada. Refaça o teste para analisar a correlação Teste-Reteste.</i>";
+  }
 
-  const mean = arr => arr.reduce((a,b)=>a+b,0)/arr.length;
+  // Gera o Layout de Resultados HTML
+  let html = `
+    <style>
+       .res-table { width: 100%; border-collapse: collapse; margin-top: 15px; margin-bottom: 20px; font-family: Arial;}
+       .res-table th, .res-table td { border: 1px solid #ccc; padding: 10px; text-align: center; }
+       .res-table th { background-color: #f0f0f0; }
+       .highlight-win { background-color: #d4edda; font-weight: bold; color: #155724; }
+       .metric-box { background: #fff; border: 1px solid #ddd; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align:left; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+       .metric-box h4 { margin-top:0; color:#333; border-bottom: 1px solid #eee; padding-bottom:8px;}
+    </style>
+    
+    <div class="metric-box">
+      <h4>🏆 Comparativo de Performance Global (Média Geral)</h4>
+      <table class="res-table">
+        <tr>
+           <th>Métrica</th>
+           <th>Sloan Clássico</th>
+           <th>SLOAN 2.0</th>
+           <th>Melhor Desempenho</th>
+        </tr>
+        <tr>
+           <td><b>Total de Erros</b></td>
+           <td>${results.CLASSICO.errors}</td>
+           <td>${results.SLOAN20.errors}</td>
+           <td class="${results.SLOAN20.errors < results.CLASSICO.errors ? 'highlight-win' : (results.CLASSICO.errors < results.SLOAN20.errors ? 'highlight-win' : '')}">
+             ${results.SLOAN20.errors < results.CLASSICO.errors ? 'SLOAN 2.0' : (results.CLASSICO.errors < results.SLOAN20.errors ? 'Clássico' : 'Empate')}
+           </td>
+        </tr>
+        <tr>
+           <td><b>Tempo Total Lendo (s)</b></td>
+           <td>${(results.CLASSICO.time/1000).toFixed(1)} s</td>
+           <td>${(results.SLOAN20.time/1000).toFixed(1)} s</td>
+           <td class="${results.SLOAN20.time < results.CLASSICO.time ? 'highlight-win' : (results.CLASSICO.time < results.SLOAN20.time ? 'highlight-win' : '')}">
+             ${results.SLOAN20.time < results.CLASSICO.time ? 'SLOAN 2.0' : (results.CLASSICO.time < results.SLOAN20.time ? 'Clássico' : 'Empate')}
+           </td>
+        </tr>
+        <tr>
+           <td><b>Acuidade ETDRS logMAR</b><br><small>(Menor é melhor)</small></td>
+           <td>${results.CLASSICO.acuity.toFixed(3)}</td>
+           <td>${results.SLOAN20.acuity.toFixed(3)}</td>
+           <td class="${results.SLOAN20.acuity < results.CLASSICO.acuity ? 'highlight-win' : (results.CLASSICO.acuity < results.SLOAN20.acuity ? 'highlight-win' : '')}">
+             ${results.SLOAN20.acuity < results.CLASSICO.acuity ? 'SLOAN 2.0' : (results.CLASSICO.acuity < results.SLOAN20.acuity ? 'Clássico' : 'Empate')}
+           </td>
+        </tr>
+      </table>
+    </div>
 
-  const sd = arr => {
-    const m = mean(arr);
-    return Math.sqrt(arr.reduce((a,b)=>a+(b-m)**2,0)/(arr.length-1));
-  };
+    <div class="metric-box">
+      <h4>🔄 Reprodutibilidade e Teste-Reteste</h4>
+      ${retestHTML}
+    </div>
 
-  const diffs = sloan20.map((v,i)=>v - sloan[i]);
-
-  const meanDiff = mean(diffs);
-  const sdDiff = sd(diffs);
-
-  const t = meanDiff / (sdDiff / Math.sqrt(n));
-
-  const ci_low = meanDiff - 1.96 * sdDiff;
-  const ci_high = meanDiff + 1.96 * sdDiff;
-
-  document.getElementById("analysisOutput").innerHTML = `
-    <b>N:</b> ${n}<br>
-    <b>Sloan Média:</b> ${mean(sloan).toFixed(3)}<br>
-    <b>SLOAN 2.0 Média:</b> ${mean(sloan20).toFixed(3)}<br>
-    <b>Diferença média:</b> ${meanDiff.toFixed(3)}<br>
-    <b>t:</b> ${t.toFixed(3)}<br>
-    <b>IC95%:</b> ${ci_low.toFixed(3)} a ${ci_high.toFixed(3)}
+    <div class="metric-box">
+      <h4>🔬 Inferência Estatística (Por Linha de Dificuldade)</h4>
+      ${tTestHTML}
+    </div>
   `;
-
-  drawScatter(sloan, sloan20);
-  drawBlandAltman(sloan, sloan20);
+  
+  document.getElementById("analysisOutput").innerHTML = html;
+  
+  // Plota o novo heatmap dedicado ao teste clínico
+  drawClinicalConfusionMatrix(confusion);
 }
 
+// ==============================
+// ADICIONE ESTA FUNÇÃO NOVA (PODE FICAR LOGO ABAIXO)
+// ==============================
+function drawClinicalConfusionMatrix(confMatrix) {
+    let lettersSet = new Set();
+    Object.keys(confMatrix).forEach(l => {
+        lettersSet.add(l);
+        Object.keys(confMatrix[l]).forEach(r => lettersSet.add(r));
+    });
+    
+    let letras = Array.from(lettersSet).sort();
+    if (letras.length === 0) return;
+
+    let canvasContainer = document.getElementById("clinicalMatrixContainer");
+    if (!canvasContainer) {
+        canvasContainer = document.createElement("div");
+        canvasContainer.id = "clinicalMatrixContainer";
+        canvasContainer.style.marginTop = "20px";
+        document.getElementById("analysisOutput").after(canvasContainer);
+    }
+    
+    canvasContainer.innerHTML = "<div class='metric-box'><h4>📉 Matriz de Confusão do Paciente (Letras Apresentadas)</h4><canvas id='clinicConfCanvas'></canvas></div>";
+    let canvas = document.getElementById("clinicConfCanvas");
+    canvas.width = Math.max(400, letras.length * 30 + 100);
+    canvas.height = Math.max(400, letras.length * 30 + 100);
+
+    let ctx = canvas.getContext("2d");
+    let size = letras.length;
+    let grid = Math.min(35, 500 / size);
+    let offsetX = 50;
+    let offsetY = 50;
+
+    let maxVal = 0;
+    letras.forEach(a => {
+        letras.forEach(b => {
+            if (a !== b) maxVal = Math.max(maxVal, confMatrix[a]?.[b] || 0);
+        });
+    });
+
+    letras.forEach((a, i) => {
+        letras.forEach((b, j) => {
+            let val = confMatrix[a]?.[b] || 0;
+            
+            // Fundo Branco se não houver erro, Vermelho se for confusão, e Cinza/Azul p/ acertos totais
+            if (a === b && val > 0) ctx.fillStyle = "#e6f2ff"; 
+            else if (a === b && val === 0) ctx.fillStyle = "#f9f9f9";
+            else if (val === 0) ctx.fillStyle = "#ffffff";
+            else {
+                let intensity = Math.max(0.15, val / maxVal);
+                ctx.fillStyle = `rgba(220, 53, 69, ${intensity})`; // Vermelho (erros)
+            }
+
+            let x = offsetX + j * grid;
+            let y = offsetY + i * grid;
+            ctx.fillRect(x, y, grid, grid);
+            ctx.strokeStyle = "#ddd";
+            ctx.strokeRect(x, y, grid, grid);
+
+            if (val > 0) {
+                ctx.fillStyle = (a !== b) ? "white" : "black";
+                if(a!==b && val/maxVal < 0.4) ctx.fillStyle = "black";
+                ctx.font = "12px Arial";
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+                ctx.fillText(val, x + grid / 2, y + grid / 2);
+            }
+        });
+    });
+
+    ctx.fillStyle = "black";
+    ctx.font = "bold 13px Arial";
+    ctx.textAlign = "center";
+    letras.forEach((l, i) => {
+        ctx.fillText(l, offsetX + i * grid + grid / 2, offsetY - 10);
+        ctx.fillText(l, offsetX - 20, offsetY + i * grid + grid / 2);
+    });
+}
 
 // ==============================
 // 📈 SCATTER PLOT
