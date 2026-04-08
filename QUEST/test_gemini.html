@@ -4330,161 +4330,175 @@ function processCSV(){
 // ==============================
 // SUBSTITUA A FUNÇÃO ANALYZECSV()
 // ==============================
+// ==============================
+// FUNÇÕES ESTATÍSTICAS (P-Value e ICC)
+// ==============================
+function getPValue(t, df) {
+    t = Math.abs(t);
+    let x = df / (df + t * t);
+    let p = Math.pow(x, (df + 1) / 2); 
+    if (df > 20) p = 2 * (1 - 1 / (1 + Math.exp(-1.654 * t)));
+    return Math.max(0.0001, Math.min(p, 1.0));
+}
+
+function calculateICC(pairs) {
+    if (pairs.length < 2) return null; // ICC exige pelo menos 2 pacientes
+    let n = pairs.length;
+    let k = 2; // Teste e Reteste
+    
+    let allValues = [];
+    pairs.forEach(p => { allValues.push(p[0]); allValues.push(p[1]); });
+    
+    let meanGrand = allValues.reduce((a,b)=>a+b,0) / allValues.length;
+    let ssTotal = allValues.reduce((a,b)=>a + Math.pow(b - meanGrand, 2), 0);
+    
+    let ssBetween = 0;
+    pairs.forEach(p => {
+        let meanSubj = (p[0] + p[1]) / 2;
+        ssBetween += k * Math.pow(meanSubj - meanGrand, 2);
+    });
+    
+    let msBetween = ssBetween / (n - 1);
+    let msWithin = (ssTotal - ssBetween) / n;
+    let icc = (msBetween - msWithin) / (msBetween + (k - 1) * msWithin);
+    return Math.max(0, icc);
+}
+
+// ==============================
+// SUBSTITUA A FUNÇÃO ANALYZECSV()
+// ==============================
 function analyzeCSV(text){
   const lines = text.trim().split("\n");
   const headers = lines[0].split(",").map(h => h.trim().toLowerCase());
   
-  // 🔥 Mapeamento dinâmico de colunas (super seguro e à prova de quebras)
-  const idxSubj = headers.indexOf("subject");
-  const idxRun = headers.indexOf("run");
-  const idxChart = headers.indexOf("chart");
-  const idxLine = headers.indexOf("line");
-  const idxLogMAR = headers.indexOf("logmar");
-  const idxLetters = headers.indexOf("letters");
-  const idxResponses = headers.indexOf("responses");
-  const idxCorrect = headers.indexOf("correct");
-  const idxTime = headers.indexOf("time");
+  const idxSubj = headers.indexOf("subject"), idxRun = headers.indexOf("run"),
+        idxChart = headers.indexOf("chart"), idxLine = headers.indexOf("line"),
+        idxLogMAR = headers.indexOf("logmar"), idxLetters = headers.indexOf("letters"),
+        idxResponses = headers.indexOf("responses"), idxCorrect = headers.indexOf("correct"),
+        idxTime = headers.indexOf("time");
 
   const data = lines.slice(1).map((l, i) => {
-    const v = l.split(",");
-    if(v.length < 5) return {}; // pula linhas vazias
-    
+    const v = l.split(","); if(v.length < 5) return {};
     let obj = {};
-    // Extração inteligente baseada no cabeçalho
     obj.subject = idxSubj >= 0 ? v[idxSubj] : "Desconhecido";
-    obj.run = idxRun >= 0 ? parseInt(v[idxRun]) : (i < 14 ? 1 : 2); // Compatibilidade com CSV muito antigo
-    
-    // Fallback para CSVs antigos sem cabeçalho padronizado
+    obj.run = idxRun >= 0 ? parseInt(v[idxRun]) : (i < 14 ? 1 : 2);
     obj.chart = idxChart >= 0 ? v[idxChart].trim().toUpperCase() : (v[0] ? v[0].trim().toUpperCase() : "");
     obj.line = idxLine >= 0 ? parseInt(v[idxLine]) : parseInt(v[1]);
     obj.logMAR = idxLogMAR >= 0 ? parseFloat(v[idxLogMAR]) : parseFloat(v[2]);
-    obj.letters = idxLetters >= 0 ? v[idxLetters] : v[3];
-    obj.responses = idxResponses >= 0 ? v[idxResponses] : v[4];
-    obj.correct = idxCorrect >= 0 ? parseFloat(v[idxCorrect]) : parseFloat(v[5]);
-    obj.time = idxTime >= 0 ? parseFloat(v[idxTime]) : parseFloat(v[6]);
-    
+    obj.letters = idxLetters >= 0 ? v[idxLetters] : "";
+    obj.responses = idxResponses >= 0 ? v[idxResponses] : "";
+    obj.correct = idxCorrect >= 0 ? parseFloat(v[idxCorrect]) : 0;
+    obj.time = idxTime >= 0 ? parseFloat(v[idxTime]) : 0;
     return obj;
-  }).filter(d => d.chart && !isNaN(d.line) && !isNaN(d.logMAR) && !isNaN(d.correct));
+  }).filter(d => d.chart && !isNaN(d.logMAR));
 
-  // Acumuladores de métricas
-  let results = {
-    CLASSICO: { correct: 0, errors: 0, time: 0, count: 0, acuity: 0 },
-    SLOAN20: { correct: 0, errors: 0, time: 0, count: 0, acuity: 0 }
-  };
-  let confusionClassico = {};
-  let confusionSloan20 = {};
+  let results = { CLASSICO: { correct: 0, errors: 0, time: 0 }, SLOAN20: { correct: 0, errors: 0, time: 0 } };
+  let confClassico = {}, confSloan20 = {};
 
   data.forEach(d => {
     let ch = d.chart;
-    if(!results[ch]) results[ch] = { correct: 0, errors: 0, time: 0, count: 0, acuity: 0 };
-    
+    if(!results[ch]) return;
     results[ch].correct += d.correct;
-    results[ch].errors += (5 - d.correct); // Sempre 5 letras por linha
-    results[ch].time += (d.time || 0);
-    results[ch].count++;
+    results[ch].errors += (5 - d.correct);
+    results[ch].time += d.time;
 
-    // Alimentar Matriz de confusão separada
     if(d.letters && d.responses){
-      let targetConf = (ch === 'CLASSICO') ? confusionClassico : confusionSloan20;
+      let target = (ch === 'CLASSICO') ? confClassico : confSloan20;
       for(let i=0; i<d.letters.length; i++){
-        let L = d.letters[i];
-        let R = d.responses[i];
-        if(!targetConf[L]) targetConf[L] = {};
-        if(!targetConf[L][R]) targetConf[L][R] = 0;
-        targetConf[L][R]++;
+        let L = d.letters[i], R = d.responses[i];
+        if(!target[L]) target[L] = {};
+        if(!target[L][R]) target[L][R] = 0;
+        target[L][R]++;
       }
     }
   });
 
-  // Cálculo da Acuidade ETDRS logMAR oficial (Base + 0.1 - 0.02 * acertos)
-  let runsCLASSICO = [...new Set(data.filter(d=>d.chart==='CLASSICO').map(d=>d.run))];
-  let runsSLOAN20  = [...new Set(data.filter(d=>d.chart==='SLOAN20').map(d=>d.run))];
-  
-  function calcETDRS(chartName){
-     let runs = [...new Set(data.filter(d=>d.chart===chartName).map(d=>d.run))];
-     let acuities = runs.map(r => {
-         let runData = data.filter(d => d.chart === chartName && d.run === r);
-         if(runData.length === 0) return 0;
-         let maxLogMar = Math.max(...runData.map(d=>d.logMAR));
-         let base = maxLogMar + 0.1;
-         let totalCorrect = runData.reduce((acc, curr) => acc + curr.correct, 0);
-         return base - (totalCorrect * 0.02);
-     });
-     return acuities.reduce((a,b)=>a+b,0) / (acuities.length || 1);
+  // ETDRS Oficial Acuidade
+  function getSubjRunAcuity(subData, chart, run){
+      let runData = subData.filter(d => d.chart === chart && d.run === run);
+      if(runData.length === 0) return null;
+      let totalC = runData.reduce((acc, curr) => acc + curr.correct, 0);
+      return (Math.max(...runData.map(d=>d.logMAR)) + 0.1) - (totalC * 0.02);
   }
-  
-  results.CLASSICO.acuity = calcETDRS('CLASSICO');
-  results.SLOAN20.acuity = calcETDRS('SLOAN20');
 
-  // Teste T e Agrupamento
+  let subjects = [...new Set(data.map(d=>d.subject))];
+  let pairsC = [], pairsS = [];
+  let acuC_all = [], acuS_all = [];
+
+  subjects.forEach(sub => {
+      let subData = data.filter(d => d.subject === sub);
+      let c1 = getSubjRunAcuity(subData, 'CLASSICO', 1), c2 = getSubjRunAcuity(subData, 'CLASSICO', 2);
+      let s1 = getSubjRunAcuity(subData, 'SLOAN20', 1),  s2 = getSubjRunAcuity(subData, 'SLOAN20', 2);
+      
+      if(c1 !== null) acuC_all.push(c1); if(c2 !== null) acuC_all.push(c2);
+      if(s1 !== null) acuS_all.push(s1); if(s2 !== null) acuS_all.push(s2);
+      
+      if(c1 !== null && c2 !== null) pairsC.push([c1, c2]);
+      if(s1 !== null && s2 !== null) pairsS.push([s1, s2]);
+  });
+
+  results.CLASSICO.acuity = acuC_all.length ? acuC_all.reduce((a,b)=>a+b,0)/acuC_all.length : 0;
+  results.SLOAN20.acuity = acuS_all.length ? acuS_all.reduce((a,b)=>a+b,0)/acuS_all.length : 0;
+
+  // Estatística T-Test
   const grouped = {};
   data.forEach(d => {
-    let rounded = Math.round(d.logMAR * 100) / 100;
-    if (rounded === -0) rounded = 0;
-    const key = rounded.toFixed(2) + "_run" + d.run;
-
+    const key = d.subject + "_" + (Math.round(d.logMAR * 100)/100).toFixed(2) + "_run" + d.run;
     if(!grouped[key]) grouped[key] = {};
     grouped[key][d.chart] = d.correct;
   });
+  let vC = [], vS = [];
+  Object.values(grouped).forEach(g => { if(g.CLASSICO!==undefined && g.SLOAN20!==undefined){ vC.push(g.CLASSICO); vS.push(g.SLOAN20); }});
 
-  let sloan = [], sloan20 = [];
-  Object.values(grouped).forEach(g => {
-    if(g.CLASSICO !== undefined && g.SLOAN20 !== undefined){
-      sloan.push(g.CLASSICO);
-      sloan20.push(g.SLOAN20);
-    }
-  });
-
-  const n = sloan.length;
-  let tTestHTML = "";
-  if(n >= 3){
-    const mean = arr => arr.reduce((a,b)=>a+b,0)/arr.length;
-    const sd = arr => {
-      const m = mean(arr);
-      return Math.sqrt(arr.reduce((a,b)=>a+(b-m)**2,0)/(arr.length-1));
-    };
-    const diffs = sloan20.map((v,i)=>v - sloan[i]);
-    const meanDiff = mean(diffs);
-    const sdDiff = sd(diffs);
-    const t = meanDiff / (sdDiff / Math.sqrt(n) || 0.0001);
-    const ci_low = meanDiff - 1.96 * sdDiff;
-    const ci_high = meanDiff + 1.96 * sdDiff;
-    
-    tTestHTML = `
-      <b>N (Pares de Linhas):</b> ${n}<br>
-      <b>Acertos p/ linha (Clássico):</b> ${mean(sloan).toFixed(2)} letras<br>
-      <b>Acertos p/ linha (SLOAN 2.0):</b> ${mean(sloan20).toFixed(2)} letras<br>
-      <b>Diferença Média (Ganho):</b> ${meanDiff > 0 ? '+' : ''}${meanDiff.toFixed(2)} letras a favor do Sloan 2.0<br>
-      <b>Teste T (pareado):</b> ${t.toFixed(3)}<br>
-      <b>IC95% da diferença:</b> ${ci_low.toFixed(2)} a ${ci_high.toFixed(2)}<br>
-    `;
-    drawScatter(sloan, sloan20);
-    drawBlandAltman(sloan, sloan20);
+  let tStat = 0, pVal = 1, diffMean = 0, ciL = 0, ciH = 0, tTestHTML = "";
+  if(vC.length >= 3){
+      let diffs = vS.map((v,i)=> v - vC[i]);
+      diffMean = diffs.reduce((a,b)=>a+b,0)/diffs.length;
+      let sdD = Math.sqrt(diffs.reduce((a,b)=>a+Math.pow(b-diffMean,2),0)/(diffs.length-1));
+      tStat = diffMean / (sdD / Math.sqrt(vC.length) || 0.001);
+      pVal = getPValue(tStat, vC.length - 1);
+      ciL = diffMean - 1.96 * (sdD/Math.sqrt(vC.length));
+      ciH = diffMean + 1.96 * (sdD/Math.sqrt(vC.length));
+      
+      tTestHTML = `
+      <b>N (Pares de Linhas):</b> ${vC.length}<br>
+      <b>Diferença Média (Ganho):</b> ${diffMean > 0 ? '+' : ''}${diffMean.toFixed(2)} letras a favor do Sloan 2.0<br>
+      <b>Teste T (pareado):</b> ${tStat.toFixed(3)}<br>
+      <b>Valor-P:</b> ${pVal < 0.001 ? '< 0.001' : pVal.toFixed(4)} ${pVal < 0.05 ? '⭐ (Significativo)' : '(Não significativo)'}<br>
+      <b>IC95%:</b> ${ciL.toFixed(2)} a ${ciH.toFixed(2)} letras<br>
+      `;
   } else {
-    tTestHTML = "<i>Sem dados pareados suficientes para gerar Teste T ou Bland-Altman.</i>";
+      tTestHTML = "<i>Sem dados pareados suficientes.</i>";
   }
 
-  // Correlação Teste-Reteste
+  // ICC e Variabilidade Teste-Reteste
+  let iccClassico = calculateICC(pairsC);
+  let iccSloan20 = calculateICC(pairsS);
+  
   let retestHTML = "";
-  if(runsCLASSICO.length >= 2 && runsSLOAN20.length >= 2){
-     function getRunAcuity(chart, r){
-         let runData = data.filter(d => d.chart === chart && d.run === r);
-         let maxLogMar = Math.max(...runData.map(d=>d.logMAR));
-         let totalCorrect = runData.reduce((acc, curr) => acc + curr.correct, 0);
-         return (maxLogMar + 0.1) - (totalCorrect * 0.02);
-     }
-     let c1 = getRunAcuity('CLASSICO', 1), c2 = getRunAcuity('CLASSICO', 2);
-     let s1 = getRunAcuity('SLOAN20', 1),  s2 = getRunAcuity('SLOAN20', 2);
-     
-     retestHTML = `
-       <b>Variabilidade do Clássico (Teste 1 vs 2):</b> ${c1.toFixed(3)} vs ${c2.toFixed(3)} logMAR <i>(Δ = ${Math.abs(c1-c2).toFixed(3)})</i><br>
-       <b>Variabilidade do SLOAN 2.0 (Teste 1 vs 2):</b> ${s1.toFixed(3)} vs ${s2.toFixed(3)} logMAR <i>(Δ = ${Math.abs(s1-s2).toFixed(3)})</i><br>
-       <br><i>* Diferenças (Δ) próximas a zero indicam maior estabilidade e robustez do teste na mesma pessoa.</i>
-     `;
+  if(pairsC.length >= 1 && pairsS.length >= 1){
+      if(subjects.length === 1) {
+          // Apenas 1 paciente, mostrar o Δ (diferença absoluta)
+          let deltaC = Math.abs(pairsC[0][0] - pairsC[0][1]);
+          let deltaS = Math.abs(pairsS[0][0] - pairsS[0][1]);
+          retestHTML = `
+            <b>Variabilidade Clássico (Teste 1 vs 2):</b> Δ = ${deltaC.toFixed(3)} logMAR<br>
+            <b>Variabilidade SLOAN 2.0 (Teste 1 vs 2):</b> Δ = ${deltaS.toFixed(3)} logMAR<br>
+            <br><i>* ICC indisponível para 1 paciente (requer variância entre sujeitos). Valores Δ menores indicam maior estabilidade.</i>
+          `;
+      } else {
+          // Múltiplos pacientes, mostrar o ICC oficial
+          retestHTML = `
+            <b>Confiabilidade Clássico (ICC):</b> ${iccClassico !== null ? iccClassico.toFixed(3) : 'N/A'}<br>
+            <b>Confiabilidade SLOAN 2.0 (ICC):</b> ${iccSloan20 !== null ? iccSloan20.toFixed(3) : 'N/A'}<br>
+            <br><i>* Valores de ICC mais próximos de 1.0 indicam maior reprodutibilidade do teste.</i>
+          `;
+      }
   } else {
-     retestHTML = "<i>O CSV atual não contém dados da 2ª rodada. Refaça o teste para analisar a correlação Teste-Reteste.</i>";
+      retestHTML = "<i>Dados de reteste indisponíveis.</i>";
   }
 
+  // INJEÇÃO DO HTML
   let html = `
     <style>
        .res-table { width: 100%; border-collapse: collapse; margin-top: 15px; margin-bottom: 20px; font-family: Arial;}
@@ -4496,57 +4510,28 @@ function analyzeCSV(text){
     </style>
     
     <div class="metric-box">
-      <h4>🏆 Comparativo de Performance Global (Média Geral) - Paciente: <b>${data[0].subject}</b></h4>
+      <h4>🏆 Performance Geral (${subjects.length} voluntários analisados)</h4>
       <table class="res-table">
-        <tr>
-           <th>Métrica</th>
-           <th>Sloan Clássico</th>
-           <th>SLOAN 2.0</th>
-           <th>Melhor Desempenho</th>
-        </tr>
-        <tr>
-           <td><b>Total de Erros</b></td>
-           <td>${results.CLASSICO.errors}</td>
-           <td>${results.SLOAN20.errors}</td>
-           <td class="${results.SLOAN20.errors < results.CLASSICO.errors ? 'highlight-win' : (results.CLASSICO.errors < results.SLOAN20.errors ? 'highlight-win' : '')}">
-             ${results.SLOAN20.errors < results.CLASSICO.errors ? 'SLOAN 2.0' : (results.CLASSICO.errors < results.SLOAN20.errors ? 'Clássico' : 'Empate')}
-           </td>
-        </tr>
-        <tr>
-           <td><b>Tempo Total Lendo (s)</b></td>
-           <td>${(results.CLASSICO.time/1000).toFixed(1)} s</td>
-           <td>${(results.SLOAN20.time/1000).toFixed(1)} s</td>
-           <td class="${results.SLOAN20.time < results.CLASSICO.time ? 'highlight-win' : (results.CLASSICO.time < results.SLOAN20.time ? 'highlight-win' : '')}">
-             ${results.SLOAN20.time < results.CLASSICO.time ? 'SLOAN 2.0' : (results.CLASSICO.time < results.SLOAN20.time ? 'Clássico' : 'Empate')}
-           </td>
-        </tr>
-        <tr>
-           <td><b>Acuidade ETDRS logMAR</b><br><small>(Menor é melhor)</small></td>
-           <td>${results.CLASSICO.acuity.toFixed(3)}</td>
-           <td>${results.SLOAN20.acuity.toFixed(3)}</td>
-           <td class="${results.SLOAN20.acuity < results.CLASSICO.acuity ? 'highlight-win' : (results.CLASSICO.acuity < results.SLOAN20.acuity ? 'highlight-win' : '')}">
-             ${results.SLOAN20.acuity < results.CLASSICO.acuity ? 'SLOAN 2.0' : (results.CLASSICO.acuity < results.SLOAN20.acuity ? 'Clássico' : 'Empate')}
-           </td>
-        </tr>
+        <tr><th>Métrica</th><th>Sloan Clássico</th><th>SLOAN 2.0</th></tr>
+        <tr><td><b>Erros Totais</b></td><td>${results.CLASSICO.errors}</td><td>${results.SLOAN20.errors}</td></tr>
+        <tr><td><b>AV ETDRS Média (logMAR)</b></td><td>${results.CLASSICO.acuity.toFixed(3)}</td><td>${results.SLOAN20.acuity.toFixed(3)}</td></tr>
       </table>
     </div>
-
-    <div class="metric-box">
-      <h4>🔄 Reprodutibilidade e Teste-Reteste</h4>
-      ${retestHTML}
-    </div>
-
-    <div class="metric-box">
-      <h4>🔬 Inferência Estatística (Por Linha de Dificuldade)</h4>
-      ${tTestHTML}
-    </div>
+    <div class="metric-box"><h4>🔄 Reprodutibilidade (Teste-Reteste)</h4>${retestHTML}</div>
+    <div class="metric-box"><h4>🔬 Estatística: Sloan 2.0 vs Clássico</h4>${tTestHTML}</div>
+    
+    <div id="chartsSafeContainer" style="display:flex; flex-wrap:wrap; justify-content:center; gap:20px; margin-top:20px;"></div>
   `;
   
   document.getElementById("analysisOutput").innerHTML = html;
-  
-  // Plota Matrizes Duplas
-  drawClinicalConfusionMatrix(confusionClassico, "Matriz: Clássico", "canvasConfClassico");
-  drawClinicalConfusionMatrix(confusionSloan20, "Matriz: SLOAN 2.0", "canvasConfSloan20");
+
+  // 🔥 CHAMA OS GRÁFICOS APENAS DEPOIS DE DEFINIR O INNERHTML
+  if(vC.length >= 3){
+      drawScatter(vC, vS);
+      drawBlandAltman(vC, vS);
+  }
+  drawClinicalConfusionMatrix(confClassico, "Matriz: Clássico", "canvasConfClassico");
+  drawClinicalConfusionMatrix(confSloan20, "Matriz: SLOAN 2.0", "canvasConfSloan20");
 }
 
 // ==============================
@@ -4662,22 +4647,23 @@ function drawClinicalConfusionMatrix(confMatrix, title, canvasId) {
 // 2. PLOTS AVANÇADOS (SCATTER & BLAND-ALTMAN)
 // ==============================
 
+// ==============================
+// PLOTS AVANÇADOS (SCATTER & BLAND-ALTMAN)
+// ==============================
 function drawScatter(x, y){
-  let canvas = document.getElementById("plotCanvasScatter");
-  if(!canvas){
-      canvas = document.createElement("canvas");
-      canvas.id = "plotCanvasScatter";
-      canvas.width = 400; canvas.height = 400;
-      canvas.style.border = "1px solid #ccc"; canvas.style.margin = "10px";
-      document.getElementById("analysisOutput").appendChild(canvas);
-  }
+  let container = document.getElementById("chartsSafeContainer");
+  if(!container) return;
+  
+  let canvas = document.createElement("canvas");
+  canvas.width = 400; canvas.height = 400;
+  canvas.style.border = "1px solid #ccc"; canvas.style.background = "#fff";
+  container.appendChild(canvas);
+
   const ctx = canvas.getContext("2d");
   ctx.clearRect(0,0,canvas.width,canvas.height);
 
-  ctx.fillStyle = "#ffffff"; ctx.fillRect(0,0,400,400);
   ctx.fillStyle = "black"; ctx.font = "bold 14px Arial"; ctx.textAlign = "center";
   ctx.fillText("Correlação: Clássico vs SLOAN 2.0", 200, 25);
-  
   ctx.font = "12px Arial"; ctx.fillText("Acertos - Clássico", 200, 390);
   ctx.save(); ctx.translate(15, 200); ctx.rotate(-Math.PI/2);
   ctx.fillText("Acertos - SLOAN 2.0", 0, 0); ctx.restore();
@@ -4689,7 +4675,6 @@ function drawScatter(x, y){
       ctx.beginPath(); ctx.moveTo(50, px); ctx.lineTo(350, px); ctx.stroke();
   }
 
-  // Desenha os pontos com "Jitter" para evitar sobreposição total visual
   ctx.fillStyle = "rgba(0, 123, 255, 0.6)"; ctx.strokeStyle = "#0056b3";
   for(let i=0;i<x.length;i++){
     const jitterX = (Math.random() - 0.5) * 12;
@@ -4699,27 +4684,25 @@ function drawScatter(x, y){
     ctx.beginPath(); ctx.arc(px, py, 6, 0, Math.PI*2); ctx.fill(); ctx.stroke();
   }
 
-  // Linha de Identidade (Acerto igual)
   ctx.strokeStyle = "red"; ctx.lineWidth = 1.5; ctx.setLineDash([5,5]);
   ctx.beginPath(); ctx.moveTo(50, 350); ctx.lineTo(350, 50); ctx.stroke();
   ctx.setLineDash([]);
 }
 
 function drawBlandAltman(a, b){
-  let canvas = document.getElementById("plotCanvasBA");
-  if(!canvas){
-      canvas = document.createElement("canvas");
-      canvas.id = "plotCanvasBA";
-      canvas.width = 520; canvas.height = 400;
-      canvas.style.border = "1px solid #ccc"; canvas.style.margin = "10px";
-      document.getElementById("analysisOutput").appendChild(canvas);
-  }
+  let container = document.getElementById("chartsSafeContainer");
+  if(!container) return;
+
+  let canvas = document.createElement("canvas");
+  canvas.width = 520; canvas.height = 400;
+  canvas.style.border = "1px solid #ccc"; canvas.style.background = "#fff";
+  container.appendChild(canvas);
+
   const ctx = canvas.getContext("2d");
   ctx.clearRect(0,0,canvas.width,canvas.height);
-  ctx.fillStyle = "#ffffff"; ctx.fillRect(0,0,canvas.width,canvas.height);
 
   const means = a.map((v,i)=>(v+b[i])/2);
-  const diffs = a.map((v,i)=>b[i]-v); // Diferença: SLOAN2.0 - Classico
+  const diffs = a.map((v,i)=>b[i]-v); 
 
   const meanDiff = diffs.reduce((x,y)=>x+y,0)/diffs.length;
   const sdDiff = Math.sqrt(diffs.reduce((x,y)=>x+(y-meanDiff)**2,0)/(diffs.length-1 || 1));
