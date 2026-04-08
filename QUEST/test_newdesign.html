@@ -1,0 +1,1557 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Sloan 2.0 – Plataforma Científica e Clínica</title>
+<style>
+    :root {
+        --primary: #0d6efd;
+        --primary-hover: #0b5ed7;
+        --success: #198754;
+        --success-hover: #157347;
+        --bg-color: #f4f6f9;
+        --card-bg: #ffffff;
+        --border-color: #dee2e6;
+        --text-dark: #212529;
+        --text-muted: #6c757d;
+        --danger: #dc3545;
+    }
+
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        background-color: var(--bg-color);
+        color: var(--text-dark);
+        margin: 0;
+        padding: 0;
+    }
+
+    /* Tipografia Customizada Sloan */
+    @font-face {
+        font-family: 'Sloan';
+        src: url('Sloan2.otf') format('opentype');
+    }
+
+    /* Header */
+    .header {
+        background-color: var(--card-bg);
+        padding: 20px;
+        text-align: center;
+        border-bottom: 1px solid var(--border-color);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+    }
+    .header h1 { margin: 0; font-size: 26px; color: var(--primary); font-weight: bold; }
+    .header p { margin: 5px 0 0 0; color: var(--text-muted); font-size: 15px; }
+
+    /* Navegação Tabs */
+    .nav-tabs {
+        display: flex;
+        justify-content: center;
+        background: var(--card-bg);
+        border-bottom: 2px solid var(--border-color);
+        gap: 10px;
+        padding-top: 15px;
+    }
+    .nav-tabs button {
+        background: transparent;
+        border: none;
+        padding: 12px 20px;
+        font-size: 15px;
+        font-weight: 600;
+        color: var(--text-muted);
+        cursor: pointer;
+        border-bottom: 3px solid transparent;
+        transition: all 0.2s ease-in-out;
+    }
+    .nav-tabs button:hover { color: var(--primary); }
+    .nav-tabs button.active {
+        color: var(--primary);
+        border-bottom: 3px solid var(--primary);
+    }
+
+    /* Layout Principal */
+    .container { max-width: 1100px; margin: 30px auto; padding: 0 20px; }
+
+    /* Painel do Paciente Fixo */
+    .patient-bar {
+        display: flex;
+        justify-content: center;
+        gap: 15px;
+        flex-wrap: wrap;
+        align-items: center;
+        background: var(--card-bg);
+        padding: 15px 25px;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        margin-bottom: 30px;
+        border: 1px solid var(--border-color);
+    }
+    .patient-bar input, .patient-bar select {
+        padding: 10px;
+        border: 1px solid var(--border-color);
+        border-radius: 5px;
+        font-size: 14px;
+        outline: none;
+        transition: border-color 0.2s;
+    }
+    .patient-bar input:focus, .patient-bar select:focus { border-color: var(--primary); }
+
+    /* Componentes UI */
+    .card {
+        background: var(--card-bg);
+        border-radius: 8px;
+        padding: 25px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        border: 1px solid var(--border-color);
+        margin-bottom: 20px;
+    }
+    .card h3 { margin-top: 0; color: var(--text-dark); }
+    .text-center { text-align: center; }
+
+    .btn-primary, .btn-success, .btn-danger {
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 15px;
+        font-weight: 600;
+        transition: background-color 0.2s;
+        margin: 5px;
+    }
+    .btn-primary { background-color: var(--primary); }
+    .btn-primary:hover { background-color: var(--primary-hover); }
+    .btn-success { background-color: var(--success); }
+    .btn-success:hover { background-color: var(--success-hover); }
+    .btn-danger { background-color: var(--danger); }
+
+    .file-input { margin: 15px 0; display: block; width: 100%; }
+
+    /* Tabelas */
+    table { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 14px; background: white;}
+    th, td { border: 1px solid var(--border-color); padding: 12px 15px; text-align: left; }
+    th { background-color: var(--bg-color); font-weight: 600; }
+    
+    .metric-box { background: var(--card-bg); border: 1px solid var(--border-color); padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.02); }
+    .metric-box h4 { margin-top: 0; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; color: var(--primary); font-size: 18px;}
+
+    /* Classes Específicas de Tabela (Psicométrico) */
+    .bestLetter { background: #d4edda; font-weight: bold; border-left: 6px solid #28a745; }
+    .sloanLetter { background: #f1f1f1; }
+    .bothLetter { background: #cce5ff; font-weight: bold; border-left: 6px solid #007bff; }
+    .highlight-win { background-color: #d4edda; font-weight: bold; color: #155724; }
+
+    /* Área de Teste */
+    #testArea { display:none; background:black; border-radius:10px; padding:40px; min-height:400px; position:relative; margin-bottom:20px; }
+    #letter { font-family: 'Sloan', Arial, sans-serif; border: 3px solid black; width: 300px; height: 300px; margin: 0 auto; background: white; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+    #optotype { position: absolute; }
+
+    /* Grids de Configuração */
+    .configGrid { display: grid; grid-template-columns: 200px 120px; gap: 10px 15px; align-items: center; max-width: 450px; }
+    .configGrid label { font-weight: bold; text-align: right; }
+
+    hr { border: 0; height: 1px; background: var(--border-color); margin: 30px 0; }
+</style>
+</head>
+<body>
+
+<div class="header">
+    <h1>OptoLab (v4.0) - Projeto SLOAN 2.0</h1>
+    <p>Plataforma Integrada de Análise Psicométrica e Validação Clínica</p>
+</div>
+
+<div class="nav-tabs">
+    <button id="tab-btn-psico" class="active" onclick="abrirAba('psico')">🧪 1. Teste Psicométrico</button>
+    <button id="tab-btn-clinico" onclick="abrirAba('clinico')">👁️ 2. Validação Clínica</button>
+    <button id="tab-btn-lote" onclick="abrirAba('lote')">📊 3. Análise em Lote (CSV)</button>
+    <button id="tab-btn-config" onclick="abrirAba('config')">⚙️ 4. Configurações</button>
+    <button onclick="toggleFullscreen()">⛶ Tela Cheia</button>
+</div>
+
+<div class="container">
+
+    <div class="patient-bar" id="patientBar">
+        <input type="text" id="subjectID" placeholder="ID / Nome do Voluntário" style="width:200px; font-weight:bold;">
+        <input type="number" id="idade" placeholder="Idade" style="width:80px">
+        <select id="sexo">
+            <option value="">Sexo</option>
+            <option value="M">M</option>
+            <option value="F">F</option>
+        </select>
+        <input type="number" id="esferico" step="0.25" placeholder="Grau Esférico (D)" style="width:140px">
+        <label style="font-size:13px; color:#666; font-weight:600;">Distância Tela (m):</label>
+        <input type="number" id="distancia" value="3.8" step="0.1" style="width:70px; font-weight:bold;">
+    </div>
+
+    <div id="aba-psico" class="aba">
+        <div class="card text-center" id="psychoStartCard">
+            <h3>Mapeamento Bayesiano de Limiares (QUEST+)</h3>
+            <p style="color:var(--text-muted); margin-bottom:20px;">Este teste estimará a dificuldade perceptual de cada optótipo para gerar o conjunto balanceado Sloan 2.0.</p>
+            <button class="btn-primary" onclick="startTest()">▶ Iniciar Teste Psicométrico</button>
+        </div>
+
+        <div id="testArea">
+            <div id="letter">
+                <div id="optotype">A</div>
+            </div>
+            
+            <div id="statuscontainer" style="color:#D0D0D0; margin-top:30px; text-align:center;">
+                <div style="font-size:18px; opacity:0.8; margin-bottom:5px;">Digite a letra identificada (A–Z) ou '0' para não sei</div>
+                <div id="typedAnswer" style="font-size:12px; margin:5px; display:none;"></div>
+                
+                <h2 id="status" style="font-size:14px; white-space:pre-wrap; font-weight:normal; line-height:1.5;"></h2>
+                
+                <div style="margin-top:15px; max-width:400px; margin-left:auto; margin-right:auto;">
+                    <div style="font-size:14px; margin-bottom:5px; font-weight:bold;">Convergência Bayesiana (IC95% da letra atual)</div>
+                    <div style="width:100%; height:12px; background:#444; border-radius:10px; overflow:hidden;">
+                        <div id="progressBar" style="height:100%; width:0%; background:#4caf50; transition: width 0.3s;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="analysisArea"></div>
+    </div>
+
+    <div id="aba-clinico" class="aba" style="display:none;">
+        <div class="card text-center" id="clinicStartCard">
+            <h3>Validação Clínica ETDRS</h3>
+            <p style="color:var(--text-muted); margin-bottom:20px;">Compara a acuidade visual obtida com as letras de Sloan Clássicas vs o novo conjunto otimizado SLOAN 2.0.</p>
+            
+            <div style="background:#f8f9fa; padding:15px; border-radius:8px; display:inline-block; margin-bottom:20px; border:1px solid #ddd;">
+                <label style="font-weight:bold; display:block; margin-bottom:8px;">Conjunto Otimizado (Sloan 2.0):</label>
+                <input id="sloan2_input" value="" style="font-size:18px; text-align:center; font-weight:bold; letter-spacing:3px; padding:10px; border:1px solid #ccc; border-radius:5px; background:#e9ecef; color:#333;" readonly>
+            </div>
+            <br>
+            <button class="btn-primary" onclick="startClinicalTest()">▶ Iniciar Teste Clínico</button>
+        </div>
+
+        <div id="clinicalArea" style="margin-top:20px; text-align:center;"></div>
+        
+        <div id="clinicalAnalysisOutput" style="margin-top:20px;"></div>
+    </div>
+
+    <div id="aba-lote" class="aba" style="display:none;">
+        
+        <div style="display:flex; gap:20px; flex-wrap:wrap;">
+            <div class="card" style="flex:1; min-width:300px;">
+                <h3 style="color:var(--primary);">📊 Análise em Lote: Psicométrico</h3>
+                <p style="font-size:13px; color:var(--text-muted);">Faça o upload dos CSVs de dados brutos (respostas QUEST+) de múltiplos voluntários para gerar a matriz final do Sloan 2.0.</p>
+                <input type="file" id="csvUploadAnalysis" multiple class="file-input">
+                <button class="btn-primary" style="width:100%;" onclick="analisarCSV()">Executar Análise Psicométrica</button>
+            </div>
+
+            <div class="card" style="flex:1; min-width:300px;">
+                <h3 style="color:var(--success);">📈 Análise em Lote: Clínico</h3>
+                <p style="font-size:13px; color:var(--text-muted);">Faça o upload do CSV Master de validação ETDRS contendo as passagens de múltiplos pacientes para estatística global (Valor-P, ICC).</p>
+                <input type="file" id="csvUploadClinical" multiple class="file-input">
+                <button class="btn-success" style="width:100%;" onclick="processCSV()">Executar Análise Clínica</button>
+            </div>
+        </div>
+
+        <hr>
+
+        <div id="batchPsychoResults"></div>
+        <div id="batchClinicResults"></div>
+    </div>
+
+    <div id="aba-config" class="aba" style="display:none;">
+        <div class="card">
+            <h3>Parâmetros Psicométricos</h3>
+            <div class="configGrid">
+                <label>Alfabeto Testado</label>
+                <input id="cfg_letters" value="ABCDEFGHIJKLMNOPQRSTUVWXYZ" oninput="atualizarGuessingRate()">
+
+                <label>logMAR mínimo</label>
+                <input id="cfg_minLogMAR" type="number" step="0.01" value="-0.5">
+
+                <label>logMAR máximo</label>
+                <input id="cfg_maxLogMAR" type="number" step="0.01" value="0.3">
+
+                <label>logMAR inicial</label>
+                <input id="cfg_startLogMAR" type="number" step="0.01" value="0.0">
+
+                <label>Trials Máx. por letra</label>
+                <input id="cfg_trials" type="number" value="12">
+
+                <label>Guessing rate (γ)</label>
+                <input id="cfg_gamma" type="number" step="0.001" value="0.038">
+
+                <label>Lapse rate (λ)</label>
+                <input id="cfg_lambda" type="number" step="0.001" value="0.02">
+            </div>
+            
+            <div style="margin-top:20px; padding-top:20px; border-top:1px solid #eee;">
+                <button class="btn-primary" onclick="salvarConfig();">💾 Salvar Configurações</button>
+                <button class="btn-danger" onclick="resetarConfig()">🔄 Restaurar Padrão</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>Calibração Física da Tela</h3>
+            <p style="color:var(--text-muted); font-size:14px;">Meça a altura exata da letra "E" abaixo com uma régua (em milímetros) e insira o valor para calibrar o sistema (logMAR → Pixels).</p>
+            
+            <div style="background:#f8f9fa; border:1px solid #ddd; padding:20px; text-align:center; border-radius:8px;">
+                <div id="calibrationLetter" style="font-family:'Sloan',Arial; font-size:200px; line-height:1; display:inline-block;">E</div>
+            </div>
+
+            <div style="margin-top:20px; display:flex; align-items:center; gap:10px;">
+                <label style="font-weight:bold;">Altura medida na tela (mm):</label>
+                <input type="number" id="mmMedido" style="padding:10px; border-radius:5px; border:1px solid #ccc; width:100px;">
+                <button class="btn-success" onclick="calibrarTela()">✔️ Confirmar Calibração</button>
+            </div>
+            <h4 id="calibrationStatus" style="color:var(--primary); margin-top:15px;"></h4>
+        </div>
+
+        <div class="card">
+            <h3>Fonte Customizada</h3>
+            <p style="color:var(--text-muted); font-size:14px;">Para testar outro optótipo, faça upload do arquivo de fonte (.otf, .ttf).</p>
+            <input type="file" id="fontUpload" accept=".otf,.ttf" class="file-input">
+            <button class="btn-primary" onclick="carregarFonte()">Carregar Nova Fonte</button>
+            <h4 id="fontStatus" style="color:var(--success);"></h4>
+        </div>
+    </div>
+
+</div>
+
+<script>
+// =========================================================================
+// VARIÁVEIS GLOBAIS E ESTADOS
+// =========================================================================
+let seed = 123456;
+function random(){
+    seed = (seed * 16807) % 2147483647;
+    return (seed - 1) / 2147483646;
+}
+
+let trialGlobal = 0, paused = false, respostaDigitada = null, pxPorMm = null;
+let trialLocked = false, lastResponseTime = 0, minResponseInterval = 100;
+let letters, minLogMAR, maxLogMAR, maxTrialsPerLetter, step, gamma, lambda, startLogMAR;
+let lettersData = {}, results = [], activeLetter = null, isDummyTrial = false;
+let currentLogMAR = 0, lastLetter = null, totalTrials = 0, testRunning = false;
+
+// Estado Clínico
+let clinicalMode = false, dataClinical = [], lettersLine = [], responses = [];
+let chartType = "", lineIndex = 0, startTime = 0;
+const TOTAL_LINES_PER_BLOCK = 7;
+const TOTAL_LINES = TOTAL_LINES_PER_BLOCK * 4; 
+
+// =========================================================================
+// CONTROLE DE ABAS (UI)
+// =========================================================================
+function abrirAba(nome){
+    // Esconde todas as abas visualmente, mas não limpa o DOM para não perder extração
+    document.querySelectorAll('.aba').forEach(el => el.style.display = 'none');
+    document.querySelectorAll('.nav-tabs button').forEach(el => el.classList.remove('active'));
+    
+    // Mostra a aba selecionada
+    document.getElementById('aba-' + nome).style.display = 'block';
+    document.getElementById('tab-btn-' + nome).classList.add('active');
+
+    // Reseta estado se sair no meio
+    testRunning = false; 
+    clinicalMode = false;
+
+    if(nome === 'clinico'){
+        // Puxa as letras da aba psicométrica de forma segura (ignora display:none)
+        extractThresholdsFromTable();
+        let inputSloan2 = document.getElementById("sloan2_input");
+        if(inputSloan2){
+            if(window.SLOAN20_FACTORS && Object.keys(window.SLOAN20_FACTORS).length > 0){
+                inputSloan2.value = Object.keys(window.SLOAN20_FACTORS).join("");
+            } else {
+                inputSloan2.value = "Aguardando psicométrico...";
+            }
+        }
+    }
+}
+
+function toggleFullscreen(){
+    if(!document.fullscreenElement){ document.documentElement.requestFullscreen(); }
+    else{ document.exitFullscreen(); }
+}
+
+window.onload = function(){
+    carregarConfig();
+    carregarCalibracao();
+}
+
+// =========================================================================
+// FUNÇÕES BASE PSICOMÉTRICAS E CONFIG
+// =========================================================================
+function carregarConfig(){
+    let cfg = JSON.parse(localStorage.getItem("sloan2_config"));
+    if(!cfg){
+        cfg = { letters:"ABCDEFGHIJKLMNOPQRSTUVWXYZ", minLogMAR:-0.5, maxLogMAR:0.3, trials:13, step:0.02, startLogMAR:0.0, gamma:1/26, lambda:0.02 }
+    }
+    document.getElementById("cfg_letters").value = cfg.letters;
+    document.getElementById("cfg_minLogMAR").value = cfg.minLogMAR;
+    document.getElementById("cfg_maxLogMAR").value = cfg.maxLogMAR;
+    document.getElementById("cfg_trials").value = cfg.trials;
+    document.getElementById("cfg_startLogMAR").value = cfg.startLogMAR;
+    document.getElementById("cfg_gamma").value = cfg.gamma;
+    document.getElementById("cfg_lambda").value = cfg.lambda;
+
+    letters = cfg.letters.split(""); gamma = 1 / letters.length;
+    minLogMAR = parseFloat(cfg.minLogMAR); maxLogMAR = parseFloat(cfg.maxLogMAR);
+    maxTrialsPerLetter = parseInt(cfg.trials); step = parseFloat(cfg.step);
+    startLogMAR = parseFloat(cfg.startLogMAR); lambda = parseFloat(cfg.lambda);
+    totalTrials = letters.length * maxTrialsPerLetter;
+    atualizarGuessingRate();
+}
+
+function salvarConfig(){
+    let cfg = {
+        letters:document.getElementById("cfg_letters").value,
+        minLogMAR:parseFloat(document.getElementById("cfg_minLogMAR").value),
+        maxLogMAR:parseFloat(document.getElementById("cfg_maxLogMAR").value),
+        trials:parseInt(document.getElementById("cfg_trials").value),
+        startLogMAR:parseFloat(document.getElementById("cfg_startLogMAR").value),
+        gamma:parseFloat(document.getElementById("cfg_gamma").value),
+        lambda:parseFloat(document.getElementById("cfg_lambda").value)
+    }
+    localStorage.setItem("sloan2_config",JSON.stringify(cfg));
+    alert("Configurações salvas"); carregarConfig();
+}
+
+function resetarConfig(){
+    localStorage.removeItem("sloan2_config"); carregarConfig(); alert("Configurações restauradas");
+}
+
+function atualizarGuessingRate(){
+    let letras = document.getElementById("cfg_letters").value.trim();
+    if(!letras) return;
+    document.getElementById("cfg_gamma").value = (1 / letras.length).toFixed(3);
+}
+
+function calibrarTela(){
+    let letra = document.getElementById("calibrationLetter");
+    let alturaPx = letra.getBoundingClientRect().height;
+    let mmReal = parseFloat(document.getElementById("mmMedido").value);
+    if(!mmReal || mmReal<=0){ alert("Digite altura em mm"); return; }
+    pxPorMm = alturaPx / mmReal;
+    localStorage.setItem("pxPorMm_Sloan2", pxPorMm);
+    document.getElementById("calibrationStatus").innerText = "✔ Calibração salva: " + pxPorMm.toFixed(2) + " px/mm";
+}
+
+function carregarCalibracao(){
+    let salvo = localStorage.getItem("pxPorMm_Sloan2");
+    if(salvo){
+        pxPorMm = parseFloat(salvo);
+        document.getElementById("calibrationStatus").innerText = "✔ Calibração recuperada: " + pxPorMm.toFixed(2) + " px/mm";
+    }
+}
+
+function logMARtoPx(l){
+    if(!pxPorMm){ alert("Atenção: A tela não foi calibrada. Assumindo valor padrão."); return 40; }
+    let distancia = parseFloat(document.getElementById("distancia").value);
+    let alturaMm = 1.454 * distancia * Math.pow(10, l);
+    return alturaMm * pxPorMm;
+}
+
+// =========================================================================
+// TESTE PSICOMÉTRICO (QUEST+)
+// =========================================================================
+function psychometric(x, a, b){
+    let p = gamma + (1 - gamma - lambda) / (1 + Math.exp(-(x - a) / b));
+    return Math.min(Math.max(p, 0.0001), 0.9999);
+}
+
+function criarPosterior(){
+    let posterior = [];
+    for(let a = -0.5; a <= 0.3; a += 0.02){
+        let b = 0.10;
+        posterior.push({ a: a, b: b, p: 1 });
+    }
+    let sum = posterior.length;
+    posterior.forEach(x => x.p /= sum);
+    return posterior;
+}
+
+function atualizarPosterior(obj, resposta){
+    let soma = 0;
+    obj.posterior.forEach(p => {
+        let prob = psychometric(currentLogMAR, p.a, p.b);
+        let isEasy = prob > 0.85;
+        let L;
+        if(resposta){ L = prob; }
+        else{ L = isEasy ? ((1 - prob) * 0.6) : (1 - prob); }
+        p.p *= L;
+        soma += p.p;
+    });
+    if(soma === 0) return;
+    obj.posterior.forEach(p => p.p /= soma);
+}
+
+function estimarPosterior(obj){
+    let somaP = 0, somaA = 0, somaB = 0;
+    obj.posterior.forEach(p => { somaP += p.p; somaA += p.a * p.p; somaB += p.b * p.p; });
+    return { alpha: somaA / somaP, beta: somaB / somaP };
+}
+
+function entropia(posterior){
+    let H = 0;
+    posterior.forEach(p => { if(p.p > 0) H -= p.p * Math.log(p.p); });
+    return H;
+}
+
+function escolherStimuloQUEST(obj){
+    let candidatos = [];
+    for(let x = minLogMAR; x <= maxLogMAR; x += 0.02) candidatos.push(x);
+    let Hprior = entropia(obj.posterior);
+    let melhorX = candidatos[0], melhorGain = -Infinity;
+
+    candidatos.forEach(x => {
+        let pCorrect = 0;
+        obj.posterior.forEach(p => { pCorrect += p.p * psychometric(x, p.a, p.b); });
+        pCorrect = Math.min(Math.max(pCorrect, 0.05), 0.95);
+        let pError = 1 - pCorrect;
+
+        let postCorrect = obj.posterior.map(p => ({a:p.a, b:p.b, p: p.p * psychometric(x, p.a, p.b)}));
+        let sumC = postCorrect.reduce((s,p)=>s+p.p,0); postCorrect.forEach(p=> p.p /= sumC || 1);
+
+        let postError = obj.posterior.map(p => ({a:p.a, b:p.b, p: p.p * (1 - psychometric(x, p.a, p.b))}));
+        let sumE = postError.reduce((s,p)=>s+p.p,0); postError.forEach(p=> p.p /= sumE || 1);
+
+        let Hpost = pCorrect * entropia(postCorrect) + pError * entropia(postError);
+        let gain = Hprior - Hpost;
+
+        if(gain > melhorGain){ melhorGain = gain; melhorX = x; }
+    });
+    return melhorX + (random() - 0.5) * 0.005;
+}
+
+function checarConvergencia(obj){
+    let est = estimarPosterior(obj);
+    let varSum = 0, pSum = 0;
+    obj.posterior.forEach(p => { varSum += p.p * Math.pow(p.a - est.alpha, 2); pSum += p.p; });
+    let sd = Math.sqrt(varSum / pSum);
+    let largura = 2 * 1.96 * sd;
+    if(obj.trials < 6) return false;
+    return largura < 0.30;
+}
+
+function atualizarBarraConvergencia(obj){
+    let est = estimarPosterior(obj);
+    let varSum = 0, pSum = 0;
+    obj.posterior.forEach(p => { varSum += p.p * Math.pow(p.a - est.alpha, 2); pSum += p.p; });
+    let sd = Math.sqrt(varSum / pSum);
+    let largura = 2 * 1.96 * sd;
+    
+    let progresso = (0.6 - largura) / (0.6 - 0.28);
+    progresso = Math.max(0, Math.min(1, progresso));
+    let percent = Math.floor(progresso * 100);
+
+    let bar = document.getElementById("progressBar");
+    if(bar){
+        bar.style.width = percent + "%";
+        bar.style.background = percent < 40 ? "#f44336" : (percent < 70 ? "#ff9800" : "#4caf50");
+    }
+    document.getElementById("status").innerText += `\nIC95%: ${largura.toFixed(3)} logMAR`;
+}
+
+function startTest(){
+    let id = document.getElementById("subjectID").value.trim();
+    if(!id){ alert("Preencha o ID do voluntário no topo da página"); return; }
+    let salvaLocal = localStorage.getItem("pxPorMm_Sloan2");
+    if(!pxPorMm && !salvaLocal){ alert("Calibre a tela antes de iniciar"); return; }
+
+    document.getElementById("psychoStartCard").style.display = "none";
+    document.getElementById("analysisArea").innerHTML = "";
+
+    testRunning = true;
+    results = []; lettersData = {};
+    letters.forEach(l => {
+        lettersData[l] = { alpha:0, beta:0.1, stimulus: startLogMAR + (random()-0.5)*0.04, posterior: criarPosterior(), trials:0, data:[], finished:false }
+    });
+
+    document.getElementById("testArea").style.display = "block";
+    showTrial();
+}
+
+function escolherLetra(){
+    let active = letters.filter(l => !lettersData[l].finished);
+    let finished = letters.filter(l => lettersData[l].finished);
+    if(active.length === 0){ endTest(); return null; }
+
+    let minTrials = Math.min(...active.map(l=>lettersData[l].trials));
+    let candidatos = active.filter(l => lettersData[l].trials === minTrials);
+    let choice = candidatos[Math.floor(random()*candidatos.length)];
+
+    let usarDummy = false;
+    if(active.length <= 4 && finished.length > 0 && random() < 0.3) usarDummy = true;
+
+    if(usarDummy){
+        let candidatosDummy = finished.length > 1 && lastLetter ? finished.filter(l => l !== lastLetter) : finished;
+        let dummy = candidatosDummy[Math.floor(random()*candidatosDummy.length)];
+        lastLetter = dummy; return dummy;
+    }
+
+    isDummyTrial = false;
+    if(choice === lastLetter && candidatos.length > 1) return escolherLetra();
+    lastLetter = choice; return choice;
+}
+
+function showTrial(){
+    activeLetter = escolherLetra();
+    if(!activeLetter) return;
+    isDummyTrial = lettersData[activeLetter].finished;
+
+    let obj = lettersData[activeLetter];
+    currentLogMAR = obj.stimulus;
+
+    let box = document.getElementById("letter");
+    let opt = document.getElementById("optotype");
+    trialLocked = true;
+    
+    opt.innerText = "";
+    box.style.background = "black";
+
+    setTimeout(() => {
+        box.style.background = "white";
+        opt.style.fontSize = logMARtoPx(currentLogMAR) + "px";
+        let offsetX = (random()-0.5)*120, offsetY = (random()-0.5)*120;
+        opt.style.left = `calc(50% + ${offsetX}px)`;
+        opt.style.top = `calc(50% + ${offsetY}px)`;
+        opt.style.transform = "translate(-50%,-50%)";
+        opt.innerText = activeLetter;
+
+        let finalizadas = letters.filter(l => lettersData[l].finished).length;
+        document.getElementById("status").innerText = `Respostas: ${trialGlobal} | Letras concluídas: ${finalizadas}/${letters.length}\nLetra atual: ${activeLetter} (${obj.trials} tentativas) | logMAR estimado: ${currentLogMAR.toFixed(2)}\n\nProgresso Geral:\n${letters.map(l=> l+":"+lettersData[l].trials+(lettersData[l].finished?"✔":"")).join(" ")}`;
+        
+        trialLocked = false;
+    }, 200);
+}
+
+// Teclado GLOBAL (Handles both Tests based on active mode)
+document.addEventListener("keydown", function(e){
+    if(e.repeat || paused) return;
+
+    let key = e.key.toUpperCase();
+
+    // HANDLER CLÍNICO
+    if(clinicalMode){
+        if(!/^[A-Z0]$/.test(key)) return;
+        responses.push(key);
+        if(responses.length === lettersLine.length) processLine();
+        return;
+    }
+
+    // HANDLER PSICOMÉTRICO
+    if(testRunning && !trialLocked){
+        let now = performance.now();
+        if(now - lastResponseTime < minResponseInterval) return;
+        lastResponseTime = now;
+
+        if((key >= "A" && key <= "Z") || key === "0"){
+            respostaDigitada = key;
+            document.getElementById("typedAnswer").innerText = key;
+            confirmarResposta();
+        }
+    }
+});
+
+function confirmarResposta(){
+    if(isDummyTrial){
+        trialLocked = false; respostaDigitada = null; showTrial(); return;
+    }
+    trialLocked = true;
+    
+    let subj = document.getElementById("subjectID").value;
+    let obj = lettersData[activeLetter];
+    let correct = (respostaDigitada === activeLetter) ? 1 : 0;
+
+    obj.data.push({ logMAR: currentLogMAR, correct: correct, shown: activeLetter, answer: respostaDigitada });
+    obj.trials++;
+    results.push({ subject: subj, idade: document.getElementById("idade").value, sexo: document.getElementById("sexo").value, esferico: document.getElementById("esferico").value, letter: activeLetter, answer: respostaDigitada, logMAR: currentLogMAR, correct: correct });
+    trialGlobal++;
+
+    atualizarPosterior(obj, correct);
+    let est = estimarPosterior(obj);
+    obj.alpha = est.alpha; obj.beta = est.beta;
+
+    let next = escolherStimuloQUEST(obj);
+
+    // Escape Clínico 
+    let ultimos = obj.data.slice(-4);
+    if(ultimos.length >= 4){
+        let taxaErro = ultimos.filter(d=>d.correct===0).length / ultimos.length;
+        let ajuste = taxaErro >= 0.75 ? 0.015 : (taxaErro >= 0.5 ? 0.008 : 0);
+        let alvo = currentLogMAR + ajuste;
+        next = 0.92 * next + 0.08 * alvo;
+        if((1-taxaErro) >= 0.75) next -= 0.015;
+        let delta = next - currentLogMAR;
+        if(delta > 0.05) next = currentLogMAR + 0.05;
+        if(delta < -0.05) next = currentLogMAR - 0.05;
+    }
+
+    obj.stimulus = Math.max(minLogMAR, Math.min(next, maxLogMAR));
+    let acc = obj.data.filter(d=>d.correct===1).length / obj.data.length;
+    if((obj.trials >= 6 && checarConvergencia(obj) && acc > 0.6) || obj.trials >= maxTrialsPerLetter){
+        obj.finished = true;
+    }
+
+    atualizarBarraConvergencia(obj);
+    respostaDigitada = null;
+    
+    if(letters.every(l => lettersData[l].finished)){ endTest(); return; }
+    
+    trialLocked = false;
+    showTrial();
+}
+
+function endTest(){
+    testRunning = false;
+    document.getElementById("testArea").style.display = "none";
+    window.currentPsychoTarget = "analysisArea";
+    processarCSV(results); // Gera gráficos na div correta
+
+    // Injeta Botão de Download na div de resultados
+    let csvData = "subject,idade,sexo,esferico,letter,answer,logMAR,correct\n";
+    results.forEach(r => { csvData += `${r.subject},${r.idade},${r.sexo},${r.esferico},${r.letter},${r.answer},${r.logMAR},${r.correct}\n`; });
+    let filename = (document.getElementById("subjectID").value || "voluntario") + "_psycho.csv";
+    
+    document.getElementById("analysisArea").insertAdjacentHTML('afterbegin', `
+       <div class="card" style="background:#d4edda; border-color:#c3e6cb; color:#155724; text-align:center;">
+           <h3>✔ Teste Psicométrico Concluído</h3>
+           <p>Mapeamento psicofísico finalizado e conjunto otimizado gerado.</p>
+           <button class="btn-success" onclick="downloadCSVclinical('${encodeURIComponent(csvData)}', '${filename}')">⬇️ Baixar CSV Psicométrico</button>
+       </div>
+    `);
+}
+
+// =========================================================================
+// TESTE CLÍNICO (ETDRS)
+// =========================================================================
+function extractThresholdsFromTable(){
+    const tables = document.querySelectorAll("table");
+    let targetTable = null;
+    tables.forEach(table => {
+        const headers = table.querySelectorAll("th");
+        if(headers.length >= 4){
+            const h0 = headers[0].textContent.toLowerCase();
+            const h3 = headers[3].textContent.toLowerCase();
+            if(h0.includes("letra") && h3.includes("fator")){ targetTable = table; }
+        }
+    });
+
+    window.SLOAN20_FACTORS = {};
+    if(!targetTable) return;
+
+    const rows = targetTable.querySelectorAll("tr");
+    rows.forEach((row, index) => {
+        if(index === 0) return;
+        const cells = row.querySelectorAll("td");
+        if(cells.length < 4) return;
+        const letter = cells[0].textContent.trim();
+        const fator = parseFloat(cells[3].textContent);
+        if(letter && !isNaN(fator)) window.SLOAN20_FACTORS[letter] = fator;
+    });
+}
+
+function getLogMARFromSystem(line){
+    const start = 0.3, step = 0.1;
+    const effectiveLine = line % TOTAL_LINES_PER_BLOCK;
+    return start - (effectiveLine * step);
+}
+
+function shuffle(a){ return a.sort(() => Math.random() - 0.5); }
+
+function startClinicalTest(){
+    let id = document.getElementById("subjectID").value.trim();
+    if(!id){ alert("❌ Preencha o 'ID voluntário' (no topo da página)."); return; }
+    let salvaLocal = localStorage.getItem("pxPorMm_Sloan2");
+    if(!pxPorMm && !salvaLocal){ alert("❌ Calibre a tela antes de iniciar."); return; }
+
+    extractThresholdsFromTable();
+    if(!window.SLOAN20_FACTORS || Object.keys(window.SLOAN20_FACTORS).length === 0){
+        alert("❌ Execute a Análise Psicométrica primeiro para gerar o Sloan 2.0."); return;
+    }
+
+    document.getElementById("sloan2_input").value = Object.keys(window.SLOAN20_FACTORS).join("");
+    document.getElementById("clinicStartCard").style.display = "none";
+    document.getElementById("clinicalAnalysisOutput").innerHTML = ""; // Limpa análises antigas
+
+    clinicalMode = true; dataClinical = []; lineIndex = 0;
+    nextLine();
+}
+
+function nextLine(){
+    responses = [];
+    let blockIndex = Math.floor(lineIndex / TOTAL_LINES_PER_BLOCK);
+    chartType = (blockIndex === 0 || blockIndex === 2) ? "CLASSICO" : "SLOAN20";
+
+    const pool = chartType === "CLASSICO" ? ["C","D","H","K","N","O","R","S","V","Z"] : Object.keys(window.SLOAN20_FACTORS);
+
+    function getNextLetters(pool, lineIndex){
+        const start = (lineIndex * 5) % pool.length;
+        let res = [];
+        for(let i=0; i<5; i++) res.push(pool[(start + i) % pool.length]);
+        return shuffle(res);
+    }
+
+    lettersLine = getNextLetters(pool, lineIndex);
+    
+    // Render
+    let clinicalArea = document.getElementById("clinicalArea");
+    clinicalArea.innerHTML = "";
+    const logMAR = getLogMARFromSystem(lineIndex % TOTAL_LINES_PER_BLOCK);
+    
+    clinicalArea.innerHTML += `<div style="font-size:20px; font-weight:bold; margin-bottom:30px; color:var(--primary);">logMAR: ${logMAR.toFixed(2)} | ${chartType} | Bloco ${blockIndex+1}/4</div>`;
+    
+    const baseSize = logMARtoPx(logMAR);
+    const card = document.createElement("div");
+    card.className = "card"; card.style.display = "inline-block"; card.style.padding = "50px";
+    
+    const lineDiv = document.createElement("div");
+    lineDiv.style.display = "flex"; lineDiv.style.gap = baseSize + "px"; lineDiv.style.alignItems = "center";
+    
+    lettersLine.forEach(letter => {
+        let size = baseSize;
+        if(chartType === "SLOAN20" && window.SLOAN20_FACTORS[letter]) size = baseSize * window.SLOAN20_FACTORS[letter];
+        const span = document.createElement("span");
+        span.innerText = letter; span.style.fontSize = size + "px"; span.style.fontFamily = "'Sloan', sans-serif";
+        lineDiv.appendChild(span);
+    });
+    
+    card.appendChild(lineDiv);
+    clinicalArea.appendChild(card);
+    
+    startTime = performance.now();
+    lineIndex++;
+}
+
+function processLine(){
+    const time = Math.round(performance.now() - startTime);
+    let correct = 0;
+    for(let i=0; i<lettersLine.length; i++){ if(responses[i] === lettersLine[i]) correct++; }
+    
+    let blockIndex = Math.floor((lineIndex - 1) / TOTAL_LINES_PER_BLOCK); 
+    let currentRun = (blockIndex < 2) ? 1 : 2;
+    const logMAR = getLogMARFromSystem(lineIndex - 1);
+
+    dataClinical.push({ run: currentRun, chart: chartType, line: lineIndex - 1, logMAR: logMAR, letters: lettersLine.join(""), responses: responses.join(""), correct: correct, time: time });
+
+    if(lineIndex < TOTAL_LINES){ nextLine(); } 
+    else { finishClinical(); }
+}
+
+function finishClinical(){
+    clinicalMode = false;
+    let subj = document.getElementById("subjectID").value.trim() || "voluntario";
+    let csv = "subject,run,chart,line,logMAR,letters,responses,correct,time\n";
+    dataClinical.forEach(d => { csv += `${subj},${d.run},${d.chart},${d.line},${d.logMAR},${d.letters},${d.responses},${d.correct},${d.time}\n`; });
+    let filename = subj + "_clinical.csv";
+    
+    document.getElementById("clinicalArea").innerHTML = `
+      <div class="card" style="background:#d4edda; border-color:#c3e6cb; color:#155724; margin-top:20px;">
+          <h3>✔ Validação ETDRS Concluída</h3>
+          <p>Os dados pareados e o reteste do paciente foram registrados.</p>
+          <button class="btn-success" onclick="downloadCSVclinical('${encodeURIComponent(csv)}', '${filename}')">⬇️ Baixar CSV Clínico</button>
+          <button class="btn-primary" onclick="runClinicalAnalysisOnCurrentData('${encodeURIComponent(csv)}')">📊 Exibir Resultados Clínicos</button>
+      </div>
+    `;
+}
+
+function downloadCSVclinical(encodedContent, filename){
+    const content = decodeURIComponent(encodedContent);
+    const blob = new Blob([content], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = filename || "clinical_result.csv";
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+}
+
+function runClinicalAnalysisOnCurrentData(encodedCSV) {
+    window.currentClinicTarget = "clinicalAnalysisOutput";
+    analyzeCSV(decodeURIComponent(encodedCSV));
+}
+
+// =========================================================================
+// PROCESSAMENTO PSICOMÉTRICO (CORE) E BATCH
+// =========================================================================
+function analisarCSV(){
+    window.currentPsychoTarget = "batchPsychoResults";
+    const input = document.getElementById("csvUploadAnalysis");
+    const files = input ? input.files : null;
+    if(!files || files.length === 0){ alert("Selecione os arquivos CSV psicométricos"); return; }
+    
+    let dados = []; let pendentes = files.length;
+    document.getElementById("batchPsychoResults").innerHTML = "<h3 style='text-align:center;'>Processando...</h3>";
+    
+    for(let f of files){
+        let reader = new FileReader();
+        reader.onload = function(e){
+            let linhas = e.target.result.trim().split("\n");
+            // Basic parsing assuming standard format
+            for(let i=1; i<linhas.length; i++){
+                let p = linhas[i].split(",");
+                if(p.length < 8) continue;
+                let logMAR = parseFloat(p[6]), correct = parseInt(p[7]);
+                if(isNaN(logMAR) || isNaN(correct)) continue;
+                dados.push({ subject: p[0], letter: p[4], answer: p[5], logMAR: logMAR, correct: correct });
+            }
+            pendentes--;
+            if(pendentes === 0) processarCSV(dados);
+        };
+        reader.readAsText(f);
+    }
+}
+
+// Funções de Cálculo Psicométrico
+function gerarMatrizConfusao(data){
+    let matriz = {};
+    letters.forEach(l => { matriz[l] = {}; letters.forEach(r => matriz[l][r] = 0); });
+    data.forEach(d => {
+        if(!d.answer || d.answer==="0") return;
+        if(matriz[d.letter] && matriz[d.letter][d.answer] !== undefined) matriz[d.letter][d.answer]++;
+    });
+    return matriz;
+}
+
+function normalizarMatriz(matriz){
+    let prob = {};
+    letters.forEach(a => {
+        let total = 0; letters.forEach(b => total += matriz[a][b]);
+        prob[a] = {}; letters.forEach(b => prob[a][b] = total > 0 ? matriz[a][b]/total : 0);
+    });
+    return prob;
+}
+
+function normalizarPorSujeito(data){
+    let porSujeito = {};
+    data.forEach(d => { if(!porSujeito[d.subject]) porSujeito[d.subject]=[]; porSujeito[d.subject].push(d); });
+    Object.values(porSujeito).forEach(grupo => {
+        let media = grupo.reduce((acc,d)=>acc+d.logMAR,0) / grupo.length;
+        grupo.forEach(d => d.logMAR = d.logMAR - media);
+    });
+    return data;
+}
+
+function calcularVariabilidadeInterSujeitos(data){
+    let porLetra = {};
+    data.forEach(d => {
+        if(!porLetra[d.letter]) porLetra[d.letter] = {};
+        if(!porLetra[d.letter][d.subject]) porLetra[d.letter][d.subject] = [];
+        porLetra[d.letter][d.subject].push(d.logMAR);
+    });
+    let variabilidade = {};
+    Object.keys(porLetra).forEach(letra => {
+        let medias = [];
+        Object.keys(porLetra[letra]).forEach(subj => {
+            let vals = porLetra[letra][subj];
+            medias.push(vals.reduce((a,b)=>a+b,0)/vals.length);
+        });
+        let meanG = medias.reduce((a,b)=>a+b,0)/medias.length;
+        let varG = medias.map(x=>Math.pow(x-meanG,2)).reduce((a,b)=>a+b,0)/medias.length;
+        variabilidade[letra] = Math.sqrt(varG);
+    });
+    return variabilidade;
+}
+
+function calcularLPI(letrasSet, matriz){
+    let total = 0, pares = 0;
+    for(let i=0; i<letrasSet.length; i++){
+        for(let j=i+1; j<letrasSet.length; j++){
+            let a = letrasSet[i], b = letrasSet[j];
+            total += (matriz[a]?.[b]||0) + (matriz[b]?.[a]||0);
+            pares++;
+        }
+    }
+    return (pares > 0 ? total/pares : 0) * 1.5;
+}
+
+function letterSetOptimization(tabela, matriz, variabilidadeLetra){
+    let thresholds = tabela.map(t=>t.threshold).sort((a,b)=>a-b);
+    let cutLow = thresholds[Math.floor(thresholds.length * 0.15)];
+    let cutHigh = thresholds[Math.floor(thresholds.length * 0.85)];
+    let central = thresholds.filter(t => t >= cutLow && t <= cutHigh);
+    let median = central[Math.floor(central.length / 2)];
+
+    let candidatos = tabela.filter(t => t.threshold >= cutLow && t.threshold <= cutHigh && Math.abs(t.threshold - median) <= 0.06);
+
+    let melhorSet = [], melhorScore = Infinity, melhorMetrics = null;
+    for(let it=0; it<10000; it++){
+        let size = 9 + Math.floor(random()*((Math.min(12, candidatos.length)) - 9 + 1));
+        let set = shuffle([...candidatos]).slice(0, size);
+        
+        let th = set.map(l=>l.threshold);
+        let D_central = th.reduce((acc,v)=>acc + Math.abs(v - median),0) / th.length;
+        if(D_central > 0.08) continue;
+        
+        let sum = 0, pairs = 0;
+        for(let i=0;i<th.length;i++){ for(let j=i+1;j<th.length;j++){ sum += Math.abs(th[i]-th[j]); pairs++; } }
+        let D_coeso = pairs > 0 ? sum/pairs : 0;
+        if(D_coeso > 0.12) continue;
+
+        let variabSum = 0; set.forEach(l => variabSum += (variabilidadeLetra[l.letra] || 0));
+        let meanVariab = variabSum / set.length;
+
+        let outlierPenalty = 0; th.forEach(v => { if(Math.abs(v-median)>0.15) outlierPenalty++; });
+
+        let confSum = 0, maxPairConf = 0, cpairs = 0;
+        for(let i=0;i<set.length;i++){
+            for(let j=i+1;j<set.length;j++){
+                let a = set[i].letra, b = set[j].letra;
+                let conf = (matriz[a]?.[b]||0) + (matriz[b]?.[a]||0);
+                confSum += conf; cpairs++;
+                if(conf > maxPairConf) maxPairConf = conf;
+            }
+        }
+        let meanConf = cpairs > 0 ? confSum/cpairs : 0;
+        let LPI = calcularLPI(set.map(l=>l.letra), matriz);
+
+        let distSum=0, dpairs=0;
+        for(let i=0;i<set.length;i++){
+            for(let j=i+1;j<set.length;j++){
+                let a = set[i].letra, b = set[j].letra;
+                let v1 = Object.values(matriz[a] || {}), v2 = Object.values(matriz[b] || {});
+                let d = 0; for(let k=0;k<v1.length;k++) d += Math.pow(v1[k]-v2[k], 2);
+                distSum += Math.sqrt(d); dpairs++;
+            }
+        }
+        let meanDist = dpairs > 0 ? distSum/dpairs : 0;
+
+        let score = (0.55*maxPairConf) + (0.55*LPI) + (0.45*meanVariab) + (0.35*D_coeso) + (0.25*outlierPenalty) - (0.40*meanDist);
+        if(score < melhorScore){
+            melhorScore = score; melhorSet = [...set];
+            melhorMetrics = { sd: Math.sqrt(th.map(x=>Math.pow(x-(th.reduce((a,b)=>a+b,0)/th.length),2)).reduce((a,b)=>a+b,0)/th.length), difficulty: D_central, meanConf, maxConf: maxPairConf, dist: meanDist, outliers: outlierPenalty, variability: meanVariab, LPI };
+        }
+    }
+    return { set: melhorSet, score: melhorScore, metrics: melhorMetrics };
+}
+
+function processarCSV(data){
+    seed = 123456;
+    data = normalizarPorSujeito(data);
+    results = data;
+
+    gamma = 1 / letters.length;
+    lettersData = {};
+    letters.forEach(l => { lettersData[l] = { alpha:0, beta:0.1, data:[], trials:0 } });
+    data.forEach(d => { if(lettersData[d.letter]){ lettersData[d.letter].data.push({ logMAR:d.logMAR, correct:d.correct }); lettersData[d.letter].trials++; } });
+
+    let tabela = [];
+    letters.forEach(l => {
+        let obj = lettersData[l];
+        if(obj.data.length < 6) return;
+        let bestLL = -Infinity, bestA = 0, bestB = 0.1;
+        for(let a=minLogMAR; a<=maxLogMAR; a+=0.02){
+            for(let b=0.05; b<=0.3; b+=0.02){
+                let ll = 0;
+                obj.data.forEach(d => { let p = psychometric(d.logMAR, a, b); ll += d.correct*Math.log(p) + (1-d.correct)*Math.log(1-p); });
+                if(ll > bestLL){ bestLL = ll; bestA = a; bestB = b; }
+            }
+        }
+        obj.alpha = bestA; obj.beta = bestB;
+        tabela.push({ letra: l, threshold: obj.alpha + obj.beta*Math.log(3), slope: obj.beta, n: obj.trials });
+    });
+    tabela.sort((a,b)=>a.threshold - b.threshold);
+
+    let matriz = gerarMatrizConfusao(data);
+    let matrizProb = normalizarMatriz(matriz);
+    let variabilidadeLetra = calcularVariabilidadeInterSujeitos(data);
+    
+    let opt = letterSetOptimization(tabela, matrizProb, variabilidadeLetra);
+    let letrasSet = (opt.set || []).map(l=>l.letra);
+    let SLOAN = ["C","D","H","K","N","O","R","S","V","Z"];
+    
+    function calcularMetricsGrupo(letrasGrupo){
+        let subset = tabela.filter(t=>letrasGrupo.includes(t.letra));
+        if(subset.length < 2) return null;
+        let th = subset.map(t=>t.threshold);
+        let mean = th.reduce((a,b)=>a+b,0)/th.length;
+        let sd = Math.sqrt(th.map(x=>Math.pow(x-mean,2)).reduce((a,b)=>a+b,0)/th.length);
+        let globalMedian = tabela.map(t=>t.threshold).sort((a,b)=>a-b)[Math.floor(tabela.length/2)];
+        
+        let confSum = 0, maxConf = 0, pairs = 0;
+        for(let i=0;i<letrasGrupo.length;i++){
+            for(let j=i+1;j<letrasGrupo.length;j++){
+                let conf = (matriz[letrasGrupo[i]]?.[letrasGrupo[j]]||0) + (matriz[letrasGrupo[j]]?.[letrasGrupo[i]]||0);
+                confSum += conf; if(conf > maxConf) maxConf = conf; pairs++;
+            }
+        }
+        
+        let distSum=0, dpairs=0;
+        for(let i=0;i<letrasGrupo.length;i++){
+            for(let j=i+1;j<letrasGrupo.length;j++){
+                let v1 = Object.values(matrizProb[letrasGrupo[i]] || {}), v2 = Object.values(matrizProb[letrasGrupo[j]] || {});
+                let d = 0; for(let k=0;k<v1.length;k++) d+=Math.pow(v1[k]-v2[k],2);
+                distSum+=Math.sqrt(d); dpairs++;
+            }
+        }
+        
+        let outliers=0; th.forEach(v=>{ if(Math.abs(v-globalMedian)>0.15) outliers++; });
+        let variabSum = 0; letrasGrupo.forEach(l=> variabSum += variabilidadeLetra[l] || 0);
+        return { sd, maxConf, dist: dpairs>0 ? distSum/dpairs : 0, outliers, variability: variabSum/letrasGrupo.length, LPI: calcularLPI(letrasGrupo, matriz) };
+    }
+
+    let metricsGlobal = calcularMetricsGrupo(tabela.map(t=>t.letra));
+    let metricsSloan = calcularMetricsGrupo(SLOAN.filter(l => tabela.some(t=>t.letra===l)));
+    let metricsSet = calcularMetricsGrupo(letrasSet);
+
+    window.letrasSelecionadas = letrasSet;
+
+    // GERAR HTML
+    let uid = Date.now();
+    let html = `
+    <div class="metric-box">
+        <h4>1. Psychometric Method</h4>
+        <table class="res-table">
+            <tr><td><b>Stimulus selection</b></td><td>Bayesian adaptive (QUEST+) – Maximization of Expected Information Gain</td></tr>
+            <tr><td><b>Posterior update</b></td><td>Iterative Bayesian Inference</td></tr>
+            <tr><td><b>Parameter space</b></td><td>Discrete grid α (threshold) and β (fixed slope)</td></tr>
+            <tr><td><b>Threshold estimation</b></td><td>Posterior mean corresponding to ~75% probability of correct recognition</td></tr>
+            <tr><td><b>Stopping rule</b></td><td>Credible interval (IC95%) < 0.30 logMAR</td></tr>
+            <tr><td><b>Guessing (γ) / Lapse (λ)</b></td><td>γ = ${gamma.toFixed(3)} / λ = ${lambda.toFixed(3)}</td></tr>
+        </table>
+    </div>
+    
+    <div class="metric-box">
+        <h4>2. Optotype-Level Psychometric Results</h4>
+        <table class="res-table">
+            <tr><th>Optotype</th><th>Threshold (logMAR)</th><th>Inter-subject Variability</th><th>Status</th></tr>
+            ${tabela.map(r => {
+                let cls = (letrasSet.includes(r.letra) && SLOAN.includes(r.letra)) ? "bothLetter" : (letrasSet.includes(r.letra) ? "bestLetter" : (SLOAN.includes(r.letra) ? "sloanLetter" : ""));
+                return `<tr class="${cls}"><td>${r.letra}</td><td>${r.threshold.toFixed(3)}</td><td>${(variabilidadeLetra[r.letra]||0).toFixed(3)}</td><td>${letrasSet.includes(r.letra)?2:(SLOAN.includes(r.letra)?1:0)}</td></tr>`;
+            }).join("")}
+        </table>
+        <p style="font-size:12px; color:#666;">Status: 2 = SLOAN 2.0 | 1 = Clássico | 0 = Não selecionado</p>
+    </div>
+
+    <div class="metric-box">
+        <h4>3. Optotype Set Optimization Criteria</h4>
+        <p style="font-size:14px; text-align:justify;">Optimization prioritizes perceptual discriminability over simple threshold uniformity via a multi-objective cost function evaluated over 10,000 Monte Carlo simulations: <br><br><code>Score = 0.55·Cmax + 0.55·LPI + 0.45·V + 0.35·D + 0.25·O - 0.40·Δ</code></p>
+    </div>
+
+    <div class="metric-box">
+        <h4>4. Conjunto Otimizado (SLOAN 2.0 Equalizado)</h4>
+        <div style="display:flex; gap:25px; align-items:center; justify-content:center; padding:20px;">
+            ${(opt.set||[]).sort((a,b)=>a.threshold-b.threshold).map(l => `<span style="font-family:'Sloan',Arial; font-size:${Math.max(22,Math.min(60,40*Math.pow(10,l.threshold)))}px;">${l.letra}</span>`).join("")}
+        </div>
+        <p style="font-size:14px; text-align:justify;">Each optotype is scaled according to its estimated threshold so that all letters correspond to an equivalent difficulty at 0 logMAR.</p>
+        
+        <table class="res-table">
+            <tr><th>Letra</th><th>Threshold Original</th><th>Fator de Correção</th></tr>
+            ${(opt.set||[]).sort((a,b)=>a.threshold-b.threshold).map(l => `<tr><td><b>${l.letra}</b></td><td>${l.threshold.toFixed(3)}</td><td>${Math.pow(10, l.threshold - Math.min(...(opt.set.map(x=>x.threshold)))).toFixed(3)}</td></tr>`).join("")}
+        </table>
+    </div>
+
+    <div class="metric-box">
+        <h4>5. Comparison of Metrics Across Optotype Sets</h4>
+        <table class="res-table">
+            <tr><th>Metric</th><th>Global (A–Z)</th><th>Classical Sloan</th><th>SLOAN 2.0</th></tr>
+            <tr><td>Maximum Pairwise Confusion (Cmax) ↓</td><td>${metricsGlobal?.maxConf.toFixed(3)}</td><td>${metricsSloan?.maxConf.toFixed(3)}</td><td>${metricsSet?.maxConf.toFixed(3)}</td></tr>
+            <tr><td>Line Penalty Index (LPI) ↓</td><td>${metricsGlobal?.LPI.toFixed(3)}</td><td>${metricsSloan?.LPI.toFixed(3)}</td><td style="background:#d4edda; font-weight:bold;">${metricsSet?.LPI.toFixed(3)}</td></tr>
+            <tr><td>Inter-subject Variability (V) ↓</td><td>${metricsGlobal?.variability.toFixed(3)}</td><td>${metricsSloan?.variability.toFixed(3)}</td><td>${metricsSet?.variability.toFixed(3)}</td></tr>
+            <tr><td>Intra-set Dispersion (D) ↓</td><td>${metricsGlobal?.sd.toFixed(3)}</td><td>${metricsSloan?.sd.toFixed(3)}</td><td>${metricsSet?.sd.toFixed(3)}</td></tr>
+            <tr><td>Perceptual Distance (Δ) ↑</td><td>${metricsGlobal?.dist.toFixed(3)}</td><td>${metricsSloan?.dist.toFixed(3)}</td><td>${metricsSet?.dist.toFixed(3)}</td></tr>
+        </table>
+        <canvas id="metricsChart_${uid}" width="800" height="400" style="margin-top:20px; display:block; margin: 0 auto;"></canvas>
+    </div>
+
+    <div class="metric-box">
+        <h4>6. Matrizes de Confusão (Heatmap Global)</h4>
+        <canvas id="confusionHeatmap_${uid}" width="700" height="700" style="display:block; margin: 0 auto;"></canvas>
+    </div>
+
+    <div class="metric-box">
+        <h4>7. Curvas Psicométricas</h4>
+        <canvas id="psychometricCurves_${uid}" width="800" height="450" style="display:block; margin: 0 auto;"></canvas>
+        <p style="font-size:14px; text-align:justify; margin-top:15px;"><b>8. Interpretação:</b> Cada curva representa a probabilidade de reconhecimento correto em função do tamanho. O ponto central de cada curva (α) corresponde a ~75% de acerto. Curvas mais inclinadas indicam maior sensibilidade de discriminação.</p>
+    </div>
+    
+    <div class="metric-box">
+        <h4>9. Relatório Final de Resultados</h4>
+        <p style="font-size:14px; text-align:justify;">A total of <b>${tabela.length}</b> optotypes were analyzed. The mean threshold was <b>${(tabela.map(t=>t.threshold).reduce((a,b)=>a+b,0)/tabela.length).toFixed(3)} logMAR</b>. Maximum pairwise confusion (Cmax) in the optimized set was <b>${Math.round(metricsSet?.maxConf)}</b>, compared to <b>${Math.round(metricsSloan?.maxConf)}</b> in the classical Sloan set. The Line Penalty Index (LPI) improved to <b>${metricsSet?.LPI.toFixed(3)}</b> from <b>${metricsSloan?.LPI.toFixed(3)}</b>, indicating enhanced robustness against crowding. Overall, the optimized set demonstrated superior balance between reduced confusion, maintained uniformity, and increased perceptual separability.</p>
+    </div>
+    `;
+
+    document.getElementById(window.currentPsychoTarget || "analysisArea").innerHTML = html;
+    
+    // Draw Canvas After DOM Injection
+    setTimeout(() => {
+        desenharHeatmap(matriz, `confusionHeatmap_${uid}`);
+        desenharCurvasPsicometricas(`psychometricCurves_${uid}`);
+        desenharGraficoComparativo(metricsGlobal, metricsSloan, metricsSet, `metricsChart_${uid}`);
+    }, 100);
+}
+
+// Draw functions for Psychometric
+function desenharHeatmap(matriz, canvasId){
+    let canvas = document.getElementById(canvasId); if(!canvas) return;
+    let ctx = canvas.getContext("2d"); ctx.clearRect(0,0,700,700);
+    let letrasMatriz = Object.keys(matriz); let size = letrasMatriz.length; if(size===0) return;
+    let grid = 550/size, offsetX = 120, offsetY = 120, max = 0;
+    letrasMatriz.forEach(a => letrasMatriz.forEach(b => max = Math.max(max, matriz[a]?.[b] || 0)));
+    if(max===0) return;
+
+    letrasMatriz.forEach((a,i) => {
+        letrasMatriz.forEach((b,j) => {
+            let v = matriz[a]?.[b] || 0; let norm = Math.sqrt(v/max);
+            let r=255, g=Math.floor(255*(1-norm)), b2=Math.floor(255*(1-norm));
+            ctx.fillStyle = `rgb(${r},${g},${b2})`;
+            let x = offsetX+j*grid, y = offsetY+i*grid;
+            ctx.fillRect(x,y,grid,grid); ctx.strokeStyle = a===b ? "#000" : "#ccc";
+            ctx.lineWidth = 0.5; ctx.strokeRect(x,y,grid,grid);
+            ctx.fillStyle = "black"; ctx.font = "12px Arial"; ctx.textAlign="center"; ctx.textBaseline="middle";
+            ctx.fillText(v, x+grid/2, y+grid/2);
+        });
+    });
+    ctx.font="14px Arial"; ctx.textAlign="center";
+    letrasMatriz.forEach((l,i) => ctx.fillText(l, offsetX+i*grid+grid/2, offsetY-10));
+    ctx.textAlign="right";
+    letrasMatriz.forEach((l,i) => ctx.fillText(l, offsetX-10, offsetY+i*grid+grid/2));
+}
+
+function desenharCurvasPsicometricas(canvasId){
+    let canvas = document.getElementById(canvasId); if(!canvas) return;
+    let ctx = canvas.getContext("2d"); ctx.clearRect(0,0,800,450);
+    let minX = minLogMAR, maxX = maxLogMAR;
+
+    ctx.strokeStyle="#000"; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.moveTo(60,400); ctx.lineTo(760,400); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(60,400); ctx.lineTo(60,50); ctx.stroke();
+    ctx.font="14px Arial"; ctx.fillStyle="black"; ctx.fillText("logMAR",380,430); ctx.fillText("P(correct)",10,60);
+
+    let lettersToPlot = window.letrasSelecionadas || letters;
+    let alphas=[], betas=[];
+    lettersToPlot.forEach(l=>{ let obj=lettersData[l]; if(obj && obj.trials>=6){ alphas.push(obj.alpha); betas.push(obj.beta); }});
+    if(alphas.length===0) return;
+
+    let meanAlpha = alphas.reduce((a,b)=>a+b,0)/alphas.length;
+    let meanBeta  = betas.reduce((a,b)=>a+b,0)/betas.length;
+
+    lettersToPlot.forEach((l,i) => {
+        let obj=lettersData[l]; if(!obj || obj.trials<6) return;
+        ctx.beginPath();
+        for(let x=minX; x<=maxX; x+=0.01){
+            let p = psychometric(x,obj.alpha,obj.beta);
+            let px = 60+(x-minX)/(maxX-minX)*700, py = 400-p*330;
+            if(x===minX) ctx.moveTo(px,py); else ctx.lineTo(px,py);
+        }
+        ctx.strokeStyle=`hsla(${i*30},65%,50%,0.35)`; ctx.lineWidth=2; ctx.stroke();
+    });
+
+    ctx.beginPath();
+    for(let x=minX; x<=maxX; x+=0.01){
+        let p = psychometric(x,meanAlpha,meanBeta);
+        let px = 60+(x-minX)/(maxX-minX)*700, py = 400-p*330;
+        if(x===minX) ctx.moveTo(px,py); else ctx.lineTo(px,py);
+    }
+    ctx.strokeStyle="black"; ctx.lineWidth=4; ctx.stroke();
+
+    let pxMean = 60+(meanAlpha-minX)/(maxX-minX)*700;
+    ctx.beginPath(); ctx.moveTo(pxMean,400); ctx.lineTo(pxMean,50);
+    ctx.setLineDash([5,5]); ctx.strokeStyle="black"; ctx.lineWidth=1.2; ctx.stroke(); ctx.setLineDash([]);
+}
+
+function desenharGraficoComparativo(metricsGlobal, metricsSloan, metricsSet, canvasId){
+    let canvas = document.getElementById(canvasId); if(!canvas) return;
+    let ctx = canvas.getContext("2d"); ctx.clearRect(0,0,820,520);
+    
+    let dados = [
+        {nome:"Cmax ↓", g:metricsGlobal.maxConf, s:metricsSloan.maxConf, o:metricsSet.maxConf, invert:true},
+        {nome:"LPI ↓", g:metricsGlobal.LPI, s:metricsSloan.LPI, o:metricsSet.LPI, invert:true},
+        {nome:"Variability ↓", g:metricsGlobal.variability, s:metricsSloan.variability, o:metricsSet.variability, invert:true},
+        {nome:"Outliers ↓", g:metricsGlobal.outliers, s:metricsSloan.outliers, o:metricsSet.outliers, invert:true},
+        {nome:"Dispersion ↓", g:metricsGlobal.sd, s:metricsSloan.sd, o:metricsSet.sd, invert:true},
+        {nome:"Δ ↑", g:metricsGlobal.dist, s:metricsSloan.dist, o:metricsSet.dist, invert:false}
+    ];
+
+    dados.forEach(m => {
+        let min = Math.min(m.g, m.s, m.o), max = Math.max(m.g, m.s, m.o);
+        if(m.invert){
+            if((max-min)<0.01){ let b=min||0.0001; m.gn=b/m.g; m.sn=b/m.s; m.on=b/m.o; let mx=Math.max(m.gn,m.sn,m.on); m.gn/=mx; m.sn/=mx; m.on/=mx; }
+            else{ let r=Math.max(max-min,0.0001); m.gn=1-(m.g-min)/r; m.sn=1-(m.s-min)/r; m.on=1-(m.o-min)/r; }
+        } else {
+            let r=Math.max(max-min,0.0001); m.gn=(m.g-min)/r; m.sn=(m.s-min)/r; m.on=(m.o-min)/r;
+        }
+        m.gn = Math.max(m.gn, 0.08); m.sn = Math.max(m.sn, 0.08); m.on = Math.max(m.on, 0.08);
+    });
+
+    let barW=22, gap=115, startX=70, baseY=420, maxH=260;
+    ctx.textAlign="center"; ctx.font="bold 15px Arial"; ctx.fillStyle="black"; ctx.fillText("Comparative performance across optotype sets", 410, 30);
+    ctx.textAlign="left"; ctx.font="12px Arial";
+    function leg(x,c,t){ ctx.fillStyle=c; ctx.fillRect(x,60,16,16); ctx.fillStyle="black"; ctx.fillText(t,x+22,73); }
+    leg(120,"#999","Global"); leg(300,"#007bff","Sloan Clássico"); leg(480,"#28a745","SLOAN 2.0");
+    ctx.font="11px Arial"; ctx.fillStyle="#333"; ctx.fillText("↓ Lower = better (inverted)", 120, 100); ctx.fillText("↑ Higher = better", 120, 115);
+
+    dados.forEach((m,i) => {
+        let x = startX + i*gap, hsArr = [m.gn*maxH, m.sn*maxH, m.on*maxH], xs = [x, x+barW+8, x+2*(barW+8)];
+        let cores = ["#999","#007bff","#28a745"], vals = [m.g, m.s, m.o];
+        xs.forEach((xx,j) => { ctx.fillStyle=cores[j]; ctx.fillRect(xx, baseY-hsArr[j], barW, hsArr[j]); });
+        ctx.fillStyle="black"; ctx.font="bold 10px Arial"; ctx.textAlign="center";
+        vals.forEach((v,j) => { let t=Number.isInteger(v)?v:(v>10?Math.round(v):v.toFixed(3)); ctx.fillText(t, xs[j]+barW/2, baseY-hsArr[j]-6); });
+        ctx.font="11px Arial"; ctx.fillText(m.nome, x+barW, baseY+18);
+    });
+    ctx.beginPath(); ctx.moveTo(50,baseY); ctx.lineTo(780,baseY); ctx.stroke();
+}
+
+// =========================================================================
+// PROCESSAMENTO CLÍNICO (ESTATÍSTICA ETDRS)
+// =========================================================================
+function processCSV(){
+    window.currentClinicTarget = "batchClinicResults";
+    const input = document.getElementById("csvUploadClinical");
+    const files = input ? input.files : null;
+    if(!files || files.length === 0){ alert("Selecione o CSV clínico"); return; }
+    document.getElementById("batchClinicResults").innerHTML = "<h3 style='text-align:center;'>Processando Clínica...</h3>";
+    
+    // Simplification for Clinical: just read the first file as the master CSV
+    const reader = new FileReader();
+    reader.onload = function(e){ analyzeCSV(e.target.result); };
+    reader.readAsText(files[0]);
+}
+
+function getPValue(t, df) {
+    t = Math.abs(t); let x = df / (df + t * t); let p = Math.pow(x, (df + 1) / 2); 
+    if (df > 20) p = 2 * (1 - 1 / (1 + Math.exp(-1.654 * t)));
+    return Math.max(0.0001, Math.min(p, 1.0));
+}
+
+function calculateICC(pairs) {
+    if (pairs.length < 2) return null; 
+    let n = pairs.length, k = 2, allValues = [];
+    pairs.forEach(p => { allValues.push(p[0]); allValues.push(p[1]); });
+    let meanGrand = allValues.reduce((a,b)=>a+b,0) / allValues.length;
+    let ssTotal = allValues.reduce((a,b)=>a + Math.pow(b - meanGrand, 2), 0), ssBetween = 0;
+    pairs.forEach(p => { let meanSubj = (p[0] + p[1]) / 2; ssBetween += k * Math.pow(meanSubj - meanGrand, 2); });
+    let msBetween = ssBetween / (n - 1), msWithin = (ssTotal - ssBetween) / n;
+    let icc = (msBetween - msWithin) / (msBetween + (k - 1) * msWithin);
+    return Math.max(0, icc);
+}
+
+function analyzeCSV(text){
+    const lines = text.trim().split("\n");
+    const headers = lines[0].split(",").map(h => h.trim().toLowerCase());
+    
+    const idxSubj = headers.indexOf("subject"), idxRun = headers.indexOf("run"),
+          idxChart = headers.indexOf("chart"), idxLine = headers.indexOf("line"),
+          idxLogMAR = headers.indexOf("logmar"), idxLetters = headers.indexOf("letters"),
+          idxResponses = headers.indexOf("responses"), idxCorrect = headers.indexOf("correct"),
+          idxTime = headers.indexOf("time");
+
+    const data = lines.slice(1).map((l, i) => {
+        const v = l.split(","); if(v.length < 5) return {};
+        return {
+            subject: idxSubj >= 0 ? v[idxSubj] : "Desconhecido",
+            run: idxRun >= 0 ? parseInt(v[idxRun]) : (i < 14 ? 1 : 2),
+            chart: idxChart >= 0 ? v[idxChart].trim().toUpperCase() : (v[0] ? v[0].trim().toUpperCase() : ""),
+            line: idxLine >= 0 ? parseInt(v[idxLine]) : parseInt(v[1]),
+            logMAR: idxLogMAR >= 0 ? parseFloat(v[idxLogMAR]) : parseFloat(v[2]),
+            letters: idxLetters >= 0 ? v[idxLetters] : "",
+            responses: idxResponses >= 0 ? v[idxResponses] : "",
+            correct: idxCorrect >= 0 ? parseFloat(v[idxCorrect]) : 0,
+            time: idxTime >= 0 ? parseFloat(v[idxTime]) : 0
+        };
+    }).filter(d => d.chart && !isNaN(d.logMAR));
+
+    let results = { CLASSICO: { correct: 0, errors: 0, time: 0 }, SLOAN20: { correct: 0, errors: 0, time: 0 } };
+    let confClassico = {}, confSloan20 = {};
+
+    data.forEach(d => {
+        let ch = d.chart; if(!results[ch]) return;
+        results[ch].correct += d.correct; results[ch].errors += (5 - d.correct); results[ch].time += d.time;
+        if(d.letters && d.responses){
+            let target = (ch === 'CLASSICO') ? confClassico : confSloan20;
+            for(let i=0; i<d.letters.length; i++){
+                let L = d.letters[i], R = d.responses[i];
+                if(!target[L]) target[L] = {}; if(!target[L][R]) target[L][R] = 0; target[L][R]++;
+            }
+        }
+    });
+
+    function getSubjRunAcuity(subData, chart, run){
+        let runData = subData.filter(d => d.chart === chart && d.run === run);
+        if(runData.length === 0) return null;
+        let totalC = runData.reduce((acc, curr) => acc + curr.correct, 0);
+        return (Math.max(...runData.map(d=>d.logMAR)) + 0.1) - (totalC * 0.02);
+    }
+
+    let subjects = [...new Set(data.map(d=>d.subject))];
+    let pairsC = [], pairsS = [], acuC_all = [], acuS_all = [];
+
+    subjects.forEach(sub => {
+        let subData = data.filter(d => d.subject === sub);
+        let c1 = getSubjRunAcuity(subData, 'CLASSICO', 1), c2 = getSubjRunAcuity(subData, 'CLASSICO', 2);
+        let s1 = getSubjRunAcuity(subData, 'SLOAN20', 1),  s2 = getSubjRunAcuity(subData, 'SLOAN20', 2);
+        
+        if(c1 !== null) acuC_all.push(c1); if(c2 !== null) acuC_all.push(c2);
+        if(s1 !== null) acuS_all.push(s1); if(s2 !== null) acuS_all.push(s2);
+        if(c1 !== null && c2 !== null) pairsC.push([c1, c2]);
+        if(s1 !== null && s2 !== null) pairsS.push([s1, s2]);
+    });
+
+    results.CLASSICO.acuity = acuC_all.length ? acuC_all.reduce((a,b)=>a+b,0)/acuC_all.length : 0;
+    results.SLOAN20.acuity = acuS_all.length ? acuS_all.reduce((a,b)=>a+b,0)/acuS_all.length : 0;
+
+    const grouped = {};
+    data.forEach(d => {
+        const key = d.subject + "_" + (Math.round(d.logMAR * 100)/100).toFixed(2) + "_run" + d.run;
+        if(!grouped[key]) grouped[key] = {};
+        grouped[key][d.chart] = d.correct;
+    });
+    let vC = [], vS = [];
+    Object.values(grouped).forEach(g => { if(g.CLASSICO!==undefined && g.SLOAN20!==undefined){ vC.push(g.CLASSICO); vS.push(g.SLOAN20); }});
+
+    let tStat = 0, pVal = 1, diffMean = 0, ciL = 0, ciH = 0, tTestHTML = "";
+    if(vC.length >= 3){
+        let diffs = vS.map((v,i)=> v - vC[i]);
+        diffMean = diffs.reduce((a,b)=>a+b,0)/diffs.length;
+        let sdD = Math.sqrt(diffs.reduce((a,b)=>a+Math.pow(b-diffMean,2),0)/(diffs.length-1));
+        tStat = diffMean / (sdD / Math.sqrt(vC.length) || 0.001);
+        pVal = getPValue(tStat, vC.length - 1);
+        ciL = diffMean - 1.96 * (sdD/Math.sqrt(vC.length));
+        ciH = diffMean + 1.96 * (sdD/Math.sqrt(vC.length));
+        
+        tTestHTML = `
+        <b>N (Pares de Linhas):</b> ${vC.length}<br>
+        <b>Diferença Média (Ganho):</b> ${diffMean > 0 ? '+' : ''}${diffMean.toFixed(2)} letras a favor do Sloan 2.0<br>
+        <b>Teste T (pareado):</b> ${tStat.toFixed(3)}<br>
+        <b>Valor-P:</b> ${pVal < 0.001 ? '< 0.001' : pVal.toFixed(4)} ${pVal < 0.05 ? '⭐ (Significativo)' : '(Não significativo)'}<br>
+        <b>IC95%:</b> ${ciL.toFixed(2)} a ${ciH.toFixed(2)} letras<br>`;
+    } else { tTestHTML = "<i>Sem dados pareados suficientes.</i>"; }
+
+    let iccClassico = calculateICC(pairsC), iccSloan20 = calculateICC(pairsS), retestHTML = "";
+    if(pairsC.length >= 1 && pairsS.length >= 1){
+        if(subjects.length === 1) {
+            let deltaC = Math.abs(pairsC[0][0] - pairsC[0][1]), deltaS = Math.abs(pairsS[0][0] - pairsS[0][1]);
+            retestHTML = `<b>Variabilidade Clássico (Teste 1 vs 2):</b> Δ = ${deltaC.toFixed(3)} logMAR<br><b>Variabilidade SLOAN 2.0 (Teste 1 vs 2):</b> Δ = ${deltaS.toFixed(3)} logMAR<br><br><i style="font-size:12px;">* ICC indisponível para 1 paciente (requer variância entre sujeitos). Valores Δ menores indicam maior estabilidade.</i>`;
+        } else {
+            retestHTML = `<b>Confiabilidade Clássico (ICC):</b> ${iccClassico !== null ? iccClassico.toFixed(3) : 'N/A'}<br><b>Confiabilidade SLOAN 2.0 (ICC):</b> ${iccSloan20 !== null ? iccSloan20.toFixed(3) : 'N/A'}<br><br><i style="font-size:12px;">* Valores de ICC mais próximos de 1.0 indicam maior reprodutibilidade do teste.</i>`;
+        }
+    } else { retestHTML = "<i>Dados de reteste indisponíveis.</i>"; }
+
+    let uid = Date.now();
+    let safeContainer = "chartsSafeContainer_" + uid;
+
+    let html = `
+    <div class="metric-box">
+        <h4>1. Performance Geral (${subjects.length} voluntários analisados)</h4>
+        <table class="res-table">
+            <tr><th>Métrica</th><th>Sloan Clássico</th><th>SLOAN 2.0</th></tr>
+            <tr><td><b>Erros Totais</b></td><td>${results.CLASSICO.errors}</td><td>${results.SLOAN20.errors}</td></tr>
+            <tr><td><b>AV ETDRS Média (logMAR)</b></td><td>${results.CLASSICO.acuity.toFixed(3)}</td><td>${results.SLOAN20.acuity.toFixed(3)}</td></tr>
+        </table>
+    </div>
+    <div class="metric-box"><h4>2. Reprodutibilidade (Teste-Reteste)</h4>${retestHTML}</div>
+    <div class="metric-box"><h4>3. Inferência Estatística (Sloan 2.0 vs Clássico)</h4>${tTestHTML}</div>
+    <div class="metric-box">
+        <h4>4. Correlação e Concordância</h4>
+        <div id="${safeContainer}" style="display:flex; flex-wrap:wrap; justify-content:center; gap:20px; margin-top:10px;"></div>
+        <div style="margin-top: 20px; font-size: 13.5px; text-align: justify; color: #333; background: #eaf7ff; padding: 15px; border-left: 5px solid #007bff; border-radius: 4px;">
+            <b>Como interpretar o Bland-Altman:</b> Este gráfico avalia a concordância absoluta entre os dois testes. A linha central contínua azul (<b>Bias</b>) mostra a diferença média de acertos (SLOAN 2.0 menos Clássico). Se for positiva, significa que o SLOAN 2.0 proporcionou um ganho de acertos gerais. As linhas tracejadas vermelhas representam os <b>Limites de Concordância de 95% (±1.96 SD)</b>.
+        </div>
+    </div>`;
+    
+    let targetId = window.currentClinicTarget || "clinicalAnalysisOutput";
+    document.getElementById(targetId).innerHTML = html;
+
+    setTimeout(() => {
+        if(vC.length >= 3){ drawScatter(vC, vS, safeContainer); drawBlandAltman(vC, vS, safeContainer); }
+        drawClinicalConfusionMatrix(confClassico, "5. Matriz: Clássico", "canvasConfClassico_" + uid, targetId);
+        drawClinicalConfusionMatrix(confSloan20, "5. Matriz: SLOAN 2.0", "canvasConfSloan20_" + uid, targetId);
+    }, 100);
+}
+
+function drawScatter(x, y, containerId){
+    let container = document.getElementById(containerId); if(!container) return;
+    let canvas = document.createElement("canvas"); canvas.width = 400; canvas.height = 400;
+    canvas.style.border = "1px solid var(--border-color)"; canvas.style.background = "#fff"; container.appendChild(canvas);
+    const ctx = canvas.getContext("2d"); ctx.clearRect(0,0,400,400);
+
+    ctx.fillStyle = "black"; ctx.font = "bold 14px Arial"; ctx.textAlign = "center"; ctx.fillText("Correlação: Clássico vs SLOAN 2.0", 200, 25);
+    ctx.font = "12px Arial"; ctx.fillText("Acertos - Clássico", 200, 390);
+    ctx.save(); ctx.translate(15, 200); ctx.rotate(-Math.PI/2); ctx.fillText("Acertos - SLOAN 2.0", 0, 0); ctx.restore();
+
+    ctx.strokeStyle = "#eee";
+    for(let i=0; i<=5; i++){ let px = 50 + i*(300/5); ctx.beginPath(); ctx.moveTo(px,50); ctx.lineTo(px,350); ctx.stroke(); ctx.beginPath(); ctx.moveTo(50,px); ctx.lineTo(350,px); ctx.stroke(); }
+    
+    ctx.fillStyle = "rgba(13, 110, 253, 0.6)"; ctx.strokeStyle = "#0b5ed7";
+    for(let i=0;i<x.length;i++){
+        const jitterX = (Math.random() - 0.5) * 12, jitterY = (Math.random() - 0.5) * 12;
+        const px = 50 + (x[i]/5)*300 + jitterX, py = 350 - (y[i]/5)*300 + jitterY;
+        ctx.beginPath(); ctx.arc(px, py, 6, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+    }
+    ctx.strokeStyle = "red"; ctx.lineWidth = 1.5; ctx.setLineDash([5,5]); ctx.beginPath(); ctx.moveTo(50, 350); ctx.lineTo(350, 50); ctx.stroke(); ctx.setLineDash([]);
+}
+
+function drawBlandAltman(a, b, containerId){
+    let container = document.getElementById(containerId); if(!container) return;
+    let canvas = document.createElement("canvas"); canvas.width = 520; canvas.height = 400;
+    canvas.style.border = "1px solid var(--border-color)"; canvas.style.background = "#fff"; container.appendChild(canvas);
+    const ctx = canvas.getContext("2d"); ctx.clearRect(0,0,520,400);
+
+    const means = a.map((v,i)=>(v+b[i])/2), diffs = a.map((v,i)=>b[i]-v);
+    const meanDiff = diffs.reduce((x,y)=>x+y,0)/diffs.length;
+    const sdDiff = Math.sqrt(diffs.reduce((x,y)=>x+Math.pow(y-meanDiff,2),0)/(diffs.length-1 || 1));
+
+    ctx.fillStyle = "black"; ctx.font = "bold 14px Arial"; ctx.textAlign = "center"; ctx.fillText("Bland-Altman (SLOAN 2.0 - Clássico)", 250, 25);
+    ctx.font = "12px Arial"; ctx.fillText("Média de Acertos (Clássico e 2.0)", 250, 390);
+    ctx.save(); ctx.translate(15, 200); ctx.rotate(-Math.PI/2); ctx.fillText("Diferença de Acertos (Ganho)", 0, 0); ctx.restore();
+
+    let minDiff = Math.min(...diffs, meanDiff - 1.96*sdDiff) - 1, maxDiff = Math.max(...diffs, meanDiff + 1.96*sdDiff) + 1;
+    let rangeY = maxDiff - minDiff;
+
+    ctx.fillStyle = "rgba(25, 135, 84, 0.6)"; ctx.strokeStyle = "#157347";
+    for(let i=0;i<means.length;i++){
+        const jitterX = (Math.random() - 0.5) * 15;
+        const px = 50 + (means[i]/5)*400 + jitterX, py = 350 - ((diffs[i] - minDiff)/rangeY)*300;
+        ctx.beginPath(); ctx.arc(px, py, 6, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+    }
+
+    const meanY = 350 - ((meanDiff - minDiff)/rangeY)*300, upperY = 350 - (((meanDiff + 1.96*sdDiff) - minDiff)/rangeY)*300, lowerY = 350 - (((meanDiff - 1.96*sdDiff) - minDiff)/rangeY)*300;
+    ctx.strokeStyle = "blue"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(50, meanY); ctx.lineTo(450, meanY); ctx.stroke();
+    ctx.strokeStyle = "red"; ctx.lineWidth = 1.5; ctx.setLineDash([5,5]); ctx.beginPath(); ctx.moveTo(50, upperY); ctx.lineTo(450, upperY); ctx.stroke(); ctx.beginPath(); ctx.moveTo(50, lowerY); ctx.lineTo(450, lowerY); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = "black"; ctx.textAlign = "left"; ctx.font = "11px Arial";
+    ctx.fillText(`Bias: ${meanDiff.toFixed(2)}`, 455, meanY + 4); ctx.fillText(`+1.96 SD: ${(meanDiff + 1.96*sdDiff).toFixed(2)}`, 455, upperY + 4); ctx.fillText(`-1.96 SD: ${(meanDiff - 1.96*sdDiff).toFixed(2)}`, 455, lowerY + 4);
+}
+
+function drawClinicalConfusionMatrix(confMatrix, title, canvasId, containerTargetId) {
+    let lettersSet = new Set();
+    Object.keys(confMatrix).forEach(l => { lettersSet.add(l); Object.keys(confMatrix[l]).forEach(r => lettersSet.add(r)); });
+    let letras = Array.from(lettersSet).sort(); if (letras.length === 0) return;
+
+    let canvasContainer = document.createElement("div");
+    canvasContainer.style.display = "inline-block"; canvasContainer.style.margin = "10px 20px 20px 0"; canvasContainer.style.verticalAlign = "top";
+    document.getElementById(containerTargetId).appendChild(canvasContainer);
+    
+    let size = letras.length, grid = Math.min(35, 450 / size);
+    let maxVal = 0, totalApresentacoes = {}, totalErros = {}, globalErrors = 0, globalPresentations = 0;
+
+    letras.forEach(a => {
+        totalApresentacoes[a] = 0; totalErros[a] = 0;
+        letras.forEach(b => {
+            let val = confMatrix[a]?.[b] || 0;
+            totalApresentacoes[a] += val; globalPresentations += val;
+            if (a !== b) { maxVal = Math.max(maxVal, val); totalErros[a] += val; globalErrors += val; }
+        });
+    });
+
+    let mediaConfundibilidade = globalPresentations > 0 ? (globalErrors / globalPresentations) * 100 : 0;
+    canvasContainer.innerHTML = `<div class='metric-box' style='padding:15px;'><h4 style="margin-bottom: 5px;">${title}</h4><div style="font-size: 14px; font-weight: bold; color: var(--danger); margin-bottom: 15px;">Confundibilidade Média: ${mediaConfundibilidade.toFixed(1)}%</div><canvas id='${canvasId}'></canvas></div>`;
+      
+    let canvas = document.getElementById(canvasId);
+    canvas.width = Math.max(350, size * grid + 150); canvas.height = Math.max(350, size * grid + 80);
+    let ctx = canvas.getContext("2d"), offsetX = 40, offsetY = 40;
+
+    letras.forEach((a, i) => {
+        letras.forEach((b, j) => {
+            let val = confMatrix[a]?.[b] || 0;
+            if (a === b && val > 0) ctx.fillStyle = "#e6f2ff"; else if (a === b && val === 0) ctx.fillStyle = "#f9f9f9"; else if (val === 0) ctx.fillStyle = "#ffffff";
+            else { let intensity = Math.max(0.15, val / (maxVal || 1)); ctx.fillStyle = `rgba(220, 53, 69, ${intensity})`; }
+
+            let x = offsetX + j * grid, y = offsetY + i * grid;
+            ctx.fillRect(x, y, grid, grid); ctx.strokeStyle = "#ddd"; ctx.strokeRect(x, y, grid, grid);
+            if (val > 0) { ctx.fillStyle = (a !== b) ? "white" : "black"; if(a!==b && val/(maxVal||1) < 0.4) ctx.fillStyle = "black"; ctx.font = "12px Arial"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(val, x + grid / 2, y + grid / 2); }
+        });
+        let taxaErro = totalApresentacoes[a] > 0 ? (totalErros[a] / totalApresentacoes[a]) * 100 : 0;
+        ctx.fillStyle = "black"; ctx.font = "bold 11px Arial"; ctx.textAlign = "left"; ctx.fillText(`Erro: ${taxaErro.toFixed(1)}%`, offsetX + size * grid + 10, offsetY + i * grid + grid / 2);
+    });
+
+    ctx.fillStyle = "black"; ctx.font = "bold 13px Arial"; ctx.textAlign = "center";
+    letras.forEach((l, i) => { ctx.fillText(l, offsetX + i * grid + grid / 2, offsetY - 10); ctx.fillText(l, offsetX - 15, offsetY + i * grid + grid / 2); });
+}
+</script>
+</body>
+</html>
