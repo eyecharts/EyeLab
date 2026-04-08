@@ -4133,23 +4133,29 @@ function processLine(){
 // finalizar
 function finishClinical(){
   clinicalMode = false;
-  // 🔥 Nova coluna 'run' inserida no CSV para pareamento do Reteste
-  let csv = "run,chart,line,logMAR,letters,responses,correct,time\n";
+  
+  // Captura o ID do paciente informado no input do topo da tela
+  let subj = document.getElementById("subjectID").value.trim() || "voluntario";
+  
+  // 🔥 Nova coluna "subject" inserida no início do cabeçalho
+  let csv = "subject,run,chart,line,logMAR,letters,responses,correct,time\n";
+  
   dataClinical.forEach(d => {
-    csv += `${d.run},${d.chart},${d.line},${d.logMAR},${d.letters},${d.responses},${d.correct},${d.time}\n`;
+    csv += `${subj},${d.run},${d.chart},${d.line},${d.logMAR},${d.letters},${d.responses},${d.correct},${d.time}\n`;
   });
-  downloadCSVclinical(csv);
+  
+  let filename = subj + "_clinical.csv";
+  
+  downloadCSVclinical(csv, filename);
 }
 
 // download
-function downloadCSVclinical(content){
-
+function downloadCSVclinical(content, filename){
   const blob = new Blob([content], { type: 'text/csv' });
   const url = URL.createObjectURL(blob);
-
   const a = document.createElement("a");
   a.href = url;
-  a.download = "clinical_result.csv";
+  a.download = filename || "clinical_result.csv";
   a.click();
 }
 
@@ -4209,14 +4215,25 @@ const TOTAL_LINES = TOTAL_LINES_PER_BLOCK * 4;
 
 // iniciar teste
 function startClinicalTest(){
+  let id = document.getElementById("subjectID").value.trim();
+  if(!id){
+    alert("❌ Preencha o 'ID voluntário' (no topo da página) antes de iniciar o teste clínico.");
+    return;
+  }
 
-  // 🔥 tenta extrair SEMPRE antes
+  // Verifica calibração (usa variável global pxPorMm ou do localStorage)
+  let salvaLocal = localStorage.getItem("pxPorMm_Sloan2");
+  if(!pxPorMm && !salvaLocal){
+    alert("❌ Calibre a tela na aba 'Configurações' antes de iniciar o teste clínico.");
+    return;
+  }
+
+  // Tenta extrair da tabela
   extractThresholdsFromTable();
-
   console.log("Fatores atuais:", window.SLOAN20_FACTORS);
 
   if(!window.SLOAN20_FACTORS || Object.keys(window.SLOAN20_FACTORS).length === 0){
-    alert("Primeiro execute a análise psicométrica e gere a tabela de compensação.");
+    alert("❌ Primeiro execute a análise psicométrica para gerar a tabela de compensação.");
     return;
   }
 
@@ -4271,7 +4288,7 @@ uploadDiv.innerHTML = `
 <input type="file" id="csvUploadClinical" multiple>
 <button onclick="processCSV()">Processar CSV Clínico</button>
 <div id="analysisOutput"></div>
-<canvas id="plotCanvas" width="600" height="400" style="border:1px solid #ccc;"></canvas>
+
 `;
 window.addEventListener("DOMContentLoaded", () => {
 
@@ -4316,31 +4333,36 @@ function processCSV(){
 function analyzeCSV(text){
   const lines = text.trim().split("\n");
   const headers = lines[0].split(",").map(h => h.trim().toLowerCase());
-  const hasRun = headers.includes("run"); // Suporta arquivos CSVs novos e antigos
+  
+  // 🔥 Mapeamento dinâmico de colunas (super seguro e à prova de quebras)
+  const idxSubj = headers.indexOf("subject");
+  const idxRun = headers.indexOf("run");
+  const idxChart = headers.indexOf("chart");
+  const idxLine = headers.indexOf("line");
+  const idxLogMAR = headers.indexOf("logmar");
+  const idxLetters = headers.indexOf("letters");
+  const idxResponses = headers.indexOf("responses");
+  const idxCorrect = headers.indexOf("correct");
+  const idxTime = headers.indexOf("time");
 
   const data = lines.slice(1).map((l, i) => {
     const v = l.split(",");
+    if(v.length < 5) return {}; // pula linhas vazias
+    
     let obj = {};
-    if(hasRun){
-      obj.run = parseInt(v[0]);
-      obj.chart = v[1] ? v[1].trim().toUpperCase() : "";
-      obj.line = parseInt(v[2]);
-      obj.logMAR = parseFloat(v[3]);
-      obj.letters = v[4];
-      obj.responses = v[5];
-      obj.correct = parseFloat(v[6]);
-      obj.time = parseFloat(v[7]);
-    } else {
-      // Compatibilidade com arquivos antigos (força Run = 1)
-      obj.run = i < 14 ? 1 : 2; 
-      obj.chart = v[0] ? v[0].trim().toUpperCase() : "";
-      obj.line = parseInt(v[1]);
-      obj.logMAR = parseFloat(v[2]);
-      obj.letters = v[3];
-      obj.responses = v[4];
-      obj.correct = parseFloat(v[5]);
-      obj.time = parseFloat(v[6]);
-    }
+    // Extração inteligente baseada no cabeçalho
+    obj.subject = idxSubj >= 0 ? v[idxSubj] : "Desconhecido";
+    obj.run = idxRun >= 0 ? parseInt(v[idxRun]) : (i < 14 ? 1 : 2); // Compatibilidade com CSV muito antigo
+    
+    // Fallback para CSVs antigos sem cabeçalho padronizado
+    obj.chart = idxChart >= 0 ? v[idxChart].trim().toUpperCase() : (v[0] ? v[0].trim().toUpperCase() : "");
+    obj.line = idxLine >= 0 ? parseInt(v[idxLine]) : parseInt(v[1]);
+    obj.logMAR = idxLogMAR >= 0 ? parseFloat(v[idxLogMAR]) : parseFloat(v[2]);
+    obj.letters = idxLetters >= 0 ? v[idxLetters] : v[3];
+    obj.responses = idxResponses >= 0 ? v[idxResponses] : v[4];
+    obj.correct = idxCorrect >= 0 ? parseFloat(v[idxCorrect]) : parseFloat(v[5]);
+    obj.time = idxTime >= 0 ? parseFloat(v[idxTime]) : parseFloat(v[6]);
+    
     return obj;
   }).filter(d => d.chart && !isNaN(d.line) && !isNaN(d.logMAR) && !isNaN(d.correct));
 
@@ -4349,7 +4371,8 @@ function analyzeCSV(text){
     CLASSICO: { correct: 0, errors: 0, time: 0, count: 0, acuity: 0 },
     SLOAN20: { correct: 0, errors: 0, time: 0, count: 0, acuity: 0 }
   };
-  let confusion = {};
+  let confusionClassico = {};
+  let confusionSloan20 = {};
 
   data.forEach(d => {
     let ch = d.chart;
@@ -4360,14 +4383,15 @@ function analyzeCSV(text){
     results[ch].time += (d.time || 0);
     results[ch].count++;
 
-    // Alimentar Matriz de confusão isolada
+    // Alimentar Matriz de confusão separada
     if(d.letters && d.responses){
+      let targetConf = (ch === 'CLASSICO') ? confusionClassico : confusionSloan20;
       for(let i=0; i<d.letters.length; i++){
         let L = d.letters[i];
         let R = d.responses[i];
-        if(!confusion[L]) confusion[L] = {};
-        if(!confusion[L][R]) confusion[L][R] = 0;
-        confusion[L][R]++;
+        if(!targetConf[L]) targetConf[L] = {};
+        if(!targetConf[L][R]) targetConf[L][R] = 0;
+        targetConf[L][R]++;
       }
     }
   });
@@ -4382,7 +4406,7 @@ function analyzeCSV(text){
          let runData = data.filter(d => d.chart === chartName && d.run === r);
          if(runData.length === 0) return 0;
          let maxLogMar = Math.max(...runData.map(d=>d.logMAR));
-         let base = maxLogMar + 0.1; // Se começa em 0.3 logMAR, a base de erro total é 0.4
+         let base = maxLogMar + 0.1;
          let totalCorrect = runData.reduce((acc, curr) => acc + curr.correct, 0);
          return base - (totalCorrect * 0.02);
      });
@@ -4397,7 +4421,7 @@ function analyzeCSV(text){
   data.forEach(d => {
     let rounded = Math.round(d.logMAR * 100) / 100;
     if (rounded === -0) rounded = 0;
-    const key = rounded.toFixed(2) + "_run" + d.run; // Pareia apenas linhas e "Runs" idênticos
+    const key = rounded.toFixed(2) + "_run" + d.run;
 
     if(!grouped[key]) grouped[key] = {};
     grouped[key][d.chart] = d.correct;
@@ -4461,7 +4485,6 @@ function analyzeCSV(text){
      retestHTML = "<i>O CSV atual não contém dados da 2ª rodada. Refaça o teste para analisar a correlação Teste-Reteste.</i>";
   }
 
-  // Gera o Layout de Resultados HTML
   let html = `
     <style>
        .res-table { width: 100%; border-collapse: collapse; margin-top: 15px; margin-bottom: 20px; font-family: Arial;}
@@ -4473,7 +4496,7 @@ function analyzeCSV(text){
     </style>
     
     <div class="metric-box">
-      <h4>🏆 Comparativo de Performance Global (Média Geral)</h4>
+      <h4>🏆 Comparativo de Performance Global (Média Geral) - Paciente: <b>${data[0].subject}</b></h4>
       <table class="res-table">
         <tr>
            <th>Métrica</th>
@@ -4521,14 +4544,19 @@ function analyzeCSV(text){
   
   document.getElementById("analysisOutput").innerHTML = html;
   
-  // Plota o novo heatmap dedicado ao teste clínico
-  drawClinicalConfusionMatrix(confusion);
+  // Plota Matrizes Duplas
+  drawClinicalConfusionMatrix(confusionClassico, "Matriz: Clássico", "canvasConfClassico");
+  drawClinicalConfusionMatrix(confusionSloan20, "Matriz: SLOAN 2.0", "canvasConfSloan20");
 }
 
 // ==============================
 // ADICIONE ESTA FUNÇÃO NOVA (PODE FICAR LOGO ABAIXO)
 // ==============================
-function drawClinicalConfusionMatrix(confMatrix) {
+// ==============================
+// 3. MATRIZ DE CONFUSÃO CLÍNICA DUPLA
+// ==============================
+
+function drawClinicalConfusionMatrix(confMatrix, title, canvasId) {
     let lettersSet = new Set();
     Object.keys(confMatrix).forEach(l => {
         lettersSet.add(l);
@@ -4538,29 +4566,44 @@ function drawClinicalConfusionMatrix(confMatrix) {
     let letras = Array.from(lettersSet).sort();
     if (letras.length === 0) return;
 
-    let canvasContainer = document.getElementById("clinicalMatrixContainer");
+    let canvasContainer = document.getElementById(canvasId + "_container");
     if (!canvasContainer) {
         canvasContainer = document.createElement("div");
-        canvasContainer.id = "clinicalMatrixContainer";
-        canvasContainer.style.marginTop = "20px";
-        document.getElementById("analysisOutput").after(canvasContainer);
+        canvasContainer.id = canvasId + "_container";
+        canvasContainer.style.display = "inline-block";
+        canvasContainer.style.margin = "10px 20px 20px 0";
+        canvasContainer.style.verticalAlign = "top";
+        document.getElementById("analysisOutput").appendChild(canvasContainer);
     }
     
-    canvasContainer.innerHTML = "<div class='metric-box'><h4>📉 Matriz de Confusão do Paciente (Letras Apresentadas)</h4><canvas id='clinicConfCanvas'></canvas></div>";
-    let canvas = document.getElementById("clinicConfCanvas");
-    canvas.width = Math.max(400, letras.length * 30 + 100);
-    canvas.height = Math.max(400, letras.length * 30 + 100);
+    canvasContainer.innerHTML = `<div class='metric-box' style='padding:10px;'><h4>📉 ${title}</h4><canvas id='${canvasId}'></canvas></div>`;
+    let canvas = document.getElementById(canvasId);
+    
+    let size = letras.length;
+    let grid = Math.min(35, 450 / size);
+    
+    // Deixamos um espaço extra na largura (120px) para exibir a Taxa de Erro
+    canvas.width = Math.max(350, size * grid + 150);
+    canvas.height = Math.max(350, size * grid + 80);
 
     let ctx = canvas.getContext("2d");
-    let size = letras.length;
-    let grid = Math.min(35, 500 / size);
-    let offsetX = 50;
-    let offsetY = 50;
+    let offsetX = 40;
+    let offsetY = 40;
 
     let maxVal = 0;
+    let totalApresentacoes = {};
+    let totalErros = {};
+
     letras.forEach(a => {
+        totalApresentacoes[a] = 0;
+        totalErros[a] = 0;
         letras.forEach(b => {
-            if (a !== b) maxVal = Math.max(maxVal, confMatrix[a]?.[b] || 0);
+            let val = confMatrix[a]?.[b] || 0;
+            totalApresentacoes[a] += val;
+            if (a !== b) {
+                maxVal = Math.max(maxVal, val);
+                totalErros[a] += val;
+            }
         });
     });
 
@@ -4568,13 +4611,12 @@ function drawClinicalConfusionMatrix(confMatrix) {
         letras.forEach((b, j) => {
             let val = confMatrix[a]?.[b] || 0;
             
-            // Fundo Branco se não houver erro, Vermelho se for confusão, e Cinza/Azul p/ acertos totais
             if (a === b && val > 0) ctx.fillStyle = "#e6f2ff"; 
             else if (a === b && val === 0) ctx.fillStyle = "#f9f9f9";
             else if (val === 0) ctx.fillStyle = "#ffffff";
             else {
-                let intensity = Math.max(0.15, val / maxVal);
-                ctx.fillStyle = `rgba(220, 53, 69, ${intensity})`; // Vermelho (erros)
+                let intensity = Math.max(0.15, val / (maxVal || 1));
+                ctx.fillStyle = `rgba(220, 53, 69, ${intensity})`; // Vermelho
             }
 
             let x = offsetX + j * grid;
@@ -4585,13 +4627,22 @@ function drawClinicalConfusionMatrix(confMatrix) {
 
             if (val > 0) {
                 ctx.fillStyle = (a !== b) ? "white" : "black";
-                if(a!==b && val/maxVal < 0.4) ctx.fillStyle = "black";
+                if(a!==b && val/(maxVal||1) < 0.4) ctx.fillStyle = "black";
                 ctx.font = "12px Arial";
                 ctx.textAlign = "center";
                 ctx.textBaseline = "middle";
                 ctx.fillText(val, x + grid / 2, y + grid / 2);
             }
         });
+
+        // ==========================
+        // TEXTO DA TAXA DE ERRO (%)
+        // ==========================
+        let taxaErro = totalApresentacoes[a] > 0 ? (totalErros[a] / totalApresentacoes[a]) * 100 : 0;
+        ctx.fillStyle = "black";
+        ctx.font = "bold 11px Arial";
+        ctx.textAlign = "left";
+        ctx.fillText(`Erro: ${taxaErro.toFixed(1)}%`, offsetX + size * grid + 10, offsetY + i * grid + grid / 2);
     });
 
     ctx.fillStyle = "black";
@@ -4599,7 +4650,7 @@ function drawClinicalConfusionMatrix(confMatrix) {
     ctx.textAlign = "center";
     letras.forEach((l, i) => {
         ctx.fillText(l, offsetX + i * grid + grid / 2, offsetY - 10);
-        ctx.fillText(l, offsetX - 20, offsetY + i * grid + grid / 2);
+        ctx.fillText(l, offsetX - 15, offsetY + i * grid + grid / 2);
     });
 }
 
@@ -4607,74 +4658,107 @@ function drawClinicalConfusionMatrix(confMatrix) {
 // 📈 SCATTER PLOT
 // ==============================
 
+// ==============================
+// 2. PLOTS AVANÇADOS (SCATTER & BLAND-ALTMAN)
+// ==============================
+
 function drawScatter(x, y){
-
-  const canvas = document.getElementById("plotCanvas");
-  const ctx = canvas.getContext("2d");
-
-  ctx.clearRect(0,0,600,400);
-
-  ctx.fillText("Sloan vs SLOAN 2.0", 200, 20);
-
-  for(let i=0;i<x.length;i++){
-    const px = x[i]*20 + 100;
-    const py = y[i]*20 + 100;
-
-    ctx.beginPath();
-    ctx.arc(px, py, 3, 0, Math.PI*2);
-    ctx.fill();
+  let canvas = document.getElementById("plotCanvasScatter");
+  if(!canvas){
+      canvas = document.createElement("canvas");
+      canvas.id = "plotCanvasScatter";
+      canvas.width = 400; canvas.height = 400;
+      canvas.style.border = "1px solid #ccc"; canvas.style.margin = "10px";
+      document.getElementById("analysisOutput").appendChild(canvas);
   }
+  const ctx = canvas.getContext("2d");
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  ctx.fillStyle = "#ffffff"; ctx.fillRect(0,0,400,400);
+  ctx.fillStyle = "black"; ctx.font = "bold 14px Arial"; ctx.textAlign = "center";
+  ctx.fillText("Correlação: Clássico vs SLOAN 2.0", 200, 25);
+  
+  ctx.font = "12px Arial"; ctx.fillText("Acertos - Clássico", 200, 390);
+  ctx.save(); ctx.translate(15, 200); ctx.rotate(-Math.PI/2);
+  ctx.fillText("Acertos - SLOAN 2.0", 0, 0); ctx.restore();
+
+  ctx.strokeStyle = "#eee";
+  for(let i=0; i<=5; i++){
+      let px = 50 + i * (300/5);
+      ctx.beginPath(); ctx.moveTo(px, 50); ctx.lineTo(px, 350); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(50, px); ctx.lineTo(350, px); ctx.stroke();
+  }
+
+  // Desenha os pontos com "Jitter" para evitar sobreposição total visual
+  ctx.fillStyle = "rgba(0, 123, 255, 0.6)"; ctx.strokeStyle = "#0056b3";
+  for(let i=0;i<x.length;i++){
+    const jitterX = (Math.random() - 0.5) * 12;
+    const jitterY = (Math.random() - 0.5) * 12;
+    const px = 50 + (x[i]/5)*300 + jitterX;
+    const py = 350 - (y[i]/5)*300 + jitterY;
+    ctx.beginPath(); ctx.arc(px, py, 6, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+  }
+
+  // Linha de Identidade (Acerto igual)
+  ctx.strokeStyle = "red"; ctx.lineWidth = 1.5; ctx.setLineDash([5,5]);
+  ctx.beginPath(); ctx.moveTo(50, 350); ctx.lineTo(350, 50); ctx.stroke();
+  ctx.setLineDash([]);
 }
 
-// ==============================
-// 📉 BLAND-ALTMAN
-// ==============================
-
 function drawBlandAltman(a, b){
-
-  const canvas = document.getElementById("plotCanvas");
+  let canvas = document.getElementById("plotCanvasBA");
+  if(!canvas){
+      canvas = document.createElement("canvas");
+      canvas.id = "plotCanvasBA";
+      canvas.width = 520; canvas.height = 400;
+      canvas.style.border = "1px solid #ccc"; canvas.style.margin = "10px";
+      document.getElementById("analysisOutput").appendChild(canvas);
+  }
   const ctx = canvas.getContext("2d");
-
-  ctx.clearRect(0,0,600,400);
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.fillStyle = "#ffffff"; ctx.fillRect(0,0,canvas.width,canvas.height);
 
   const means = a.map((v,i)=>(v+b[i])/2);
-  const diffs = a.map((v,i)=>b[i]-v);
+  const diffs = a.map((v,i)=>b[i]-v); // Diferença: SLOAN2.0 - Classico
 
-  const meanDiff = means.reduce((x,y)=>x+y,0)/means.length;
-  const sdDiff = Math.sqrt(diffs.reduce((x,y)=>x+(y-meanDiff)**2,0)/(diffs.length-1));
+  const meanDiff = diffs.reduce((x,y)=>x+y,0)/diffs.length;
+  const sdDiff = Math.sqrt(diffs.reduce((x,y)=>x+(y-meanDiff)**2,0)/(diffs.length-1 || 1));
 
-  ctx.fillText("Bland-Altman", 220, 20);
+  ctx.fillStyle = "black"; ctx.font = "bold 14px Arial"; ctx.textAlign = "center";
+  ctx.fillText("Bland-Altman (SLOAN 2.0 - Clássico)", 250, 25);
+  ctx.font = "12px Arial"; ctx.fillText("Média de Acertos (Clássico e 2.0)", 250, 390);
+  
+  ctx.save(); ctx.translate(15, 200); ctx.rotate(-Math.PI/2);
+  ctx.fillText("Diferença de Acertos (Ganho)", 0, 0); ctx.restore();
 
+  let minDiff = Math.min(...diffs, meanDiff - 1.96*sdDiff) - 1;
+  let maxDiff = Math.max(...diffs, meanDiff + 1.96*sdDiff) + 1;
+  let rangeY = maxDiff - minDiff;
+
+  ctx.fillStyle = "rgba(40, 167, 69, 0.6)"; ctx.strokeStyle = "#1e7e34";
   for(let i=0;i<means.length;i++){
-    const px = means[i]*20 + 100;
-    const py = diffs[i]*20 + 200;
-
-    ctx.beginPath();
-    ctx.arc(px, py, 3, 0, Math.PI*2);
-    ctx.fill();
+    const jitterX = (Math.random() - 0.5) * 15;
+    const px = 50 + (means[i]/5)*400 + jitterX;
+    const py = 350 - ((diffs[i] - minDiff)/rangeY)*300;
+    ctx.beginPath(); ctx.arc(px, py, 6, 0, Math.PI*2); ctx.fill(); ctx.stroke();
   }
 
-  // linhas
-  const meanY = 200 - meanDiff*20;
-  const upper = 200 - (meanDiff + 1.96*sdDiff)*20;
-  const lower = 200 - (meanDiff - 1.96*sdDiff)*20;
+  const meanY = 350 - ((meanDiff - minDiff)/rangeY)*300;
+  const upperY = 350 - (((meanDiff + 1.96*sdDiff) - minDiff)/rangeY)*300;
+  const lowerY = 350 - (((meanDiff - 1.96*sdDiff) - minDiff)/rangeY)*300;
 
-  ctx.strokeStyle = "red";
+  ctx.strokeStyle = "blue"; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(50, meanY); ctx.lineTo(450, meanY); ctx.stroke();
+  
+  ctx.strokeStyle = "red"; ctx.lineWidth = 1.5; ctx.setLineDash([5,5]);
+  ctx.beginPath(); ctx.moveTo(50, upperY); ctx.lineTo(450, upperY); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(50, lowerY); ctx.lineTo(450, lowerY); ctx.stroke();
+  ctx.setLineDash([]);
 
-  ctx.beginPath();
-  ctx.moveTo(0, meanY);
-  ctx.lineTo(600, meanY);
-  ctx.stroke();
-
-  ctx.beginPath();
-  ctx.moveTo(0, upper);
-  ctx.lineTo(600, upper);
-  ctx.stroke();
-
-  ctx.beginPath();
-  ctx.moveTo(0, lower);
-  ctx.lineTo(600, lower);
-  ctx.stroke();
+  ctx.fillStyle = "black"; ctx.textAlign = "left"; ctx.font = "11px Arial";
+  ctx.fillText(`Bias: ${meanDiff.toFixed(2)}`, 455, meanY + 4);
+  ctx.fillText(`+1.96 SD: ${(meanDiff + 1.96*sdDiff).toFixed(2)}`, 455, upperY + 4);
+  ctx.fillText(`-1.96 SD: ${(meanDiff - 1.96*sdDiff).toFixed(2)}`, 455, lowerY + 4);
 }
 
     // observa quando a tabela aparece no DOM
