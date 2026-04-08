@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <title>Sloan 2.0 – Plataforma Científica e Clínica</title>
+
 <style>
     :root {
         --primary: #0d6efd;
@@ -25,7 +26,6 @@
         padding: 0;
     }
 
-    /* Tipografia Customizada Sloan */
     @font-face {
         font-family: 'Sloan';
         src: url('Sloan2.otf') format('opentype');
@@ -93,7 +93,6 @@
         outline: none;
         transition: border-color 0.2s;
     }
-    .patient-bar input:focus, .patient-bar select:focus { border-color: var(--primary); }
 
     /* Componentes UI */
     .card {
@@ -115,21 +114,18 @@
         cursor: pointer;
         font-size: 15px;
         font-weight: 600;
-        transition: background-color 0.2s;
         margin: 5px;
     }
     .btn-primary { background-color: var(--primary); }
-    .btn-primary:hover { background-color: var(--primary-hover); }
     .btn-success { background-color: var(--success); }
-    .btn-success:hover { background-color: var(--success-hover); }
     .btn-danger { background-color: var(--danger); }
 
     .file-input { margin: 15px 0; display: block; width: 100%; }
 
     /* Tabelas */
-    table { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 14px; background: white;}
-    th, td { border: 1px solid var(--border-color); padding: 12px 15px; text-align: left; }
-    th { background-color: var(--bg-color); font-weight: 600; }
+    table.res-table { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 14px; background: white;}
+    table.res-table th, table.res-table td { border: 1px solid var(--border-color); padding: 12px 15px; text-align: center; }
+    table.res-table th { background-color: var(--bg-color); font-weight: 600; }
     
     .metric-box { background: var(--card-bg); border: 1px solid var(--border-color); padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.02); }
     .metric-box h4 { margin-top: 0; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; color: var(--primary); font-size: 18px;}
@@ -146,16 +142,17 @@
     #optotype { position: absolute; }
 
     /* Grids de Configuração */
-    .configGrid { display: grid; grid-template-columns: 200px 120px; gap: 10px 15px; align-items: center; max-width: 450px; }
+    .configGrid { display: grid; grid-template-columns: 200px 120px; gap: 10px 15px; align-items: center; max-width: 450px; margin: 0 auto;}
     .configGrid label { font-weight: bold; text-align: right; }
 
     hr { border: 0; height: 1px; background: var(--border-color); margin: 30px 0; }
 </style>
 </head>
+
 <body>
 
 <div class="header">
-    <h1>OptoLab (v4.0) - Projeto SLOAN 2.0</h1>
+    <h1>OptoLab (v4.1) - Projeto SLOAN 2.0</h1>
     <p>Plataforma Integrada de Análise Psicométrica e Validação Clínica</p>
 </div>
 
@@ -185,25 +182,20 @@
     <div id="aba-psico" class="aba">
         <div class="card text-center" id="psychoStartCard">
             <h3>Mapeamento Bayesiano de Limiares (QUEST+)</h3>
-            <p style="color:var(--text-muted); margin-bottom:20px;">Este teste estimará a dificuldade perceptual de cada optótipo para gerar o conjunto balanceado Sloan 2.0.</p>
+            <p style="color:var(--text-muted); margin-bottom:20px;">Este teste estimará a dificuldade perceptual de cada optótipo.</p>
             <button class="btn-primary" onclick="startTest()">▶ Iniciar Teste Psicométrico</button>
         </div>
 
         <div id="testArea">
-            <div id="letter">
-                <div id="optotype">A</div>
-            </div>
-            
+            <div id="letter"><div id="optotype">A</div></div>
             <div id="statuscontainer" style="color:#D0D0D0; margin-top:30px; text-align:center;">
-                <div style="font-size:18px; opacity:0.8; margin-bottom:5px;">Digite a letra identificada (A–Z) ou '0' para não sei</div>
+                <div style="font-size:18px; opacity:0.8; margin-bottom:5px;">Digite a letra (A–Z) ou '0' para não sei</div>
                 <div id="typedAnswer" style="font-size:12px; margin:5px; display:none;"></div>
-                
                 <h2 id="status" style="font-size:14px; white-space:pre-wrap; font-weight:normal; line-height:1.5;"></h2>
-                
                 <div style="margin-top:15px; max-width:400px; margin-left:auto; margin-right:auto;">
-                    <div style="font-size:14px; margin-bottom:5px; font-weight:bold;">Convergência Bayesiana (IC95% da letra atual)</div>
+                    <div style="font-size:14px; margin-bottom:5px; font-weight:bold;">Convergência Bayesiana</div>
                     <div style="width:100%; height:12px; background:#444; border-radius:10px; overflow:hidden;">
-                        <div id="progressBar" style="height:100%; width:0%; background:#4caf50; transition: width 0.3s;"></div>
+                        <div id="progressBar" style="height:100%; width:0%; background:#4caf50;"></div>
                     </div>
                 </div>
             </div>
@@ -215,41 +207,32 @@
     <div id="aba-clinico" class="aba" style="display:none;">
         <div class="card text-center" id="clinicStartCard">
             <h3>Validação Clínica ETDRS</h3>
-            <p style="color:var(--text-muted); margin-bottom:20px;">Compara a acuidade visual obtida com as letras de Sloan Clássicas vs o novo conjunto otimizado SLOAN 2.0.</p>
-            
+            <p style="color:var(--text-muted); margin-bottom:20px;">Compara o Sloan Clássico vs SLOAN 2.0.</p>
             <div style="background:#f8f9fa; padding:15px; border-radius:8px; display:inline-block; margin-bottom:20px; border:1px solid #ddd;">
                 <label style="font-weight:bold; display:block; margin-bottom:8px;">Conjunto Otimizado (Sloan 2.0):</label>
                 <input id="sloan2_input" value="" style="font-size:18px; text-align:center; font-weight:bold; letter-spacing:3px; padding:10px; border:1px solid #ccc; border-radius:5px; background:#e9ecef; color:#333;" readonly>
-            </div>
-            <br>
+            </div><br>
             <button class="btn-primary" onclick="startClinicalTest()">▶ Iniciar Teste Clínico</button>
         </div>
 
         <div id="clinicalArea" style="margin-top:20px; text-align:center;"></div>
-        
         <div id="clinicalAnalysisOutput" style="margin-top:20px;"></div>
     </div>
 
     <div id="aba-lote" class="aba" style="display:none;">
-        
         <div style="display:flex; gap:20px; flex-wrap:wrap;">
             <div class="card" style="flex:1; min-width:300px;">
-                <h3 style="color:var(--primary);">📊 Análise em Lote: Psicométrico</h3>
-                <p style="font-size:13px; color:var(--text-muted);">Faça o upload dos CSVs de dados brutos (respostas QUEST+) de múltiplos voluntários para gerar a matriz final do Sloan 2.0.</p>
+                <h3 style="color:var(--primary);">📊 Análise: Psicométrico</h3>
                 <input type="file" id="csvUploadAnalysis" multiple class="file-input">
                 <button class="btn-primary" style="width:100%;" onclick="analisarCSV()">Executar Análise Psicométrica</button>
             </div>
-
             <div class="card" style="flex:1; min-width:300px;">
-                <h3 style="color:var(--success);">📈 Análise em Lote: Clínico</h3>
-                <p style="font-size:13px; color:var(--text-muted);">Faça o upload do CSV Master de validação ETDRS contendo as passagens de múltiplos pacientes para estatística global (Valor-P, ICC).</p>
+                <h3 style="color:var(--success);">📈 Análise: Clínico</h3>
                 <input type="file" id="csvUploadClinical" multiple class="file-input">
                 <button class="btn-success" style="width:100%;" onclick="processCSV()">Executar Análise Clínica</button>
             </div>
         </div>
-
         <hr>
-
         <div id="batchPsychoResults"></div>
         <div id="batchClinicResults"></div>
     </div>
@@ -258,56 +241,31 @@
         <div class="card">
             <h3>Parâmetros Psicométricos</h3>
             <div class="configGrid">
-                <label>Alfabeto Testado</label>
-                <input id="cfg_letters" value="ABCDEFGHIJKLMNOPQRSTUVWXYZ" oninput="atualizarGuessingRate()">
-
-                <label>logMAR mínimo</label>
-                <input id="cfg_minLogMAR" type="number" step="0.01" value="-0.5">
-
-                <label>logMAR máximo</label>
-                <input id="cfg_maxLogMAR" type="number" step="0.01" value="0.3">
-
-                <label>logMAR inicial</label>
-                <input id="cfg_startLogMAR" type="number" step="0.01" value="0.0">
-
-                <label>Trials Máx. por letra</label>
-                <input id="cfg_trials" type="number" value="12">
-
-                <label>Guessing rate (γ)</label>
-                <input id="cfg_gamma" type="number" step="0.001" value="0.038">
-
-                <label>Lapse rate (λ)</label>
-                <input id="cfg_lambda" type="number" step="0.001" value="0.02">
+                <label>Letras utilizadas</label> <input id="cfg_letters" value="ABCDEFGHIJKLMNOPQRSTUVWXYZ" oninput="atualizarGuessingRate()">
+                <label>logMAR mínimo</label> <input id="cfg_minLogMAR" type="number" step="0.01" value="-0.5">
+                <label>logMAR máximo</label> <input id="cfg_maxLogMAR" type="number" step="0.01" value="0.3">
+                <label>logMAR inicial</label> <input id="cfg_startLogMAR" type="number" step="0.01" value="0.0">
+                <label>Trials por letra</label> <input id="cfg_trials" type="number" value="12">
+                <label>Guessing rate (γ)</label> <input id="cfg_gamma" type="number" step="0.001" value="0.038">
+                <label>Lapse rate (λ)</label> <input id="cfg_lambda" type="number" step="0.001" value="0.02">
             </div>
-            
-            <div style="margin-top:20px; padding-top:20px; border-top:1px solid #eee;">
+            <div style="margin-top:20px; text-align:center;">
                 <button class="btn-primary" onclick="salvarConfig();">💾 Salvar Configurações</button>
                 <button class="btn-danger" onclick="resetarConfig()">🔄 Restaurar Padrão</button>
             </div>
         </div>
 
-        <div class="card">
+        <div class="card text-center">
             <h3>Calibração Física da Tela</h3>
-            <p style="color:var(--text-muted); font-size:14px;">Meça a altura exata da letra "E" abaixo com uma régua (em milímetros) e insira o valor para calibrar o sistema (logMAR → Pixels).</p>
-            
-            <div style="background:#f8f9fa; border:1px solid #ddd; padding:20px; text-align:center; border-radius:8px;">
-                <div id="calibrationLetter" style="font-family:'Sloan',Arial; font-size:200px; line-height:1; display:inline-block;">E</div>
+            <div style="background:#f8f9fa; border:1px solid #ddd; padding:20px; border-radius:8px; display:inline-block;">
+                <div id="calibrationLetter" style="font-family:'Sloan',Arial; font-size:200px; line-height:1;">E</div>
             </div>
-
-            <div style="margin-top:20px; display:flex; align-items:center; gap:10px;">
+            <div style="margin-top:20px;">
                 <label style="font-weight:bold;">Altura medida na tela (mm):</label>
-                <input type="number" id="mmMedido" style="padding:10px; border-radius:5px; border:1px solid #ccc; width:100px;">
-                <button class="btn-success" onclick="calibrarTela()">✔️ Confirmar Calibração</button>
+                <input type="number" id="mmMedido" style="padding:10px; width:100px;">
+                <button class="btn-success" onclick="calibrarTela()">✔️ Confirmar</button>
             </div>
             <h4 id="calibrationStatus" style="color:var(--primary); margin-top:15px;"></h4>
-        </div>
-
-        <div class="card">
-            <h3>Fonte Customizada</h3>
-            <p style="color:var(--text-muted); font-size:14px;">Para testar outro optótipo, faça upload do arquivo de fonte (.otf, .ttf).</p>
-            <input type="file" id="fontUpload" accept=".otf,.ttf" class="file-input">
-            <button class="btn-primary" onclick="carregarFonte()">Carregar Nova Fonte</button>
-            <h4 id="fontStatus" style="color:var(--success);"></h4>
         </div>
     </div>
 
@@ -315,7 +273,7 @@
 
 <script>
 // =========================================================================
-// VARIÁVEIS GLOBAIS E ESTADOS
+// VARIÁVEIS GLOBAIS, RNG E CONTROLES BÁSICOS
 // =========================================================================
 let seed = 123456;
 function random(){
@@ -329,30 +287,20 @@ let letters, minLogMAR, maxLogMAR, maxTrialsPerLetter, step, gamma, lambda, star
 let lettersData = {}, results = [], activeLetter = null, isDummyTrial = false;
 let currentLogMAR = 0, lastLetter = null, totalTrials = 0, testRunning = false;
 
-// Estado Clínico
 let clinicalMode = false, dataClinical = [], lettersLine = [], responses = [];
 let chartType = "", lineIndex = 0, startTime = 0;
 const TOTAL_LINES_PER_BLOCK = 7;
 const TOTAL_LINES = TOTAL_LINES_PER_BLOCK * 4; 
 
-// =========================================================================
-// CONTROLE DE ABAS (UI)
-// =========================================================================
 function abrirAba(nome){
-    // Esconde todas as abas visualmente, mas não limpa o DOM para não perder extração
     document.querySelectorAll('.aba').forEach(el => el.style.display = 'none');
     document.querySelectorAll('.nav-tabs button').forEach(el => el.classList.remove('active'));
-    
-    // Mostra a aba selecionada
     document.getElementById('aba-' + nome).style.display = 'block';
     document.getElementById('tab-btn-' + nome).classList.add('active');
 
-    // Reseta estado se sair no meio
-    testRunning = false; 
-    clinicalMode = false;
-
+    testRunning = false; clinicalMode = false;
+    if(nome === 'psico'){ document.getElementById("testArea").style.display = "none"; }
     if(nome === 'clinico'){
-        // Puxa as letras da aba psicométrica de forma segura (ignora display:none)
         extractThresholdsFromTable();
         let inputSloan2 = document.getElementById("sloan2_input");
         if(inputSloan2){
@@ -375,9 +323,6 @@ window.onload = function(){
     carregarCalibracao();
 }
 
-// =========================================================================
-// FUNÇÕES BASE PSICOMÉTRICAS E CONFIG
-// =========================================================================
 function carregarConfig(){
     let cfg = JSON.parse(localStorage.getItem("sloan2_config"));
     if(!cfg){
@@ -442,14 +387,14 @@ function carregarCalibracao(){
 }
 
 function logMARtoPx(l){
-    if(!pxPorMm){ alert("Atenção: A tela não foi calibrada. Assumindo valor padrão."); return 40; }
+    if(!pxPorMm){ return 40; }
     let distancia = parseFloat(document.getElementById("distancia").value);
     let alturaMm = 1.454 * distancia * Math.pow(10, l);
     return alturaMm * pxPorMm;
 }
 
 // =========================================================================
-// TESTE PSICOMÉTRICO (QUEST+)
+// MÓDULO PSICOMÉTRICO (QUEST+ PURO ORIGINAL)
 // =========================================================================
 function psychometric(x, a, b){
     let p = gamma + (1 - gamma - lambda) / (1 + Math.exp(-(x - a) / b));
@@ -522,8 +467,9 @@ function escolherStimuloQUEST(obj){
 
 function checarConvergencia(obj){
     let est = estimarPosterior(obj);
+    let mean = est.alpha;
     let varSum = 0, pSum = 0;
-    obj.posterior.forEach(p => { varSum += p.p * Math.pow(p.a - est.alpha, 2); pSum += p.p; });
+    obj.posterior.forEach(p => { varSum += p.p * Math.pow(p.a - mean, 2); pSum += p.p; });
     let sd = Math.sqrt(varSum / pSum);
     let largura = 2 * 1.96 * sd;
     if(obj.trials < 6) return false;
@@ -546,7 +492,7 @@ function atualizarBarraConvergencia(obj){
         bar.style.width = percent + "%";
         bar.style.background = percent < 40 ? "#f44336" : (percent < 70 ? "#ff9800" : "#4caf50");
     }
-    document.getElementById("status").innerText += `\nIC95%: ${largura.toFixed(3)} logMAR`;
+    document.getElementById("status").innerText += `\nIC95%: ${largura.toFixed(3)}`;
 }
 
 function startTest(){
@@ -616,19 +562,19 @@ function showTrial(){
         opt.innerText = activeLetter;
 
         let finalizadas = letters.filter(l => lettersData[l].finished).length;
-        document.getElementById("status").innerText = `Respostas: ${trialGlobal} | Letras concluídas: ${finalizadas}/${letters.length}\nLetra atual: ${activeLetter} (${obj.trials} tentativas) | logMAR estimado: ${currentLogMAR.toFixed(2)}\n\nProgresso Geral:\n${letters.map(l=> l+":"+lettersData[l].trials+(lettersData[l].finished?"✔":"")).join(" ")}`;
+        document.getElementById("status").innerText = `Respostas: ${trialGlobal} | Letras concluídas: ${finalizadas}/${letters.length}\nLetra atual: ${activeLetter} (${obj.trials} tentativas) | logMAR: ${currentLogMAR.toFixed(2)}\n\n${letters.map(l=> l+":"+lettersData[l].trials+(lettersData[l].finished?"✔":"")).join(" ")}`;
         
         trialLocked = false;
     }, 200);
 }
 
-// Teclado GLOBAL (Handles both Tests based on active mode)
+// =========================================================================
+// LISTENER GERAL DE TECLADO (PSICO E CLÍNICO)
+// =========================================================================
 document.addEventListener("keydown", function(e){
     if(e.repeat || paused) return;
-
     let key = e.key.toUpperCase();
 
-    // HANDLER CLÍNICO
     if(clinicalMode){
         if(!/^[A-Z0]$/.test(key)) return;
         responses.push(key);
@@ -636,12 +582,10 @@ document.addEventListener("keydown", function(e){
         return;
     }
 
-    // HANDLER PSICOMÉTRICO
     if(testRunning && !trialLocked){
         let now = performance.now();
         if(now - lastResponseTime < minResponseInterval) return;
         lastResponseTime = now;
-
         if((key >= "A" && key <= "Z") || key === "0"){
             respostaDigitada = key;
             document.getElementById("typedAnswer").innerText = key;
@@ -671,22 +615,24 @@ function confirmarResposta(){
 
     let next = escolherStimuloQUEST(obj);
 
-    // Escape Clínico 
     let ultimos = obj.data.slice(-4);
     if(ultimos.length >= 4){
         let taxaErro = ultimos.filter(d=>d.correct===0).length / ultimos.length;
+        let taxaAcerto = 1 - taxaErro;
         let ajuste = taxaErro >= 0.75 ? 0.015 : (taxaErro >= 0.5 ? 0.008 : 0);
         let alvo = currentLogMAR + ajuste;
         next = 0.92 * next + 0.08 * alvo;
-        if((1-taxaErro) >= 0.75) next -= 0.015;
+        if(taxaAcerto >= 0.75) next -= 0.015;
         let delta = next - currentLogMAR;
         if(delta > 0.05) next = currentLogMAR + 0.05;
         if(delta < -0.05) next = currentLogMAR - 0.05;
     }
 
     obj.stimulus = Math.max(minLogMAR, Math.min(next, maxLogMAR));
+    
+    let convergiu = checarConvergencia(obj);
     let acc = obj.data.filter(d=>d.correct===1).length / obj.data.length;
-    if((obj.trials >= 6 && checarConvergencia(obj) && acc > 0.6) || obj.trials >= maxTrialsPerLetter){
+    if((obj.trials >= 6 && convergiu && acc > 0.6) || obj.trials >= maxTrialsPerLetter){
         obj.finished = true;
     }
 
@@ -703,9 +649,9 @@ function endTest(){
     testRunning = false;
     document.getElementById("testArea").style.display = "none";
     window.currentPsychoTarget = "analysisArea";
-    processarCSV(results); // Gera gráficos na div correta
+    
+    processarCSV(results);
 
-    // Injeta Botão de Download na div de resultados
     let csvData = "subject,idade,sexo,esferico,letter,answer,logMAR,correct\n";
     results.forEach(r => { csvData += `${r.subject},${r.idade},${r.sexo},${r.esferico},${r.letter},${r.answer},${r.logMAR},${r.correct}\n`; });
     let filename = (document.getElementById("subjectID").value || "voluntario") + "_psycho.csv";
@@ -720,30 +666,29 @@ function endTest(){
 }
 
 // =========================================================================
-// TESTE CLÍNICO (ETDRS)
+// MÓDULO CLÍNICO (ETDRS)
 // =========================================================================
 function extractThresholdsFromTable(){
     const tables = document.querySelectorAll("table");
     let targetTable = null;
     tables.forEach(table => {
         const headers = table.querySelectorAll("th");
-        if(headers.length >= 4){
+        if(headers.length >= 3){
             const h0 = headers[0].textContent.toLowerCase();
-            const h3 = headers[3].textContent.toLowerCase();
-            if(h0.includes("letra") && h3.includes("fator")){ targetTable = table; }
+            const h2 = headers[2].textContent.toLowerCase();
+            if(h0.includes("letra") && h2.includes("fator")){ targetTable = table; }
         }
     });
 
     window.SLOAN20_FACTORS = {};
     if(!targetTable) return;
-
     const rows = targetTable.querySelectorAll("tr");
     rows.forEach((row, index) => {
         if(index === 0) return;
         const cells = row.querySelectorAll("td");
-        if(cells.length < 4) return;
+        if(cells.length < 3) return;
         const letter = cells[0].textContent.trim();
-        const fator = parseFloat(cells[3].textContent);
+        const fator = parseFloat(cells[2].textContent);
         if(letter && !isNaN(fator)) window.SLOAN20_FACTORS[letter] = fator;
     });
 }
@@ -754,14 +699,11 @@ function getLogMARFromSystem(line){
     return start - (effectiveLine * step);
 }
 
-// util
 function shuffle(array){
     let arr = [...array];
     for(let i = arr.length - 1; i > 0; i--){
         let j = Math.floor(random() * (i + 1));
-        let temp = arr[i];
-        arr[i] = arr[j];
-        arr[j] = temp;
+        let temp = arr[i]; arr[i] = arr[j]; arr[j] = temp;
     }
     return arr;
 }
@@ -779,7 +721,7 @@ function startClinicalTest(){
 
     document.getElementById("sloan2_input").value = Object.keys(window.SLOAN20_FACTORS).join("");
     document.getElementById("clinicStartCard").style.display = "none";
-    document.getElementById("clinicalAnalysisOutput").innerHTML = ""; // Limpa análises antigas
+    document.getElementById("clinicalAnalysisOutput").innerHTML = "";
 
     clinicalMode = true; dataClinical = []; lineIndex = 0;
     nextLine();
@@ -801,7 +743,6 @@ function nextLine(){
 
     lettersLine = getNextLetters(pool, lineIndex);
     
-    // Render
     let clinicalArea = document.getElementById("clinicalArea");
     clinicalArea.innerHTML = "";
     const logMAR = getLogMARFromSystem(lineIndex % TOTAL_LINES_PER_BLOCK);
@@ -877,7 +818,7 @@ function runClinicalAnalysisOnCurrentData(encodedCSV) {
 }
 
 // =========================================================================
-// PROCESSAMENTO PSICOMÉTRICO (CORE) E BATCH
+// CÁLCULOS ESTATÍSTICOS PSICOMÉTRICOS (INTACTOS DO ORIGINAL)
 // =========================================================================
 function analisarCSV(){
     window.currentPsychoTarget = "batchPsychoResults";
@@ -892,7 +833,6 @@ function analisarCSV(){
         let reader = new FileReader();
         reader.onload = function(e){
             let linhas = e.target.result.trim().split("\n");
-            // Basic parsing assuming standard format
             for(let i=1; i<linhas.length; i++){
                 let p = linhas[i].split(",");
                 if(p.length < 8) continue;
@@ -907,7 +847,6 @@ function analisarCSV(){
     }
 }
 
-// Funções de Cálculo Psicométrico
 function gerarMatrizConfusao(data){
     let matriz = {};
     letters.forEach(l => { matriz[l] = {}; letters.forEach(r => matriz[l][r] = 0); });
@@ -970,38 +909,75 @@ function calcularLPI(letrasSet, matriz){
     return (pares > 0 ? total/pares : 0) * 1.5;
 }
 
+function calcularMetricasAvancadas(tabela, lettersData){
+    let resultados=[];
+    tabela.forEach(t=>{
+        let letra=t.letra; let obj=lettersData[letra];
+        let logs=obj.data.map(d=>d.logMAR);
+        let mean=logs.reduce((a,b)=>a+b,0)/logs.length;
+        let varianza=logs.map(x=>Math.pow(x-mean,2)).reduce((a,b)=>a+b,0)/logs.length;
+        let sd=Math.sqrt(varianza);
+        let icLow=t.threshold-1.96*(sd/Math.sqrt(logs.length));
+        let icHigh=t.threshold+1.96*(sd/Math.sqrt(logs.length));
+        let reliability=1/(1+varianza);
+        let efficiency=t.slope/(sd+0.0001);
+        let p=0.75;
+        let info=(t.slope*t.slope)*p*(1-p);
+        resultados.push({ letra:letra, threshold:t.threshold, slope:t.slope, icLow:icLow, icHigh:icHigh, reliability:reliability, efficiency:efficiency, info:info });
+    });
+    return resultados;
+}
+
 function letterSetOptimization(tabela, matriz, variabilidadeLetra){
     let thresholds = tabela.map(t=>t.threshold).sort((a,b)=>a-b);
-    let cutLow = thresholds[Math.floor(thresholds.length * 0.15)];
+    let cutLow  = thresholds[Math.floor(thresholds.length * 0.15)];
     let cutHigh = thresholds[Math.floor(thresholds.length * 0.85)];
     let central = thresholds.filter(t => t >= cutLow && t <= cutHigh);
     let median = central[Math.floor(central.length / 2)];
 
-    let candidatos = tabela.filter(t => t.threshold >= cutLow && t.threshold <= cutHigh && Math.abs(t.threshold - median) <= 0.06);
+    let candidatos = tabela.filter(t => {
+        if(t.threshold < cutLow || t.threshold > cutHigh) return false;
+        if(Math.abs(t.threshold - median) > 0.06) return false;
+        return true;
+    });
 
     let melhorSet = [], melhorScore = Infinity, melhorMetrics = null;
-    for(let it=0; it<10000; it++){
-        let size = 9 + Math.floor(random()*((Math.min(12, candidatos.length)) - 9 + 1));
-        let set = shuffle([...candidatos]).slice(0, size);
+    let ITER = 10000; 
+
+    for(let it=0; it<ITER; it++){
+        let MIN_LETTERS = 9, MAX_LETTERS = 12;
+        let maxSize = Math.min(MAX_LETTERS, candidatos.length);
+        let minSize = Math.min(MIN_LETTERS, maxSize);
+        let size = minSize + Math.floor(random()*(maxSize - minSize + 1));
         
+        let shuffled = shuffle(candidatos);
+        let set = shuffled.slice(0,size);
+
         let th = set.map(l=>l.threshold);
-        let D_central = th.reduce((acc,v)=>acc + Math.abs(v - median),0) / th.length;
+        let mean = th.reduce((a,b)=>a+b,0)/th.length;
+        let sd = Math.sqrt(th.map(x=>Math.pow(x-mean,2)).reduce((a,b)=>a+b,0)/th.length);
+        let sorted = tabela.map(t=>t.threshold).sort((a,b)=>a-b);
+        let target = sorted[Math.floor(sorted.length/2)];
+
+        let D_central = th.reduce((acc,v)=>acc + Math.abs(v - target),0) / th.length;
         if(D_central > 0.08) continue;
-        
+
         let sum = 0, pairs = 0;
-        for(let i=0;i<th.length;i++){ for(let j=i+1;j<th.length;j++){ sum += Math.abs(th[i]-th[j]); pairs++; } }
+        for(let i=0;i<th.length;i++){ for(let j=i+1;j<th.length;j++){ sum += Math.abs(th[i] - th[j]); pairs++; } }
         let D_coeso = pairs > 0 ? sum/pairs : 0;
         if(D_coeso > 0.12) continue;
 
-        let variabSum = 0; set.forEach(l => variabSum += (variabilidadeLetra[l.letra] || 0));
+        let variabSum = 0;
+        set.forEach(l=>{ variabSum += (variabilidadeLetra?.[l.letra] || 0); });
         let meanVariab = variabSum / set.length;
 
-        let outlierPenalty = 0; th.forEach(v => { if(Math.abs(v-median)>0.15) outlierPenalty++; });
+        let outlierPenalty = 0;
+        th.forEach(v=>{ if(Math.abs(v-target) > 0.15) outlierPenalty++; });
 
         let confSum = 0, maxPairConf = 0, cpairs = 0;
         for(let i=0;i<set.length;i++){
             for(let j=i+1;j<set.length;j++){
-                let a = set[i].letra, b = set[j].letra;
+                let a=set[i].letra, b=set[j].letra;
                 let conf = (matriz[a]?.[b]||0) + (matriz[b]?.[a]||0);
                 confSum += conf; cpairs++;
                 if(conf > maxPairConf) maxPairConf = conf;
@@ -1013,58 +989,61 @@ function letterSetOptimization(tabela, matriz, variabilidadeLetra){
         let distSum=0, dpairs=0;
         for(let i=0;i<set.length;i++){
             for(let j=i+1;j<set.length;j++){
-                let a = set[i].letra, b = set[j].letra;
-                let v1 = Object.values(matriz[a] || {}), v2 = Object.values(matriz[b] || {});
-                let d = 0; for(let k=0;k<v1.length;k++) d += Math.pow(v1[k]-v2[k], 2);
-                distSum += Math.sqrt(d); dpairs++;
+                let a=set[i].letra, b=set[j].letra;
+                let v1=Object.values(matriz[a] || {}), v2=Object.values(matriz[b] || {});
+                let d=0; for(let k=0;k<v1.length;k++) d+=Math.pow(v1[k]-v2[k],2);
+                distSum+=Math.sqrt(d); dpairs++;
             }
         }
         let meanDist = dpairs > 0 ? distSum/dpairs : 0;
 
-        let score = (0.55*maxPairConf) + (0.55*LPI) + (0.45*meanVariab) + (0.35*D_coeso) + (0.25*outlierPenalty) - (0.40*meanDist);
+        let score = (0.55 * maxPairConf) + (0.55 * LPI) + (0.45 * meanVariab) + (0.35 * D_coeso) + (0.25 * outlierPenalty) - (0.40 * meanDist);
+
         if(score < melhorScore){
-            melhorScore = score; melhorSet = [...set];
-            melhorMetrics = { sd: Math.sqrt(th.map(x=>Math.pow(x-(th.reduce((a,b)=>a+b,0)/th.length),2)).reduce((a,b)=>a+b,0)/th.length), difficulty: D_central, meanConf, maxConf: maxPairConf, dist: meanDist, outliers: outlierPenalty, variability: meanVariab, LPI };
+            melhorScore = score;
+            melhorSet = [...set];
+            melhorMetrics = { sd, difficulty: D_central, meanConf, maxConf: maxPairConf, dist: meanDist, cluster: 0, outliers: outlierPenalty, variability: meanVariab, LPI };
         }
     }
-    return { set: melhorSet, score: melhorScore, metrics: melhorMetrics };
+    return { set:melhorSet, score:melhorScore, metrics:melhorMetrics };
 }
 
+// O CORAÇÃO DO PSICOMÉTRICO RESTAURADO
 function processarCSV(data){
-    seed = 123456; // Restaura a semente fixa!
-    data = normalizarPorSujeito(data);
+    seed = 123456; 
+    data = normalizarPorSujeito(data); 
     results = data;
-
+    
+    let SLOAN = ["C","D","H","K","N","O","R","S","V","Z"];
     gamma = 1 / letters.length;
-    lettersData = {};
-    letters.forEach(l => { lettersData[l] = { alpha:0, beta:0.1, data:[], trials:0 } });
-    data.forEach(d => { if(lettersData[d.letter]){ lettersData[d.letter].data.push({ logMAR:d.logMAR, correct:d.correct }); lettersData[d.letter].trials++; } });
 
-    let tabela = [];
-    letters.forEach(l => {
-        let obj = lettersData[l];
-        if(obj.data.length < 6) return;
-        let bestLL = -Infinity, bestA = 0, bestB = 0.1;
-        for(let a=minLogMAR; a<=maxLogMAR; a+=0.02){
-            for(let b=0.05; b<=0.3; b+=0.02){
-                let ll = 0;
-                obj.data.forEach(d => { let p = psychometric(d.logMAR, a, b); ll += d.correct*Math.log(p) + (1-d.correct)*Math.log(1-p); });
-                if(ll > bestLL){ bestLL = ll; bestA = a; bestB = b; }
+    lettersData={};
+    letters.forEach(l=>{ lettersData[l]={ alpha:0, beta:0.1, data:[], trials:0 } });
+    data.forEach(d=>{ if(!lettersData[d.letter]) return; lettersData[d.letter].data.push({ logMAR:d.logMAR, correct:d.correct }); lettersData[d.letter].trials++; });
+
+    let tabela=[];
+    letters.forEach(l=>{
+        let obj=lettersData[l]; if(obj.data.length<6) return;
+        let bestLL=-Infinity, bestA=0, bestB=0.1;
+        for(let a=minLogMAR;a<=maxLogMAR;a+=0.02){
+            for(let b=0.05;b<=0.3;b+=0.02){
+                let ll=0;
+                obj.data.forEach(d=>{ let p=psychometric(d.logMAR,a,b); ll+=d.correct*Math.log(p) +(1-d.correct)*Math.log(1-p); });
+                if(ll>bestLL){ bestLL=ll; bestA=a; bestB=b; }
             }
         }
-        obj.alpha = bestA; obj.beta = bestB;
-        tabela.push({ letra: l, threshold: obj.alpha + obj.beta*Math.log(3), slope: obj.beta, n: obj.trials });
+        obj.alpha=bestA; obj.beta=bestB;
+        tabela.push({ letra:l, threshold:obj.alpha+obj.beta*Math.log(3), slope:obj.beta, n:obj.trials });
     });
-    tabela.sort((a,b)=>a.threshold - b.threshold);
+    tabela.sort((a,b)=>a.threshold-b.threshold);
 
-    let matriz = gerarMatrizConfusao(data);
+    let matriz = gerarMatrizConfusao(results);
     let matrizProb = normalizarMatriz(matriz);
-    let variabilidadeLetra = calcularVariabilidadeInterSujeitos(data);
-    
+    let variabilidadeLetra = calcularVariabilidadeInterSujeitos(results);
+
     let opt = letterSetOptimization(tabela, matrizProb, variabilidadeLetra);
     let letrasSet = (opt.set || []).map(l=>l.letra);
-    let SLOAN = ["C","D","H","K","N","O","R","S","V","Z"];
-    
+
     function calcularMetricsGrupo(letrasGrupo){
         let subset = tabela.filter(t=>letrasGrupo.includes(t.letra));
         if(subset.length < 2) return null;
@@ -1073,69 +1052,61 @@ function processarCSV(data){
         let sd = Math.sqrt(th.map(x=>Math.pow(x-mean,2)).reduce((a,b)=>a+b,0)/th.length);
         let globalMedian = tabela.map(t=>t.threshold).sort((a,b)=>a-b)[Math.floor(tabela.length/2)];
         
-        let confSum = 0, maxConf = 0, pairs = 0;
+        let confSum=0, maxConf=0, pairs=0;
         for(let i=0;i<letrasGrupo.length;i++){
             for(let j=i+1;j<letrasGrupo.length;j++){
-                let conf = (matriz[letrasGrupo[i]]?.[letrasGrupo[j]]||0) + (matriz[letrasGrupo[j]]?.[letrasGrupo[i]]||0);
-                confSum += conf; if(conf > maxConf) maxConf = conf; pairs++;
+                let a = letrasGrupo[i], b = letrasGrupo[j];
+                let conf = (matriz[a]?.[b]||0) + (matriz[b]?.[a]||0);
+                confSum+=conf; if(conf>maxConf) maxConf=conf; pairs++;
             }
         }
         
         let distSum=0, dpairs=0;
         for(let i=0;i<letrasGrupo.length;i++){
             for(let j=i+1;j<letrasGrupo.length;j++){
-                let v1 = Object.values(matrizProb[letrasGrupo[i]] || {}), v2 = Object.values(matrizProb[letrasGrupo[j]] || {});
-                let d = 0; for(let k=0;k<v1.length;k++) d+=Math.pow(v1[k]-v2[k],2);
+                let a=letrasGrupo[i], b=letrasGrupo[j];
+                let v1=Object.values(matrizProb[a] || {}), v2=Object.values(matrizProb[b] || {});
+                let d=0; for(let k=0;k<v1.length;k++) d+=Math.pow(v1[k]-v2[k],2);
                 distSum+=Math.sqrt(d); dpairs++;
             }
         }
+        let dist = dpairs>0 ? distSum/dpairs : 0;
         
         let outliers=0; th.forEach(v=>{ if(Math.abs(v-globalMedian)>0.15) outliers++; });
-        let variabSum = 0; letrasGrupo.forEach(l=> variabSum += variabilidadeLetra[l] || 0);
-        return { sd, maxConf, dist: dpairs>0 ? distSum/dpairs : 0, outliers, variability: variabSum/letrasGrupo.length, LPI: calcularLPI(letrasGrupo, matriz) };
+        let variabSum=0; letrasGrupo.forEach(l=>{ variabSum += variabilidadeLetra[l] || 0; });
+        
+        return { sd, maxConf, dist, outliers, variability: variabSum/letrasGrupo.length, LPI: calcularLPI(letrasGrupo, matriz) };
     }
 
     let metricsGlobal = calcularMetricsGrupo(tabela.map(t=>t.letra));
-    let metricsSloan = calcularMetricsGrupo(SLOAN.filter(l => tabela.some(t=>t.letra===l)));
-    let metricsSet = calcularMetricsGrupo(letrasSet);
+    let metricsSloan  = calcularMetricsGrupo(SLOAN.filter(l => tabela.map(t=>t.letra).includes(l)));
+    let metricsSet    = calcularMetricsGrupo(letrasSet);
 
     window.letrasSelecionadas = letrasSet;
+    let avancado = calcularMetricasAvancadas(tabela,lettersData);
 
-    // 🔥 RECÁLCULO DOS DADOS FALTANTES NA TABELA (IC95%, Confusion Rate, Top Confusion)
-    let confusaoLetra = {};
-    let confusaoPrincipal = {};
-    letters.forEach(l => {
-        let total = 0; let erros = 0; let lista = [];
-        letters.forEach(r => {
-            let v = matriz[l]?.[r] || 0;
-            total += v;
-            if(r !== l && v > 0){ erros += v; lista.push({letra:r, valor:v}); }
+    let confusaoLetra={}, confusaoPrincipal={};
+    letters.forEach(l=>{
+        let total=0, erros=0, lista=[];
+        letters.forEach(r=>{
+            let v=matriz[l]?.[r]||0; total+=v;
+            if(r!==l && v>0){ erros+=v; lista.push({letra:r, valor:v}); }
         });
-        confusaoLetra[l] = total > 0 ? erros/total : 0;
-        lista.sort((a,b) => b.valor - a.valor);
-        confusaoPrincipal[l] = lista.length > 0 ? lista[0].letra : "";
+        confusaoLetra[l] = total>0 ? erros/total : 0;
+        lista.sort((a,b)=>b.valor-a.valor);
+        confusaoPrincipal[l] = lista.length>0 ? lista[0].letra : "";
     });
 
-    let avancado = {};
-    tabela.forEach(t => {
-        let obj = lettersData[t.letra];
-        let logs = obj.data.map(d => d.logMAR);
-        let mean = logs.reduce((a,b)=>a+b,0)/logs.length;
-        let varianza = logs.map(x=>Math.pow(x-mean,2)).reduce((a,b)=>a+b,0)/logs.length;
-        let sd = Math.sqrt(varianza);
-        avancado[t.letra] = {
-            icLow: t.threshold - 1.96 * (sd/Math.sqrt(logs.length)),
-            icHigh: t.threshold + 1.96 * (sd/Math.sqrt(logs.length))
-        };
-    });
-
-    // GERAR HTML
+    // RENDERIZAR HTML COM DESIGN MODERNO
     let uid = Date.now();
+    let setSelecionado = (opt.set || []).slice().sort((a,b)=>a.threshold-b.threshold);
+    let minThr = setSelecionado.length > 0 ? Math.min(...setSelecionado.map(l=>l.threshold)) : 0;
+
     let html = `
     <div class="metric-box">
         <h4>1. Psychometric Method</h4>
-        <table class="res-table">
-            <tr><td><b>Stimulus selection</b></td><td>Bayesian adaptive (QUEST+) – Maximization of Expected Information Gain</td></tr>
+        <table class="res-table" style="text-align:left;">
+            <tr><td style="width:250px;"><b>Stimulus selection</b></td><td>Bayesian adaptive (QUEST+) – Expected Information Gain</td></tr>
             <tr><td><b>Posterior update</b></td><td>Iterative Bayesian Inference</td></tr>
             <tr><td><b>Parameter space</b></td><td>Discrete grid α (threshold) and β (fixed slope)</td></tr>
             <tr><td><b>Threshold estimation</b></td><td>Posterior mean corresponding to ~75% probability of correct recognition</td></tr>
@@ -1146,29 +1117,32 @@ function processarCSV(data){
     
     <div class="metric-box">
         <h4>2. Optotype-Level Psychometric Results</h4>
-        <p style="font-size:13px; color:var(--text-muted); text-align:justify; margin-bottom:10px;">Optotype-level metrics were limited to intrinsic psychometric properties (threshold, slope, confusion rate, and inter-subject variability). Set-dependent metrics such as pairwise confusion (Cmax), Line Penalty Index (LPI), intra-set dispersion, and perceptual distance were computed exclusively during the optimization stage and are therefore not reported at the individual optotype level.</p>
         <p style="font-size:13px; color:var(--text-muted); text-align:justify; margin-bottom:15px;"><b>Table 2.</b> Psychometric properties of individual optotypes. Thresholds are reported in logMAR units with corresponding 95% confidence intervals (CI). Slope represents the steepness of the psychometric function. Confusion rate indicates the proportion of incorrect identifications, and primary confusion denotes the most frequently confused optotype.</p>
         <table class="res-table">
             <tr><th>Optotype</th><th>Threshold (logMAR)</th><th>95% CI</th><th>Slope</th><th>Confusion Rate</th><th>Primary Confusion</th><th>Inter-subject Variability</th><th>Selection Status</th></tr>
-            ${tabela.map(r => {
-                let isSet = letrasSet.includes(r.letra);
-                let isSloan = SLOAN.includes(r.letra);
+            ${avancado.map(r => {
+                let letraClean = r.letra;
+                let isSet = letrasSet.includes(letraClean);
+                let isSloan = SLOAN.includes(letraClean);
                 let cls = (isSet && isSloan) ? "bothLetter" : (isSet ? "bestLetter" : (isSloan ? "sloanLetter" : ""));
                 let status = isSet ? 2 : (isSloan ? 1 : 0);
-                let ic = avancado[r.letra];
+                let conf = confusaoLetra[letraClean] || 0;
+                let confTop = confusaoPrincipal[letraClean] || "";
+                let variab = variabilidadeLetra[letraClean] || 0;
+
                 return `<tr class="${cls}">
-                    <td>${r.letra}</td>
+                    <td><b>${letraClean}</b></td>
                     <td>${r.threshold.toFixed(3)}</td>
-                    <td>${ic.icLow.toFixed(3)} – ${ic.icHigh.toFixed(3)}</td>
+                    <td>${r.icLow.toFixed(3)} – ${r.icHigh.toFixed(3)}</td>
                     <td>${r.slope.toFixed(3)}</td>
-                    <td>${(confusaoLetra[r.letra] || 0).toFixed(3)}</td>
-                    <td>${confusaoPrincipal[r.letra] || ""}</td>
-                    <td>${(variabilidadeLetra[r.letra]||0).toFixed(3)}</td>
+                    <td>${conf.toFixed(3)}</td>
+                    <td>${confTop}</td>
+                    <td>${variab.toFixed(3)}</td>
                     <td>${status}</td>
                 </tr>`;
             }).join("")}
         </table>
-        <p style="font-size:12px; color:#666;">Selection Status (categorical):<br>0 = non-selected optotypes;<br>1 = classical Sloan optotypes (excluded from optimized set);<br>2 = optimized set (SLOAN 2.0), including overlapping Sloan optotypes.</p>
+        <p style="font-size:12px; color:#666;">Selection Status: 0 = non-selected; 1 = classical Sloan; 2 = optimized set (SLOAN 2.0).</p>
     </div>
 
     <div class="metric-box">
@@ -1179,13 +1153,13 @@ function processarCSV(data){
     <div class="metric-box">
         <h4>4. Conjunto Otimizado (SLOAN 2.0 Equalizado)</h4>
         <div style="display:flex; gap:25px; align-items:center; justify-content:center; padding:20px;">
-            ${(opt.set||[]).sort((a,b)=>a.threshold-b.threshold).map(l => `<span style="font-family:'Sloan',Arial; font-size:${Math.max(22,Math.min(60,40*Math.pow(10,l.threshold)))}px;">${l.letra}</span>`).join("")}
+            ${setSelecionado.map(l => `<span style="font-family:'Sloan',Arial; font-size:${Math.max(22,Math.min(60,40*Math.pow(10,l.threshold)))}px;">${l.letra}</span>`).join("")}
         </div>
-        <p style="font-size:14px; text-align:justify;">Each optotype is scaled according to its estimated threshold so that all letters correspond to an equivalent difficulty at 0 logMAR.</p>
+        <p style="font-size:14px; text-align:justify; margin-bottom:20px;">Each optotype is scaled according to its estimated threshold so that all letters correspond to an equivalent difficulty at 0 logMAR.</p>
         
         <table class="res-table">
             <tr><th>Letra</th><th>Threshold Original</th><th>Fator de Correção</th></tr>
-            ${(opt.set||[]).sort((a,b)=>a.threshold-b.threshold).map(l => `<tr><td><b>${l.letra}</b></td><td>${l.threshold.toFixed(3)}</td><td>${Math.pow(10, l.threshold - Math.min(...(opt.set.map(x=>x.threshold)))).toFixed(3)}</td></tr>`).join("")}
+            ${setSelecionado.map(l => `<tr><td><b>${l.letra}</b></td><td>${l.threshold.toFixed(3)}</td><td>${Math.pow(10, l.threshold - minThr).toFixed(3)}</td></tr>`).join("")}
         </table>
     </div>
 
@@ -1210,18 +1184,12 @@ function processarCSV(data){
     <div class="metric-box">
         <h4>7. Curvas Psicométricas</h4>
         <canvas id="psychometricCurves_${uid}" width="800" height="450" style="display:block; margin: 0 auto;"></canvas>
-        <p style="font-size:14px; text-align:justify; margin-top:15px;"><b>8. Interpretação:</b> Cada curva representa a probabilidade de reconhecimento correto em função do tamanho. O ponto central de cada curva (α) corresponde a ~75% de acerto. Curvas mais inclinadas indicam maior sensibilidade de discriminação.</p>
-    </div>
-    
-    <div class="metric-box">
-        <h4>9. Relatório Final de Resultados</h4>
-        <p style="font-size:14px; text-align:justify;">A total of <b>${tabela.length}</b> optotypes were analyzed. The mean threshold was <b>${(tabela.map(t=>t.threshold).reduce((a,b)=>a+b,0)/tabela.length).toFixed(3)} logMAR</b>. Maximum pairwise confusion (Cmax) in the optimized set was <b>${Math.round(metricsSet?.maxConf)}</b>, compared to <b>${Math.round(metricsSloan?.maxConf)}</b> in the classical Sloan set. The Line Penalty Index (LPI) improved to <b>${metricsSet?.LPI.toFixed(3)}</b> from <b>${metricsSloan?.LPI.toFixed(3)}</b>, indicating enhanced robustness against crowding. Overall, the optimized set demonstrated superior balance between reduced confusion, maintained uniformity, and increased perceptual separability.</p>
+        <p style="font-size:14px; text-align:justify; margin-top:15px;"><b>Interpretação:</b> Cada curva representa a probabilidade de reconhecimento correto em função do tamanho. O ponto central de cada curva (α) corresponde a ~75% de acerto. Curvas mais inclinadas indicam maior sensibilidade de discriminação.</p>
     </div>
     `;
 
     document.getElementById(window.currentPsychoTarget || "analysisArea").innerHTML = html;
     
-    // Draw Canvas After DOM Injection
     setTimeout(() => {
         desenharHeatmap(matriz, `confusionHeatmap_${uid}`);
         desenharCurvasPsicometricas(`psychometricCurves_${uid}`);
@@ -1229,7 +1197,7 @@ function processarCSV(data){
     }, 100);
 }
 
-// Draw functions for Psychometric
+// PSICO DRAW FUNCTIONS
 function desenharHeatmap(matriz, canvasId){
     let canvas = document.getElementById(canvasId); if(!canvas) return;
     let ctx = canvas.getContext("2d"); ctx.clearRect(0,0,700,700);
@@ -1341,7 +1309,7 @@ function desenharGraficoComparativo(metricsGlobal, metricsSloan, metricsSet, can
 }
 
 // =========================================================================
-// PROCESSAMENTO CLÍNICO (ESTATÍSTICA ETDRS)
+// PROCESSAMENTO ESTATÍSTICO CLÍNICO (TESTE T, ICC, PLOTS)
 // =========================================================================
 function processCSV(){
     window.currentClinicTarget = "batchClinicResults";
@@ -1350,7 +1318,6 @@ function processCSV(){
     if(!files || files.length === 0){ alert("Selecione o CSV clínico"); return; }
     document.getElementById("batchClinicResults").innerHTML = "<h3 style='text-align:center;'>Processando Clínica...</h3>";
     
-    // Simplification for Clinical: just read the first file as the master CSV
     const reader = new FileReader();
     reader.onload = function(e){ analyzeCSV(e.target.result); };
     reader.readAsText(files[0]);
@@ -1458,22 +1425,37 @@ function analyzeCSV(text){
         ciH = diffMean + 1.96 * (sdD/Math.sqrt(vC.length));
         
         tTestHTML = `
-        <b>N (Pares de Linhas):</b> ${vC.length}<br>
-        <b>Diferença Média (Ganho):</b> ${diffMean > 0 ? '+' : ''}${diffMean.toFixed(2)} letras a favor do Sloan 2.0<br>
-        <b>Teste T (pareado):</b> ${tStat.toFixed(3)}<br>
-        <b>Valor-P:</b> ${pVal < 0.001 ? '< 0.001' : pVal.toFixed(4)} ${pVal < 0.05 ? '⭐ (Significativo)' : '(Não significativo)'}<br>
-        <b>IC95%:</b> ${ciL.toFixed(2)} a ${ciH.toFixed(2)} letras<br>`;
+        <p style="font-size:14px; text-align:center; color:#555; margin-bottom:15px;">Comparação da performance da mesma linha de dificuldade (N = ${vC.length} pares).</p>
+        <table class="res-table" style="max-width:600px; margin:auto;">
+            <tr><th style="width:50%;">Estatística</th><th>Resultado</th></tr>
+            <tr><td><b>Diferença Média (Ganho)</b></td><td style="color:${diffMean > 0 ? 'var(--success)' : 'inherit'}; font-weight:bold;">${diffMean > 0 ? '+' : ''}${diffMean.toFixed(2)} letras a favor do Sloan 2.0</td></tr>
+            <tr><td><b>Teste T-pareado (t)</b></td><td>${tStat.toFixed(3)}</td></tr>
+            <tr><td><b>Valor-P</b></td><td>${pVal < 0.001 ? '< 0.001' : pVal.toFixed(4)} ${pVal < 0.05 ? '⭐ Significativo' : ''}</td></tr>
+            <tr><td><b>IC95%</b></td><td>${ciL.toFixed(2)} a ${ciH.toFixed(2)} letras</td></tr>
+        </table>`;
     } else { tTestHTML = "<i>Sem dados pareados suficientes.</i>"; }
 
     let iccClassico = calculateICC(pairsC), iccSloan20 = calculateICC(pairsS), retestHTML = "";
     if(pairsC.length >= 1 && pairsS.length >= 1){
         if(subjects.length === 1) {
             let deltaC = Math.abs(pairsC[0][0] - pairsC[0][1]), deltaS = Math.abs(pairsS[0][0] - pairsS[0][1]);
-            retestHTML = `<b>Variabilidade Clássico (Teste 1 vs 2):</b> Δ = ${deltaC.toFixed(3)} logMAR<br><b>Variabilidade SLOAN 2.0 (Teste 1 vs 2):</b> Δ = ${deltaS.toFixed(3)} logMAR<br><br><i style="font-size:12px;">* ICC indisponível para 1 paciente (requer variância entre sujeitos). Valores Δ menores indicam maior estabilidade.</i>`;
+            retestHTML = `
+            <table class="res-table" style="max-width:600px; margin:auto;">
+                <tr><th>Teste</th><th>Variação Absoluta (Δ logMAR)</th></tr>
+                <tr><td>Clássico</td><td>${deltaC.toFixed(3)}</td></tr>
+                <tr><td>SLOAN 2.0</td><td>${deltaS.toFixed(3)}</td></tr>
+            </table>
+            <p style="font-size:12px; text-align:center; color:#666;">* ICC indisponível para apenas 1 paciente. Valores Δ mais baixos indicam maior estabilidade do teste.</p>`;
         } else {
-            retestHTML = `<b>Confiabilidade Clássico (ICC):</b> ${iccClassico !== null ? iccClassico.toFixed(3) : 'N/A'}<br><b>Confiabilidade SLOAN 2.0 (ICC):</b> ${iccSloan20 !== null ? iccSloan20.toFixed(3) : 'N/A'}<br><br><i style="font-size:12px;">* Valores de ICC mais próximos de 1.0 indicam maior reprodutibilidade do teste.</i>`;
+            retestHTML = `
+            <table class="res-table" style="max-width:600px; margin:auto;">
+                <tr><th>Teste</th><th>Confiabilidade (ICC)</th></tr>
+                <tr><td>Clássico</td><td>${iccClassico !== null ? iccClassico.toFixed(3) : 'N/A'}</td></tr>
+                <tr><td>SLOAN 2.0</td><td style="font-weight:bold;">${iccSloan20 !== null ? iccSloan20.toFixed(3) : 'N/A'}</td></tr>
+            </table>
+            <p style="font-size:12px; text-align:center; color:#666;">* Valores de ICC mais próximos de 1.0 indicam maior reprodutibilidade do teste clínico.</p>`;
         }
-    } else { retestHTML = "<i>Dados de reteste indisponíveis.</i>"; }
+    } else { retestHTML = "<p style='text-align:center;'><i>Dados de reteste indisponíveis.</i></p>"; }
 
     let uid = Date.now();
     let safeContainer = "chartsSafeContainer_" + uid;
@@ -1481,7 +1463,7 @@ function analyzeCSV(text){
     let html = `
     <div class="metric-box">
         <h4>1. Performance Geral (${subjects.length} voluntários analisados)</h4>
-        <table class="res-table">
+        <table class="res-table" style="max-width:700px; margin:auto;">
             <tr><th>Métrica</th><th>Sloan Clássico</th><th>SLOAN 2.0</th></tr>
             <tr><td><b>Erros Totais</b></td><td>${results.CLASSICO.errors}</td><td>${results.SLOAN20.errors}</td></tr>
             <tr><td><b>AV ETDRS Média (logMAR)</b></td><td>${results.CLASSICO.acuity.toFixed(3)}</td><td>${results.SLOAN20.acuity.toFixed(3)}</td></tr>
@@ -1492,7 +1474,7 @@ function analyzeCSV(text){
     <div class="metric-box">
         <h4>4. Correlação e Concordância</h4>
         <div id="${safeContainer}" style="display:flex; flex-wrap:wrap; justify-content:center; gap:20px; margin-top:10px;"></div>
-        <div style="margin-top: 20px; font-size: 13.5px; text-align: justify; color: #333; background: #eaf7ff; padding: 15px; border-left: 5px solid #007bff; border-radius: 4px;">
+        <div style="margin-top: 20px; font-size: 13.5px; text-align: justify; color: #333; background: #eaf7ff; padding: 15px; border-left: 5px solid #007bff; border-radius: 4px; max-width:800px; margin:20px auto;">
             <b>Como interpretar o Bland-Altman:</b> Este gráfico avalia a concordância absoluta entre os dois testes. A linha central contínua azul (<b>Bias</b>) mostra a diferença média de acertos (SLOAN 2.0 menos Clássico). Se for positiva, significa que o SLOAN 2.0 proporcionou um ganho de acertos gerais. As linhas tracejadas vermelhas representam os <b>Limites de Concordância de 95% (±1.96 SD)</b>.
         </div>
     </div>`;
