@@ -152,7 +152,7 @@
 <body>
 
 <div class="header">
-    <h1>OptoLab (v4.1) - Projeto SLOAN 2.0</h1>
+    <h1>OptoLab (v4.2) - Projeto SLOAN 2.0</h1>
     <p>Plataforma Integrada de Análise Psicométrica e Validação Clínica</p>
 </div>
 
@@ -273,7 +273,7 @@
 
 <script>
 // =========================================================================
-// VARIÁVEIS GLOBAIS, RNG E CONTROLES BÁSICOS
+// VARIÁVEIS GLOBAIS E CONTROLES BÁSICOS
 // =========================================================================
 let seed = 123456;
 function random(){
@@ -394,7 +394,7 @@ function logMARtoPx(l){
 }
 
 // =========================================================================
-// MÓDULO PSICOMÉTRICO (QUEST+ PURO ORIGINAL)
+// MÓDULO PSICOMÉTRICO (QUEST+)
 // =========================================================================
 function psychometric(x, a, b){
     let p = gamma + (1 - gamma - lambda) / (1 + Math.exp(-(x - a) / b));
@@ -569,7 +569,7 @@ function showTrial(){
 }
 
 // =========================================================================
-// LISTENER GERAL DE TECLADO (PSICO E CLÍNICO)
+// LISTENER GERAL DE TECLADO
 // =========================================================================
 document.addEventListener("keydown", function(e){
     if(e.repeat || paused) return;
@@ -699,10 +699,11 @@ function getLogMARFromSystem(line){
     return start - (effectiveLine * step);
 }
 
-function shuffle(array){
+// Shuffle clinico que não interfere com a SEED global do algoritmo genetico
+function shuffleClinical(array){
     let arr = [...array];
     for(let i = arr.length - 1; i > 0; i--){
-        let j = Math.floor(random() * (i + 1));
+        let j = Math.floor(Math.random() * (i + 1));
         let temp = arr[i]; arr[i] = arr[j]; arr[j] = temp;
     }
     return arr;
@@ -738,7 +739,7 @@ function nextLine(){
         const start = (lineIndex * 5) % pool.length;
         let res = [];
         for(let i=0; i<5; i++) res.push(pool[(start + i) % pool.length]);
-        return shuffle(res);
+        return shuffleClinical(res);
     }
 
     lettersLine = getNextLetters(pool, lineIndex);
@@ -818,7 +819,7 @@ function runClinicalAnalysisOnCurrentData(encodedCSV) {
 }
 
 // =========================================================================
-// CÁLCULOS ESTATÍSTICOS PSICOMÉTRICOS (INTACTOS DO ORIGINAL)
+// MÓDULO MATEMÁTICO PSICOMÉTRICO (INTACTO DO SEU CÓDIGO ORIGINAL)
 // =========================================================================
 function analisarCSV(){
     window.currentPsychoTarget = "batchPsychoResults";
@@ -902,11 +903,13 @@ function calcularLPI(letrasSet, matriz){
     for(let i=0; i<letrasSet.length; i++){
         for(let j=i+1; j<letrasSet.length; j++){
             let a = letrasSet[i], b = letrasSet[j];
-            total += (matriz[a]?.[b]||0) + (matriz[b]?.[a]||0);
-            pares++;
+            let conf = (matriz[a]?.[b]||0) + (matriz[b]?.[a]||0);
+            total += conf; pares++;
         }
     }
-    return (pares > 0 ? total/pares : 0) * 1.5;
+    let meanConf = pares > 0 ? total/pares : 0;
+    let LPI = meanConf * 1.5;
+    return LPI;
 }
 
 function calcularMetricasAvancadas(tabela, lettersData){
@@ -950,9 +953,30 @@ function letterSetOptimization(tabela, matriz, variabilidadeLetra){
         let minSize = Math.min(MIN_LETTERS, maxSize);
         let size = minSize + Math.floor(random()*(maxSize - minSize + 1));
         
-        let shuffled = shuffle(candidatos);
+        // A função de embaralhamento ORIGINAL usando o `random()` global da seed
+        function shuffleOriginal(array){
+            let arr = [...array];
+            for(let i = arr.length - 1; i > 0; i--){
+                let j = Math.floor(random() * (i + 1));
+                let temp = arr[i]; arr[i] = arr[j]; arr[j] = temp;
+            }
+            return arr;
+        }
+        
+        let shuffled = shuffleOriginal(candidatos);
         let set = shuffled.slice(0,size);
 
+        let res = avaliar(set);
+        let score = res.score;
+        let metrics = res.metrics;
+        if(score < melhorScore){
+            melhorScore = score;
+            melhorSet = [...set];
+            melhorMetrics = metrics;
+        }
+    }
+    
+    function avaliar(set){
         let th = set.map(l=>l.threshold);
         let mean = th.reduce((a,b)=>a+b,0)/th.length;
         let sd = Math.sqrt(th.map(x=>Math.pow(x-mean,2)).reduce((a,b)=>a+b,0)/th.length);
@@ -960,12 +984,12 @@ function letterSetOptimization(tabela, matriz, variabilidadeLetra){
         let target = sorted[Math.floor(sorted.length/2)];
 
         let D_central = th.reduce((acc,v)=>acc + Math.abs(v - target),0) / th.length;
-        if(D_central > 0.08) continue;
+        if(D_central > 0.08) return { score: Infinity, metrics: null };
 
         let sum = 0, pairs = 0;
         for(let i=0;i<th.length;i++){ for(let j=i+1;j<th.length;j++){ sum += Math.abs(th[i] - th[j]); pairs++; } }
         let D_coeso = pairs > 0 ? sum/pairs : 0;
-        if(D_coeso > 0.12) continue;
+        if(D_coeso > 0.12) return { score: Infinity, metrics: null };
 
         let variabSum = 0;
         set.forEach(l=>{ variabSum += (variabilidadeLetra?.[l.letra] || 0); });
@@ -974,23 +998,24 @@ function letterSetOptimization(tabela, matriz, variabilidadeLetra){
         let outlierPenalty = 0;
         th.forEach(v=>{ if(Math.abs(v-target) > 0.15) outlierPenalty++; });
 
-        let confSum = 0, maxPairConf = 0, cpairs = 0;
+        let confSum = 0; pairs = 0; let maxPairConf = 0;
         for(let i=0;i<set.length;i++){
             for(let j=i+1;j<set.length;j++){
-                let a=set[i].letra, b=set[j].letra;
+                let a=set[i].letra; let b=set[j].letra;
                 let conf = (matriz[a]?.[b]||0) + (matriz[b]?.[a]||0);
-                confSum += conf; cpairs++;
+                confSum += conf; pairs++;
                 if(conf > maxPairConf) maxPairConf = conf;
             }
         }
-        let meanConf = cpairs > 0 ? confSum/cpairs : 0;
+        let meanConf = pairs > 0 ? confSum/pairs : 0;
+
         let LPI = calcularLPI(set.map(l=>l.letra), matriz);
 
-        let distSum=0, dpairs=0;
+        let distSum=0; let dpairs=0;
         for(let i=0;i<set.length;i++){
             for(let j=i+1;j<set.length;j++){
-                let a=set[i].letra, b=set[j].letra;
-                let v1=Object.values(matriz[a] || {}), v2=Object.values(matriz[b] || {});
+                let a=set[i].letra; let b=set[j].letra;
+                let v1=Object.values(matriz[a] || {}); let v2=Object.values(matriz[b] || {});
                 let d=0; for(let k=0;k<v1.length;k++) d+=Math.pow(v1[k]-v2[k],2);
                 distSum+=Math.sqrt(d); dpairs++;
             }
@@ -999,16 +1024,15 @@ function letterSetOptimization(tabela, matriz, variabilidadeLetra){
 
         let score = (0.55 * maxPairConf) + (0.55 * LPI) + (0.45 * meanVariab) + (0.35 * D_coeso) + (0.25 * outlierPenalty) - (0.40 * meanDist);
 
-        if(score < melhorScore){
-            melhorScore = score;
-            melhorSet = [...set];
-            melhorMetrics = { sd, difficulty: D_central, meanConf, maxConf: maxPairConf, dist: meanDist, cluster: 0, outliers: outlierPenalty, variability: meanVariab, LPI };
-        }
+        return {
+            score,
+            metrics:{ sd, difficulty: D_central, meanConf, maxConf: maxPairConf, dist: meanDist, cluster: 0, outliers: outlierPenalty, variability: meanVariab, LPI: LPI }
+        };
     }
+    
     return { set:melhorSet, score:melhorScore, metrics:melhorMetrics };
 }
 
-// O CORAÇÃO DO PSICOMÉTRICO RESTAURADO
 function processarCSV(data){
     seed = 123456; 
     data = normalizarPorSujeito(data); 
@@ -1019,7 +1043,12 @@ function processarCSV(data){
 
     lettersData={};
     letters.forEach(l=>{ lettersData[l]={ alpha:0, beta:0.1, data:[], trials:0 } });
-    data.forEach(d=>{ if(!lettersData[d.letter]) return; lettersData[d.letter].data.push({ logMAR:d.logMAR, correct:d.correct }); lettersData[d.letter].trials++; });
+    
+    data.forEach(d=>{ 
+        if(!lettersData[d.letter]) return; 
+        lettersData[d.letter].data.push({ logMAR:d.logMAR, correct:d.correct }); 
+        lettersData[d.letter].trials++; 
+    });
 
     let tabela=[];
     letters.forEach(l=>{
@@ -1033,6 +1062,14 @@ function processarCSV(data){
             }
         }
         obj.alpha=bestA; obj.beta=bestB;
+        
+        // AQUI ESTAVA FALTANDO ESSA CHAMADA PARA CONSUMIR O RANDOM IGUAL AO ORIGINAL
+        if(obj.data.length >= 6){
+            let estimate = obj.alpha;
+            let jitter = (random()-0.5)*step; // Isso é o que alinha a roleta da aleatoriedade
+            obj.stimulus = estimate + jitter;
+        }
+
         tabela.push({ letra:l, threshold:obj.alpha+obj.beta*Math.log(3), slope:obj.beta, n:obj.trials });
     });
     tabela.sort((a,b)=>a.threshold-b.threshold);
@@ -1097,7 +1134,9 @@ function processarCSV(data){
         confusaoPrincipal[l] = lista.length>0 ? lista[0].letra : "";
     });
 
-    // RENDERIZAR HTML COM DESIGN MODERNO
+    // =========================================================================
+    // GERAÇÃO DO HTML (DESIGN MODERNO)
+    // =========================================================================
     let uid = Date.now();
     let setSelecionado = (opt.set || []).slice().sort((a,b)=>a.threshold-b.threshold);
     let minThr = setSelecionado.length > 0 ? Math.min(...setSelecionado.map(l=>l.threshold)) : 0;
