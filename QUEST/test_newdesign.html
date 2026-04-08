@@ -754,7 +754,17 @@ function getLogMARFromSystem(line){
     return start - (effectiveLine * step);
 }
 
-function shuffle(a){ return a.sort(() => Math.random() - 0.5); }
+// util
+function shuffle(array){
+    let arr = [...array];
+    for(let i = arr.length - 1; i > 0; i--){
+        let j = Math.floor(random() * (i + 1));
+        let temp = arr[i];
+        arr[i] = arr[j];
+        arr[j] = temp;
+    }
+    return arr;
+}
 
 function startClinicalTest(){
     let id = document.getElementById("subjectID").value.trim();
@@ -1021,7 +1031,7 @@ function letterSetOptimization(tabela, matriz, variabilidadeLetra){
 }
 
 function processarCSV(data){
-    seed = 123456;
+    seed = 123456; // Restaura a semente fixa!
     data = normalizarPorSujeito(data);
     results = data;
 
@@ -1091,6 +1101,34 @@ function processarCSV(data){
 
     window.letrasSelecionadas = letrasSet;
 
+    // 🔥 RECÁLCULO DOS DADOS FALTANTES NA TABELA (IC95%, Confusion Rate, Top Confusion)
+    let confusaoLetra = {};
+    let confusaoPrincipal = {};
+    letters.forEach(l => {
+        let total = 0; let erros = 0; let lista = [];
+        letters.forEach(r => {
+            let v = matriz[l]?.[r] || 0;
+            total += v;
+            if(r !== l && v > 0){ erros += v; lista.push({letra:r, valor:v}); }
+        });
+        confusaoLetra[l] = total > 0 ? erros/total : 0;
+        lista.sort((a,b) => b.valor - a.valor);
+        confusaoPrincipal[l] = lista.length > 0 ? lista[0].letra : "";
+    });
+
+    let avancado = {};
+    tabela.forEach(t => {
+        let obj = lettersData[t.letra];
+        let logs = obj.data.map(d => d.logMAR);
+        let mean = logs.reduce((a,b)=>a+b,0)/logs.length;
+        let varianza = logs.map(x=>Math.pow(x-mean,2)).reduce((a,b)=>a+b,0)/logs.length;
+        let sd = Math.sqrt(varianza);
+        avancado[t.letra] = {
+            icLow: t.threshold - 1.96 * (sd/Math.sqrt(logs.length)),
+            icHigh: t.threshold + 1.96 * (sd/Math.sqrt(logs.length))
+        };
+    });
+
     // GERAR HTML
     let uid = Date.now();
     let html = `
@@ -1108,14 +1146,29 @@ function processarCSV(data){
     
     <div class="metric-box">
         <h4>2. Optotype-Level Psychometric Results</h4>
+        <p style="font-size:13px; color:var(--text-muted); text-align:justify; margin-bottom:10px;">Optotype-level metrics were limited to intrinsic psychometric properties (threshold, slope, confusion rate, and inter-subject variability). Set-dependent metrics such as pairwise confusion (Cmax), Line Penalty Index (LPI), intra-set dispersion, and perceptual distance were computed exclusively during the optimization stage and are therefore not reported at the individual optotype level.</p>
+        <p style="font-size:13px; color:var(--text-muted); text-align:justify; margin-bottom:15px;"><b>Table 2.</b> Psychometric properties of individual optotypes. Thresholds are reported in logMAR units with corresponding 95% confidence intervals (CI). Slope represents the steepness of the psychometric function. Confusion rate indicates the proportion of incorrect identifications, and primary confusion denotes the most frequently confused optotype.</p>
         <table class="res-table">
-            <tr><th>Optotype</th><th>Threshold (logMAR)</th><th>Inter-subject Variability</th><th>Status</th></tr>
+            <tr><th>Optotype</th><th>Threshold (logMAR)</th><th>95% CI</th><th>Slope</th><th>Confusion Rate</th><th>Primary Confusion</th><th>Inter-subject Variability</th><th>Selection Status</th></tr>
             ${tabela.map(r => {
-                let cls = (letrasSet.includes(r.letra) && SLOAN.includes(r.letra)) ? "bothLetter" : (letrasSet.includes(r.letra) ? "bestLetter" : (SLOAN.includes(r.letra) ? "sloanLetter" : ""));
-                return `<tr class="${cls}"><td>${r.letra}</td><td>${r.threshold.toFixed(3)}</td><td>${(variabilidadeLetra[r.letra]||0).toFixed(3)}</td><td>${letrasSet.includes(r.letra)?2:(SLOAN.includes(r.letra)?1:0)}</td></tr>`;
+                let isSet = letrasSet.includes(r.letra);
+                let isSloan = SLOAN.includes(r.letra);
+                let cls = (isSet && isSloan) ? "bothLetter" : (isSet ? "bestLetter" : (isSloan ? "sloanLetter" : ""));
+                let status = isSet ? 2 : (isSloan ? 1 : 0);
+                let ic = avancado[r.letra];
+                return `<tr class="${cls}">
+                    <td>${r.letra}</td>
+                    <td>${r.threshold.toFixed(3)}</td>
+                    <td>${ic.icLow.toFixed(3)} – ${ic.icHigh.toFixed(3)}</td>
+                    <td>${r.slope.toFixed(3)}</td>
+                    <td>${(confusaoLetra[r.letra] || 0).toFixed(3)}</td>
+                    <td>${confusaoPrincipal[r.letra] || ""}</td>
+                    <td>${(variabilidadeLetra[r.letra]||0).toFixed(3)}</td>
+                    <td>${status}</td>
+                </tr>`;
             }).join("")}
         </table>
-        <p style="font-size:12px; color:#666;">Status: 2 = SLOAN 2.0 | 1 = Clássico | 0 = Não selecionado</p>
+        <p style="font-size:12px; color:#666;">Selection Status (categorical):<br>0 = non-selected optotypes;<br>1 = classical Sloan optotypes (excluded from optimized set);<br>2 = optimized set (SLOAN 2.0), including overlapping Sloan optotypes.</p>
     </div>
 
     <div class="metric-box">
