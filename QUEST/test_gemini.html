@@ -118,7 +118,7 @@ background:#ddd;
 
 <body style="background:#D0D0D0">
 
-<h1>OptoLab (v3.3) corrigido</h1>
+<h1>OptoLab (v3.4) corrigido</h1>
 <h3>Psychophysical Analysis Platform for Visual Optotypes - Projeto SLOAN 2.00</h3>
 
 <input type="text" id="subjectID" placeholder="ID voluntário">
@@ -3382,37 +3382,27 @@ ctx.fillText("Slope",10,40)
 
 //====FUNCAO DE ABAS
 
+//====FUNCAO DE ABAS
 function abrirAba(nome){
-
   // 🔥 esconder tudo
   document.getElementById("testArea").style.display="none";
   document.getElementById("csvPanel").style.display="none";
   document.getElementById("configPanel").style.display="none";
   
-  // 🔥 IMPORTANTE: esconder clínico também
   const clinico = document.getElementById("clinico");
   if(clinico) clinico.style.display="none";
 
   testRunning = false;
 
-  // =========================
-  // 🧪 TESTE PSICOMÉTRICO
-  // =========================
   if(nome==="test"){
     document.getElementById("testArea").style.display="block";
     startTest();
   }
 
-  // =========================
-  // 📊 CSV / ANÁLISE
-  // =========================
   if(nome==="csv"){
     document.getElementById("csvPanel").style.display="block";
   }
 
-  // =========================
-  // ⚙️ CONFIG
-  // =========================
   if(nome==="config"){
     document.getElementById("configPanel").style.display="block";
   }
@@ -3421,24 +3411,20 @@ function abrirAba(nome){
   // 👁️ CLÍNICO
   // =========================
   if(nome==="clinico"){
-
-    // 🔥 MOSTRA A ABA (isso faltava)
     if(clinico) clinico.style.display="block";
 
-    // 🔥 gera fatores
+    // Extrai os fatores da tabela assim que a aba abre
     extractThresholdsFromTable();
 
-    if(!window.SLOAN20_FACTORS || Object.keys(window.SLOAN20_FACTORS).length === 0){
-      alert("Erro: execute a análise psicométrica primeiro.");
-      return;
+    // Atualiza o input visual dinamicamente com as letras selecionadas
+    let inputSloan2 = document.getElementById("sloan2_input");
+    if(inputSloan2){
+        if(window.SLOAN20_FACTORS && Object.keys(window.SLOAN20_FACTORS).length > 0){
+            inputSloan2.value = Object.keys(window.SLOAN20_FACTORS).join("");
+        } else {
+            inputSloan2.value = "Aguardando análise...";
+        }
     }
-
-    // 🔥 inicia teste
-    lineIndex = 0;
-    dataClinical = [];
-    clinicalMode = true;
-
-    nextLine();
   }
 }
 
@@ -4088,16 +4074,22 @@ const baseSize = logMARtoPx(logMAR);
     }
 
 // teclado
+// teclado
 document.addEventListener("keydown", function(e){
-
+  // Bloqueia se o teste clínico não estiver rodando ativamente
   if(!clinicalMode) return;
 
-  responses.push(e.key.toUpperCase());
+  // Pega a tecla e transforma em maiúscula
+  let key = e.key.toUpperCase();
+
+  // FILTRO: Aceita APENAS letras de A até Z, ou o número 0. Ignora SHIFT, TAB, etc.
+  if(!/^[A-Z0]$/.test(key)) return;
+
+  responses.push(key);
 
   if(responses.length === lettersLine.length){
     processLine();
   }
-
 });
 
 // processar
@@ -4214,6 +4206,7 @@ const TOTAL_LINES_PER_BLOCK = 7;
 const TOTAL_LINES = TOTAL_LINES_PER_BLOCK * 4;
 
 // iniciar teste
+// iniciar teste clínico
 function startClinicalTest(){
   let id = document.getElementById("subjectID").value.trim();
   if(!id){
@@ -4221,23 +4214,25 @@ function startClinicalTest(){
     return;
   }
 
-  // Verifica calibração (usa variável global pxPorMm ou do localStorage)
+  // Verifica calibração
   let salvaLocal = localStorage.getItem("pxPorMm_Sloan2");
   if(!pxPorMm && !salvaLocal){
     alert("❌ Calibre a tela na aba 'Configurações' antes de iniciar o teste clínico.");
     return;
   }
 
-  // Tenta extrair da tabela
+  // Tenta extrair da tabela de compensação
   extractThresholdsFromTable();
-  console.log("Fatores atuais:", window.SLOAN20_FACTORS);
 
   if(!window.SLOAN20_FACTORS || Object.keys(window.SLOAN20_FACTORS).length === 0){
     alert("❌ Primeiro execute a análise psicométrica para gerar a tabela de compensação.");
     return;
   }
 
-  clinicalMode = true;
+  // Atualiza o input por garantia na hora de rodar
+  document.getElementById("sloan2_input").value = Object.keys(window.SLOAN20_FACTORS).join("");
+
+  clinicalMode = true; // ATIVA O TECLADO SOMENTE AGORA
   dataClinical = [];
   lineIndex = 0;
 
