@@ -1063,14 +1063,17 @@ function processarCSV(data){
         }
         obj.alpha=bestA; obj.beta=bestB;
         
-        // AQUI ESTAVA FALTANDO ESSA CHAMADA PARA CONSUMIR O RANDOM IGUAL AO ORIGINAL
+        // Mantém a aleatoriedade estrita para o algoritmo de otimização
         if(obj.data.length >= 6){
             let estimate = obj.alpha;
-            let jitter = (random()-0.5)*step; // Isso é o que alinha a roleta da aleatoriedade
+            let jitter = (random()-0.5)*step; 
             obj.stimulus = estimate + jitter;
         }
 
-        tabela.push({ letra:l, threshold:obj.alpha+obj.beta*Math.log(3), slope:obj.beta, n:obj.trials });
+        // 🔥 CORREÇÃO MATEMÁTICA: Slope Real (1 / beta)
+        let slopeReal = 1 / obj.beta;
+
+        tabela.push({ letra:l, threshold:obj.alpha+obj.beta*Math.log(3), slope: slopeReal, n:obj.trials });
     });
     tabela.sort((a,b)=>a.threshold-b.threshold);
 
@@ -1147,7 +1150,7 @@ function processarCSV(data){
         <table class="res-table" style="text-align:left;">
             <tr><td style="width:250px;"><b>Stimulus selection</b></td><td>Bayesian adaptive (QUEST+) – Expected Information Gain</td></tr>
             <tr><td><b>Posterior update</b></td><td>Iterative Bayesian Inference</td></tr>
-            <tr><td><b>Parameter space</b></td><td>Discrete grid α (threshold) and β (fixed slope)</td></tr>
+            <tr><td><b>Parameter space</b></td><td>Discrete grid α (threshold) and β (fixed spread)</td></tr>
             <tr><td><b>Threshold estimation</b></td><td>Posterior mean corresponding to ~75% probability of correct recognition</td></tr>
             <tr><td><b>Stopping rule</b></td><td>Credible interval (IC95%) < 0.30 logMAR</td></tr>
             <tr><td><b>Guessing (γ) / Lapse (λ)</b></td><td>γ = ${gamma.toFixed(3)} / λ = ${lambda.toFixed(3)}</td></tr>
@@ -1156,9 +1159,9 @@ function processarCSV(data){
     
     <div class="metric-box">
         <h4>2. Optotype-Level Psychometric Results</h4>
-        <p style="font-size:13px; color:var(--text-muted); text-align:justify; margin-bottom:15px;"><b>Table 2.</b> Psychometric properties of individual optotypes. Thresholds are reported in logMAR units with corresponding 95% confidence intervals (CI). Slope represents the steepness of the psychometric function. Confusion rate indicates the proportion of incorrect identifications, and primary confusion denotes the most frequently confused optotype.</p>
+        <p style="font-size:13px; color:var(--text-muted); text-align:justify; margin-bottom:15px;"><b>Table 2.</b> Psychometric properties of individual optotypes. Thresholds are reported in logMAR units with corresponding 95% confidence intervals (CI). Slope represents the true geometric steepness of the psychometric function (calculated as 1/β). Confusion rate indicates the proportion of incorrect identifications, and primary confusion denotes the most frequently confused optotype.</p>
         <table class="res-table">
-            <tr><th>Optotype</th><th>Threshold (logMAR)</th><th>95% CI</th><th>Slope</th><th>Confusion Rate</th><th>Primary Confusion</th><th>Inter-subject Variability</th><th>Selection Status</th></tr>
+            <tr><th>Optotype</th><th>Threshold (logMAR)</th><th>95% CI</th><th>Slope (1/β)</th><th>Confusion Rate</th><th>Primary Confusion</th><th>Inter-subject Variability</th><th>Selection Status</th></tr>
             ${avancado.map(r => {
                 let letraClean = r.letra;
                 let isSet = letrasSet.includes(letraClean);
@@ -1173,7 +1176,7 @@ function processarCSV(data){
                     <td><b>${letraClean}</b></td>
                     <td>${r.threshold.toFixed(3)}</td>
                     <td>${r.icLow.toFixed(3)} – ${r.icHigh.toFixed(3)}</td>
-                    <td>${r.slope.toFixed(3)}</td>
+                    <td>${r.slope.toFixed(2)}</td>
                     <td>${conf.toFixed(3)}</td>
                     <td>${confTop}</td>
                     <td>${variab.toFixed(3)}</td>
@@ -1223,7 +1226,7 @@ function processarCSV(data){
     <div class="metric-box">
         <h4>7. Curvas Psicométricas</h4>
         <canvas id="psychometricCurves_${uid}" width="800" height="450" style="display:block; margin: 0 auto;"></canvas>
-        <p style="font-size:14px; text-align:justify; margin-top:15px;"><b>Interpretação:</b> Cada curva representa a probabilidade de reconhecimento correto em função do tamanho. O ponto central de cada curva (α) corresponde a ~75% de acerto. Curvas mais inclinadas indicam maior sensibilidade de discriminação.</p>
+        <p style="font-size:14px; text-align:justify; margin-top:15px;"><b>Interpretação:</b> Cada curva representa a probabilidade de reconhecimento correto em função do tamanho. O ponto central de cada curva (α) corresponde a ~75% de acerto. Curvas mais inclinadas indicam maior sensibilidade de discriminação (maior Slope).</p>
     </div>
     `;
 
