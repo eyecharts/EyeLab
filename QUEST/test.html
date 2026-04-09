@@ -152,7 +152,7 @@
 <body>
 
 <div class="header">
-    <h1>OptoLab (v4.4) - Projeto SLOAN 2.0</h1>
+    <h1>OptoLab (v4.5) - Projeto SLOAN 2.0</h1>
     <p>Plataforma Integrada de Análise Psicométrica e Validação Clínica</p>
 </div>
 
@@ -1221,13 +1221,13 @@ function processarCSV(data){
     <div class="metric-box">
         <h4>3. Optotype Set Optimization Criteria</h4>
         <p style="font-size:14px; text-align:justify;">Optimization uses a data-driven, 5-parameter cost function evaluated over 20,000 Monte Carlo simulations. The algorithm calculates the Classical Sloan's Maximum Confusion (Cmax) directly from the current dataset and uses it as a dynamic <b>Hard Limit</b>, mathematically guaranteeing that the optimized set will never exhibit higher confusion than the baseline. It penalizes flat slopes (Variability) and prevents excessive physical scaling (Span ≤ 0.065 logMAR). <br><br><code>Score = 10.0·Cmax + 10.0·LPI + 40.0·V + 20.0·Span - 5.0·Δ</code></p>
-    </div>
+    
         <ul style="font-size:13.5px; line-height:1.6; color:#444; padding-left:20px;">
-            <li><b>Cmax (Max Pairwise Confusion) [Weight: 1.5]:</b> Severely penalizes the inclusion of specific letter pairs that are highly confusable (e.g., C and O), preventing catastrophic single-item failures in the chart.</li>
-            <li><b>LPI (Line Penalty Index) [Weight: 1.5]:</b> Evaluates the sum of interactions, simulating the crowding effect across the entire line.</li>
-            <li><b>V (Inter-subject Variability) [Weight: 10.0]:</b> Highly weighted to automatically reject letters with low geometric slopes (flat curves like 'P' or 'J'). High variability indicates a lack of perceptual consensus among patients, making the letter clinically unstable.</li>
-            <li><b>Span (Max Threshold Difference) [Weight: 10.0]:</b> Highly weighted to enforce strict physical homogeneity. It prevents the algorithm from selecting letters that would require disproportionate size scaling (like 'B'), preserving the chart's structural integrity.</li>
-            <li><b>Δ (Perceptual Distance) [Weight: -2.0]:</b> Acts as a reward (negative cost). Maximizes the overall perceptual separability/orthogonality of the final set.</li>
+            <li><b>Cmax (Max Pairwise Confusion) [Weight: 10.0]:</b> Severely penalizes the inclusion of specific letter pairs that are highly confusable (e.g., C and O), preventing catastrophic single-item failures in the chart.</li>
+            <li><b>LPI (Line Penalty Index) [Weight: 10.0]:</b> Evaluates the sum of interactions, simulating the crowding effect across the entire line.</li>
+            <li><b>V (Inter-subject Variability) [Weight: 40.0]:</b> Highly weighted to automatically reject letters with low geometric slopes (flat curves like 'P' or 'J'). High variability indicates a lack of perceptual consensus among patients, making the letter clinically unstable.</li>
+            <li><b>Span (Max Threshold Difference) [Weight: 20.0]:</b> Highly weighted to enforce strict physical homogeneity. It prevents the algorithm from selecting letters that would require disproportionate size scaling (like 'B'), preserving the chart's structural integrity.</li>
+            <li><b>Δ (Perceptual Distance) [Weight: -5.0]:</b> Acts as a reward (negative cost). Maximizes the overall perceptual separability/orthogonality of the final set.</li>
         </ul>
     </div>
 
