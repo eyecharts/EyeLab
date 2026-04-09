@@ -152,7 +152,7 @@
 <body>
 
 <div class="header">
-    <h1>OptoLab (v4.6) - Projeto SLOAN 2.0</h1>
+    <h1>OptoLab (v4.7) - Projeto SLOAN 2.0</h1>
     <p>Plataforma Integrada de Análise Psicométrica e Validação Clínica</p>
 </div>
 
@@ -1309,19 +1309,16 @@ function desenharCurvasPsicometricas(canvasId){
     let canvas = document.getElementById(canvasId); if(!canvas) return;
     let ctx = canvas.getContext("2d"); 
     
-    // Limpa e preenche o fundo de branco (Importante para salvar como PNG depois)
     ctx.clearRect(0,0,800,450);
     ctx.fillStyle = "white";
     ctx.fillRect(0, 0, 800, 450);
 
     let minX = minLogMAR, maxX = maxLogMAR;
 
-    // Eixos Principais
     ctx.strokeStyle="#000"; ctx.lineWidth=1.5;
-    ctx.beginPath(); ctx.moveTo(60,400); ctx.lineTo(760,400); ctx.stroke(); // Eixo X
-    ctx.beginPath(); ctx.moveTo(60,400); ctx.lineTo(60,30); ctx.stroke();   // Eixo Y
+    ctx.beginPath(); ctx.moveTo(60,400); ctx.lineTo(760,400); ctx.stroke(); 
+    ctx.beginPath(); ctx.moveTo(60,400); ctx.lineTo(60,30); ctx.stroke();   
 
-    // Rótulos dos Eixos (Padrão Artigo)
     ctx.font="bold 14px Arial"; ctx.fillStyle="black"; ctx.textAlign="center";
     ctx.fillText("logMAR (Tamanho do Estímulo)", 410, 440); 
     ctx.save();
@@ -1330,7 +1327,6 @@ function desenharCurvasPsicometricas(canvasId){
     ctx.fillText("Probabilidade de Reconhecimento (%)", 0, 0);
     ctx.restore();
 
-    // Marcas e Valores do Eixo X
     ctx.font="12px Arial";
     for(let x=Math.ceil(minX*10)/10; x<=maxX; x+=0.1){
         let px = 60+(x-minX)/(maxX-minX)*700;
@@ -1338,7 +1334,6 @@ function desenharCurvasPsicometricas(canvasId){
         ctx.fillText(x.toFixed(1), px, 420);
     }
 
-    // Marcas e Valores do Eixo Y
     for(let p=0; p<=1; p+=0.2){
         let py = 400-p*330;
         ctx.beginPath(); ctx.moveTo(60, py); ctx.lineTo(55, py); ctx.stroke();
@@ -1346,7 +1341,6 @@ function desenharCurvasPsicometricas(canvasId){
         ctx.fillText(Math.round(p*100), 50, py+4);
     }
 
-    // Selecionar APENAS as letras do SLOAN 2.0 otimizado
     let lettersToPlot = window.letrasSelecionadas || [];
     if(lettersToPlot.length === 0) return;
 
@@ -1357,13 +1351,11 @@ function desenharCurvasPsicometricas(canvasId){
     let meanAlpha = alphas.reduce((a,b)=>a+b,0)/alphas.length;
     let meanBeta  = betas.reduce((a,b)=>a+b,0)/betas.length;
 
-    // Paleta de Cores Científicas de Alto Contraste (Colorblind-friendly)
     const cores = ["#e6194b", "#3cb44b", "#4363d8", "#f58231", "#911eb4", "#46f0f0", "#f032e6", "#bcf60c", "#fabebe", "#008080", "#e6beff", "#9a6324"];
 
-    // 1. Desenhar as curvas do SLOAN 2.0
+    // 1. Desenhar as curvas
     lettersToPlot.forEach((l,i) => {
         let obj=lettersData[l]; if(!obj || obj.trials<6) return;
-        
         ctx.beginPath();
         for(let x=minX; x<=maxX; x+=0.01){
             let p = psychometric(x,obj.alpha,obj.beta);
@@ -1375,7 +1367,7 @@ function desenharCurvasPsicometricas(canvasId){
         ctx.stroke();
     });
 
-    // 2. Desenhar Curva Média Global (Preto Tracejado)
+    // 2. Desenhar Curva Média Global
     ctx.beginPath();
     for(let x=minX; x<=maxX; x+=0.01){
         let p = psychometric(x,meanAlpha,meanBeta);
@@ -1384,40 +1376,65 @@ function desenharCurvasPsicometricas(canvasId){
     }
     ctx.strokeStyle="black"; ctx.lineWidth=3.5; ctx.setLineDash([6,4]); ctx.stroke(); ctx.setLineDash([]);
 
-    // 3. LEGENDA CIENTÍFICA (Top-Left, onde o gráfico é vazio)
-    let legX = 85, legY = 55; 
-    let legHeight = (lettersToPlot.length + 1) * 20 + 15;
-    
-    // Fundo da Legenda
-    ctx.fillStyle = "rgba(255,255,255,0.85)";
-    ctx.strokeStyle = "#aaaaaa";
-    ctx.lineWidth = 1;
-    ctx.fillRect(legX - 10, legY - 20, 110, legHeight);
-    ctx.strokeRect(legX - 10, legY - 20, 110, legHeight);
+    // 3. Estratégia de Rótulos Deslocados (Staggered Labels)
+    // Armazena posições para tentar evitar colisões
+    let labelPositions = []; 
 
-    ctx.textAlign = "left";
-    ctx.font = "bold 13px Arial";
-    
-    // Itens da Legenda (Letras)
     lettersToPlot.forEach((l, i) => {
-        ctx.strokeStyle = cores[i % cores.length];
-        ctx.lineWidth = 3;
-        ctx.beginPath(); ctx.moveTo(legX, legY + i*20 - 4); ctx.lineTo(legX + 20, legY + i*20 - 4); ctx.stroke();
+        let obj=lettersData[l]; if(!obj || obj.trials<6) return;
         
-        ctx.fillStyle = "black";
-        ctx.fillText(l, legX + 30, legY + i*20);
-    });
+        // Alvo: Ombros superiores das curvas (85% de probabilidade)
+        let targetP = 0.85;
+        // x = alpha - beta * ln((1-gamma-lambda)/(p-gamma) - 1)
+        let innerLog = (1 - gamma - lambda) / (targetP - gamma) - 1;
+        let targetX = obj.alpha;
+        if(innerLog > 0) targetX = obj.alpha - obj.beta * Math.log(innerLog);
+        
+        let pxLetra = 60 + (targetX - minX)/(maxX-minX)*700;
+        let pyLetra = 400 - targetP*330;
 
-    // Item da Legenda (Média)
-    let iMean = lettersToPlot.length;
-    ctx.strokeStyle = "black";
-    ctx.lineWidth = 2.5;
-    ctx.setLineDash([4,2]);
-    ctx.beginPath(); ctx.moveTo(legX, legY + iMean*20 - 4); ctx.lineTo(legX + 20, legY + iMean*20 - 4); ctx.stroke();
-    ctx.setLineDash([]);
-    
-    ctx.fillStyle = "black";
-    ctx.fillText("Média", legX + 30, legY + iMean*20);
+        // Lógica simples de deslocamento vertical se houver colisão
+        let collision = true;
+        let attempts = 0;
+        let currentPy = pyLetra;
+        
+        while(collision && attempts < 10) {
+            collision = false;
+            for(let pos of labelPositions) {
+                // Checa distância (se estiver muito perto em X e Y)
+                if(Math.abs(pos.x - pxLetra) < 15 && Math.abs(pos.y - currentPy) < 15) {
+                    collision = true;
+                    currentPy -= 15; // Move o rótulo para cima
+                    break;
+                }
+            }
+            attempts++;
+        }
+
+        labelPositions.push({x: pxLetra, y: currentPy});
+
+        let hue = i * 35;
+        
+        // Fundo branco semitransparente
+        ctx.fillStyle = "rgba(255,255,255,0.85)";
+        ctx.fillRect(pxLetra - 8, currentPy - 14, 16, 16);
+
+        // Se o rótulo foi movido (attempts > 1), desenha uma pequena linha de chamada
+        if(attempts > 1) {
+            ctx.beginPath();
+            ctx.moveTo(pxLetra, currentPy + 2); // Base do rótulo
+            ctx.lineTo(pxLetra, pyLetra);       // Ponto original na curva
+            ctx.strokeStyle = cores[i % cores.length];
+            ctx.lineWidth = 1;
+            ctx.stroke();
+        }
+
+        // Texto da Letra
+        ctx.fillStyle = cores[i % cores.length];
+        ctx.font = "bold 13px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText(l, pxLetra, currentPy - 2);
+    });
 }
 
 function desenharGraficoComparativo(metricsGlobal, metricsSloan, metricsSet, canvasId){
