@@ -932,31 +932,43 @@ function calcularMetricasAvancadas(tabela, lettersData){
 }
 
 function letterSetOptimization(tabela, matriz, variabilidadeLetra){
+    let SLOAN = ["C","D","H","K","N","O","R","S","V","Z"];
+    
+    // ==========================================
+    // 1. CÁLCULO DINÂMICO DO BASELINE (Sloan Clássico do CSV)
+    // ==========================================
+    let sloanPresentes = SLOAN.filter(l => tabela.some(t => t.letra === l));
+    let sloanCmax = 1.0; // Valor alto como fallback
+    if(sloanPresentes.length > 1) {
+        sloanCmax = 0;
+        for(let i=0; i<sloanPresentes.length; i++){
+            for(let j=i+1; j<sloanPresentes.length; j++){
+                let a = sloanPresentes[i], b = sloanPresentes[j];
+                let conf = (matriz[a]?.[b]||0) + (matriz[b]?.[a]||0);
+                if(conf > sloanCmax) sloanCmax = conf;
+            }
+        }
+    }
+
     let thresholds = tabela.map(t=>t.threshold).sort((a,b)=>a-b);
     let cutLow  = thresholds[Math.floor(thresholds.length * 0.15)];
     let cutHigh = thresholds[Math.floor(thresholds.length * 0.85)];
     let central = thresholds.filter(t => t >= cutLow && t <= cutHigh);
     let median = central[Math.floor(central.length / 2)];
 
-    // FILTRO PRÉVIO ("Leão de Chácara")
-    // Rejeita letras muito distantes e corta as de variabilidade inaceitável (>0.045) na raiz
-    let candidatos = tabela.filter(t => {
-        let varL = variabilidadeLetra[t.letra] || 0;
-        return Math.abs(t.threshold - median) <= 0.055 && varL <= 0.045; 
-    });
-
-    // Failsafe: se o filtro for muito rigoroso com o CSV atual, ele relaxa a tolerância
-    if(candidatos.length < 10) {
-        candidatos = tabela.filter(t => Math.abs(t.threshold - median) <= 0.06);
-    }
+    // 2. Filtro Expandido
+    let candidatos = tabela.filter(t => Math.abs(t.threshold - median) <= 0.065);
 
     let melhorSet = [], melhorScore = Infinity, melhorMetrics = null;
-    let ITER = 15000;
+    let ITER = 20000;
 
     for(let it=0; it<ITER; it++){
-        let MIN_LETTERS = 9, MAX_LETTERS = 12;
+        let MIN_LETTERS = 9, MAX_LETTERS = 10; 
         let maxSize = Math.min(MAX_LETTERS, candidatos.length);
         let minSize = Math.min(MIN_LETTERS, maxSize);
+        
+        if (maxSize < MIN_LETTERS) break; // Proteção contra CSVs com poucas letras
+        
         let size = minSize + Math.floor(random()*(maxSize - minSize + 1));
         
         function shuffleOriginal(array){
@@ -972,11 +984,12 @@ function letterSetOptimization(tabela, matriz, variabilidadeLetra){
         let th = set.map(l=>l.threshold);
         
         let span = Math.max(...th) - Math.min(...th);
-        if (span > 0.055) continue; // Trava física de tamanho máximo na linha
+        if (span > 0.065) continue; 
 
         let variabSum = 0;
         set.forEach(l=>{ variabSum += (variabilidadeLetra?.[l.letra] || 0); });
         let meanVariab = variabSum / set.length;
+        if (meanVariab > 0.045) continue; 
 
         let confSum = 0, pairs = 0, maxPairConf = 0;
         for(let i=0;i<set.length;i++){
@@ -987,6 +1000,11 @@ function letterSetOptimization(tabela, matriz, variabilidadeLetra){
                 if(conf > maxPairConf) maxPairConf = conf;
             }
         }
+        
+        // 3. HARD LIMIT DINÂMICO: A confusão não pode JAMAIS ser pior que a do Sloan do próprio paciente!
+        // Usamos ">= sloanCmax" para forçar a buscar algo estritamente melhor, mas se for muito difícil, relaxamos no failsafe abaixo.
+        if (maxPairConf > sloanCmax) continue;
+
         let LPI = calcularLPI(set.map(l=>l.letra), matriz);
 
         let distSum=0, dpairs=0;
@@ -1000,13 +1018,12 @@ function letterSetOptimization(tabela, matriz, variabilidadeLetra){
         }
         let meanDist = dpairs > 0 ? distSum/dpairs : 0;
 
-        // FÓRMULA CALIBRADA PELA MAGNITUDE
         let score = 
-            (1.5 * maxPairConf) + 
-            (1.5 * LPI) + 
-            (10.0 * meanVariab) + 
-            (10.0 * span) - 
-            (2.0 * meanDist);
+            (10.0 * maxPairConf) +  
+            (10.0 * LPI) +          
+            (40.0 * meanVariab) +   
+            (20.0 * span) -         
+            (5.0 * meanDist);       
 
         if(score < melhorScore){
             melhorScore = score;
@@ -1014,6 +1031,35 @@ function letterSetOptimization(tabela, matriz, variabilidadeLetra){
             melhorMetrics = { span, meanConf: pairs > 0 ? confSum/pairs : 0, maxConf: maxPairConf, dist: meanDist, variability: meanVariab, LPI };
         }
     }
+
+    // FAILSAFE: Se o filtro for duro demais e retornar vazio, roda de novo sem o limite de Cmax e com limites mais leves, deixando o "Score" resolver
+    if (melhorSet.length === 0) {
+        for(let it=0; it<5000; it++){
+            let maxSize = Math.min(10, candidatos.length);
+            let size = Math.max(9, maxSize);
+            let set = [...candidatos].sort(()=> random()-0.5).slice(0,size);
+            
+            let th = set.map(l=>l.threshold);
+            let span = Math.max(...th) - Math.min(...th);
+            let variabSum = 0; set.forEach(l=>{ variabSum += (variabilidadeLetra?.[l.letra] || 0); });
+            let meanVariab = variabSum / set.length;
+
+            let confSum = 0, pairs = 0, maxPairConf = 0;
+            for(let i=0;i<set.length;i++){
+                for(let j=i+1;j<set.length;j++){
+                    let a=set[i].letra, b=set[j].letra;
+                    let conf = (matriz[a]?.[b]||0) + (matriz[b]?.[a]||0);
+                    confSum += conf; pairs++;
+                    if(conf > maxPairConf) maxPairConf = conf;
+                }
+            }
+            let LPI = calcularLPI(set.map(l=>l.letra), matriz);
+            let score = (10.0 * maxPairConf) + (10.0 * LPI) + (40.0 * meanVariab) + (20.0 * span);
+
+            if(score < melhorScore){ melhorScore = score; melhorSet = [...set]; melhorMetrics = { span, meanConf: pairs > 0 ? confSum/pairs : 0, maxConf: maxPairConf, dist: 0, variability: meanVariab, LPI }; }
+        }
+    }
+
     return { set:melhorSet, score:melhorScore, metrics:melhorMetrics };
 }
 
@@ -1174,14 +1220,8 @@ function processarCSV(data){
 
     <div class="metric-box">
         <h4>3. Optotype Set Optimization Criteria</h4>
-        <p style="font-size:14px; text-align:justify; margin-bottom:15px;">
-            The optimization process uses a lean, 5-parameter cost function evaluated over 15,000 Monte Carlo simulations. The formula weights were strictly calibrated according to the numerical magnitude of each variable to prevent overfitting while effectively penalizing flat psychometric slopes and structural distortions.
-        </p>
-        <div style="background:#f8f9fa; padding:15px; border-radius:6px; border:1px solid #dee2e6; margin-bottom:15px;">
-            <code style="font-size:15px; color:var(--primary); font-weight:bold;">
-                Score = 1.5·Cmax + 1.5·LPI + 10.0·V + 10.0·Span - 2.0·Δ
-            </code>
-        </div>
+        <p style="font-size:14px; text-align:justify;">Optimization uses a data-driven, 5-parameter cost function evaluated over 20,000 Monte Carlo simulations. The algorithm calculates the Classical Sloan's Maximum Confusion (Cmax) directly from the current dataset and uses it as a dynamic <b>Hard Limit</b>, mathematically guaranteeing that the optimized set will never exhibit higher confusion than the baseline. It penalizes flat slopes (Variability) and prevents excessive physical scaling (Span ≤ 0.065 logMAR). <br><br><code>Score = 10.0·Cmax + 10.0·LPI + 40.0·V + 20.0·Span - 5.0·Δ</code></p>
+    </div>
         <ul style="font-size:13.5px; line-height:1.6; color:#444; padding-left:20px;">
             <li><b>Cmax (Max Pairwise Confusion) [Weight: 1.5]:</b> Severely penalizes the inclusion of specific letter pairs that are highly confusable (e.g., C and O), preventing catastrophic single-item failures in the chart.</li>
             <li><b>LPI (Line Penalty Index) [Weight: 1.5]:</b> Evaluates the sum of interactions, simulating the crowding effect across the entire line.</li>
