@@ -1307,15 +1307,49 @@ function desenharHeatmap(matriz, canvasId){
 
 function desenharCurvasPsicometricas(canvasId){
     let canvas = document.getElementById(canvasId); if(!canvas) return;
-    let ctx = canvas.getContext("2d"); ctx.clearRect(0,0,800,450);
+    let ctx = canvas.getContext("2d"); 
+    
+    // Limpa e preenche o fundo de branco (Importante para salvar como PNG depois)
+    ctx.clearRect(0,0,800,450);
+    ctx.fillStyle = "white";
+    ctx.fillRect(0, 0, 800, 450);
+
     let minX = minLogMAR, maxX = maxLogMAR;
 
+    // Eixos Principais
     ctx.strokeStyle="#000"; ctx.lineWidth=1.5;
-    ctx.beginPath(); ctx.moveTo(60,400); ctx.lineTo(760,400); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(60,400); ctx.lineTo(60,50); ctx.stroke();
-    ctx.font="14px Arial"; ctx.fillStyle="black"; ctx.fillText("logMAR",380,430); ctx.fillText("P(correct)",10,60);
+    ctx.beginPath(); ctx.moveTo(60,400); ctx.lineTo(760,400); ctx.stroke(); // Eixo X
+    ctx.beginPath(); ctx.moveTo(60,400); ctx.lineTo(60,30); ctx.stroke();   // Eixo Y
 
-    let lettersToPlot = window.letrasSelecionadas || letters;
+    // Rótulos dos Eixos (Padrão Artigo)
+    ctx.font="bold 14px Arial"; ctx.fillStyle="black"; ctx.textAlign="center";
+    ctx.fillText("logMAR (Tamanho do Estímulo)", 410, 440); 
+    ctx.save();
+    ctx.translate(20, 215);
+    ctx.rotate(-Math.PI/2);
+    ctx.fillText("Probabilidade de Reconhecimento (%)", 0, 0);
+    ctx.restore();
+
+    // Marcas e Valores do Eixo X
+    ctx.font="12px Arial";
+    for(let x=Math.ceil(minX*10)/10; x<=maxX; x+=0.1){
+        let px = 60+(x-minX)/(maxX-minX)*700;
+        ctx.beginPath(); ctx.moveTo(px, 400); ctx.lineTo(px, 405); ctx.stroke();
+        ctx.fillText(x.toFixed(1), px, 420);
+    }
+
+    // Marcas e Valores do Eixo Y
+    for(let p=0; p<=1; p+=0.2){
+        let py = 400-p*330;
+        ctx.beginPath(); ctx.moveTo(60, py); ctx.lineTo(55, py); ctx.stroke();
+        ctx.textAlign="right"; 
+        ctx.fillText(Math.round(p*100), 50, py+4);
+    }
+
+    // Selecionar APENAS as letras do SLOAN 2.0 otimizado
+    let lettersToPlot = window.letrasSelecionadas || [];
+    if(lettersToPlot.length === 0) return;
+
     let alphas=[], betas=[];
     lettersToPlot.forEach(l=>{ let obj=lettersData[l]; if(obj && obj.trials>=6){ alphas.push(obj.alpha); betas.push(obj.beta); }});
     if(alphas.length===0) return;
@@ -1323,50 +1357,67 @@ function desenharCurvasPsicometricas(canvasId){
     let meanAlpha = alphas.reduce((a,b)=>a+b,0)/alphas.length;
     let meanBeta  = betas.reduce((a,b)=>a+b,0)/betas.length;
 
+    // Paleta de Cores Científicas de Alto Contraste (Colorblind-friendly)
+    const cores = ["#e6194b", "#3cb44b", "#4363d8", "#f58231", "#911eb4", "#46f0f0", "#f032e6", "#bcf60c", "#fabebe", "#008080", "#e6beff", "#9a6324"];
+
+    // 1. Desenhar as curvas do SLOAN 2.0
     lettersToPlot.forEach((l,i) => {
         let obj=lettersData[l]; if(!obj || obj.trials<6) return;
         
-        // 1. Desenha a linha da curva
         ctx.beginPath();
         for(let x=minX; x<=maxX; x+=0.01){
             let p = psychometric(x,obj.alpha,obj.beta);
             let px = 60+(x-minX)/(maxX-minX)*700, py = 400-p*330;
             if(x===minX) ctx.moveTo(px,py); else ctx.lineTo(px,py);
         }
-        let hue = i * 35; // Espalha as cores
-        ctx.strokeStyle = `hsla(${hue}, 75%, 50%, 0.6)`; 
-        ctx.lineWidth = 2; 
+        ctx.strokeStyle = cores[i % cores.length]; 
+        ctx.lineWidth = 2.5; 
         ctx.stroke();
-
-        // 2. Posiciona a Letra correspondente um pouco acima do threshold (~80% de acerto)
-        let targetX = obj.alpha + (obj.beta * 0.8); 
-        let targetP = psychometric(targetX, obj.alpha, obj.beta);
-        let pxLetra = 60 + (targetX - minX)/(maxX-minX)*700;
-        let pyLetra = 400 - targetP*330;
-
-        // Fundo branco semitransparente para não misturar com as linhas
-        ctx.fillStyle = "rgba(255,255,255,0.75)";
-        ctx.fillRect(pxLetra - 7, pyLetra - 14, 14, 16);
-
-        // Texto da Letra
-        ctx.fillStyle = `hsla(${hue}, 85%, 35%, 1)`; // Mais escuro e legível
-        ctx.font = "bold 13px Arial";
-        ctx.textAlign = "center";
-        ctx.fillText(l, pxLetra, pyLetra - 2);
     });
 
-    // Curva média global (Preta)
+    // 2. Desenhar Curva Média Global (Preto Tracejado)
     ctx.beginPath();
     for(let x=minX; x<=maxX; x+=0.01){
         let p = psychometric(x,meanAlpha,meanBeta);
         let px = 60+(x-minX)/(maxX-minX)*700, py = 400-p*330;
         if(x===minX) ctx.moveTo(px,py); else ctx.lineTo(px,py);
     }
-    ctx.strokeStyle="black"; ctx.lineWidth=4; ctx.stroke();
+    ctx.strokeStyle="black"; ctx.lineWidth=3.5; ctx.setLineDash([6,4]); ctx.stroke(); ctx.setLineDash([]);
 
-    let pxMean = 60+(meanAlpha-minX)/(maxX-minX)*700;
-    ctx.beginPath(); ctx.moveTo(pxMean,400); ctx.lineTo(pxMean,50);
-    ctx.setLineDash([5,5]); ctx.strokeStyle="black"; ctx.lineWidth=1.2; ctx.stroke(); ctx.setLineDash([]);
+    // 3. LEGENDA CIENTÍFICA (Top-Left, onde o gráfico é vazio)
+    let legX = 85, legY = 55; 
+    let legHeight = (lettersToPlot.length + 1) * 20 + 15;
+    
+    // Fundo da Legenda
+    ctx.fillStyle = "rgba(255,255,255,0.85)";
+    ctx.strokeStyle = "#aaaaaa";
+    ctx.lineWidth = 1;
+    ctx.fillRect(legX - 10, legY - 20, 110, legHeight);
+    ctx.strokeRect(legX - 10, legY - 20, 110, legHeight);
+
+    ctx.textAlign = "left";
+    ctx.font = "bold 13px Arial";
+    
+    // Itens da Legenda (Letras)
+    lettersToPlot.forEach((l, i) => {
+        ctx.strokeStyle = cores[i % cores.length];
+        ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.moveTo(legX, legY + i*20 - 4); ctx.lineTo(legX + 20, legY + i*20 - 4); ctx.stroke();
+        
+        ctx.fillStyle = "black";
+        ctx.fillText(l, legX + 30, legY + i*20);
+    });
+
+    // Item da Legenda (Média)
+    let iMean = lettersToPlot.length;
+    ctx.strokeStyle = "black";
+    ctx.lineWidth = 2.5;
+    ctx.setLineDash([4,2]);
+    ctx.beginPath(); ctx.moveTo(legX, legY + iMean*20 - 4); ctx.lineTo(legX + 20, legY + iMean*20 - 4); ctx.stroke();
+    ctx.setLineDash([]);
+    
+    ctx.fillStyle = "black";
+    ctx.fillText("Média", legX + 30, legY + iMean*20);
 }
 
 function desenharGraficoComparativo(metricsGlobal, metricsSloan, metricsSet, canvasId){
