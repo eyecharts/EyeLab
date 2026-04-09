@@ -152,7 +152,7 @@
 <body>
 
 <div class="header">
-    <h1>OptoLab (v4.3) - Projeto SLOAN 2.0</h1>
+    <h1>OptoLab (v4.4) - Projeto SLOAN 2.0</h1>
     <p>Plataforma Integrada de Análise Psicométrica e Validação Clínica</p>
 </div>
 
@@ -938,17 +938,25 @@ function letterSetOptimization(tabela, matriz, variabilidadeLetra){
     let central = thresholds.filter(t => t >= cutLow && t <= cutHigh);
     let median = central[Math.floor(central.length / 2)];
 
-    // Filtro inicial enxuto (corta absurdos, mas deixa o algoritmo trabalhar)
-    let candidatos = tabela.filter(t => Math.abs(t.threshold - median) <= 0.055);
+    // FILTRO PRÉVIO ("Leão de Chácara")
+    // Rejeita letras muito distantes e corta as de variabilidade inaceitável (>0.045) na raiz
+    let candidatos = tabela.filter(t => {
+        let varL = variabilidadeLetra[t.letra] || 0;
+        return Math.abs(t.threshold - median) <= 0.055 && varL <= 0.045; 
+    });
+
+    // Failsafe: se o filtro for muito rigoroso com o CSV atual, ele relaxa a tolerância
+    if(candidatos.length < 10) {
+        candidatos = tabela.filter(t => Math.abs(t.threshold - median) <= 0.06);
+    }
 
     let melhorSet = [], melhorScore = Infinity, melhorMetrics = null;
-    let ITER = 15000; // Alta capacidade computacional
+    let ITER = 15000;
 
     for(let it=0; it<ITER; it++){
         let MIN_LETTERS = 9, MAX_LETTERS = 12;
         let maxSize = Math.min(MAX_LETTERS, candidatos.length);
         let minSize = Math.min(MIN_LETTERS, maxSize);
-        
         let size = minSize + Math.floor(random()*(maxSize - minSize + 1));
         
         function shuffleOriginal(array){
@@ -961,19 +969,15 @@ function letterSetOptimization(tabela, matriz, variabilidadeLetra){
         }
         
         let set = shuffleOriginal(candidatos).slice(0,size);
-
         let th = set.map(l=>l.threshold);
         
-        // 1. O MATADOR DE OUTLIERS (Span)
         let span = Math.max(...th) - Math.min(...th);
-        if (span > 0.055) continue; // Trava física: Não permite distorção de tamanho > 12%
+        if (span > 0.055) continue; // Trava física de tamanho máximo na linha
 
-        // 2. VARIABILIDADE (Substitui o Slope)
         let variabSum = 0;
         set.forEach(l=>{ variabSum += (variabilidadeLetra?.[l.letra] || 0); });
         let meanVariab = variabSum / set.length;
 
-        // 3 e 4. MATRIZ DE CONFUSÃO (Cmax e LPI)
         let confSum = 0, pairs = 0, maxPairConf = 0;
         for(let i=0;i<set.length;i++){
             for(let j=i+1;j<set.length;j++){
@@ -985,7 +989,6 @@ function letterSetOptimization(tabela, matriz, variabilidadeLetra){
         }
         let LPI = calcularLPI(set.map(l=>l.letra), matriz);
 
-        // 5. DISTÂNCIA PERCEPTUAL
         let distSum=0, dpairs=0;
         for(let i=0;i<set.length;i++){
             for(let j=i+1;j<set.length;j++){
@@ -997,13 +1000,13 @@ function letterSetOptimization(tabela, matriz, variabilidadeLetra){
         }
         let meanDist = dpairs > 0 ? distSum/dpairs : 0;
 
-        // FÓRMULA ENXUTA E BLINDADA CONTRA REVISORES
+        // FÓRMULA CALIBRADA PELA MAGNITUDE
         let score = 
-            (0.35 * maxPairConf) + 
-            (0.35 * LPI) + 
-            (0.30 * meanVariab) + 
-            (0.40 * span) - 
-            (0.20 * meanDist);
+            (1.5 * maxPairConf) + 
+            (1.5 * LPI) + 
+            (10.0 * meanVariab) + 
+            (10.0 * span) - 
+            (2.0 * meanDist);
 
         if(score < melhorScore){
             melhorScore = score;
@@ -1171,7 +1174,21 @@ function processarCSV(data){
 
     <div class="metric-box">
         <h4>3. Optotype Set Optimization Criteria</h4>
-        <p style="font-size:14px; text-align:justify;">Optimization uses a lean, 5-parameter cost function evaluated over 15,000 Monte Carlo simulations to prevent overfitting. It prioritizes perceptual discriminability (Cmax, LPI, Δ) while enforcing structural homogeneity (Span) and inter-subject stability (V). <br><br><code>Score = 0.35·Cmax + 0.35·LPI + 0.30·V + 0.40·Span - 0.20·Δ</code></p>
+        <p style="font-size:14px; text-align:justify; margin-bottom:15px;">
+            The optimization process uses a lean, 5-parameter cost function evaluated over 15,000 Monte Carlo simulations. The formula weights were strictly calibrated according to the numerical magnitude of each variable to prevent overfitting while effectively penalizing flat psychometric slopes and structural distortions.
+        </p>
+        <div style="background:#f8f9fa; padding:15px; border-radius:6px; border:1px solid #dee2e6; margin-bottom:15px;">
+            <code style="font-size:15px; color:var(--primary); font-weight:bold;">
+                Score = 1.5·Cmax + 1.5·LPI + 10.0·V + 10.0·Span - 2.0·Δ
+            </code>
+        </div>
+        <ul style="font-size:13.5px; line-height:1.6; color:#444; padding-left:20px;">
+            <li><b>Cmax (Max Pairwise Confusion) [Weight: 1.5]:</b> Severely penalizes the inclusion of specific letter pairs that are highly confusable (e.g., C and O), preventing catastrophic single-item failures in the chart.</li>
+            <li><b>LPI (Line Penalty Index) [Weight: 1.5]:</b> Evaluates the sum of interactions, simulating the crowding effect across the entire line.</li>
+            <li><b>V (Inter-subject Variability) [Weight: 10.0]:</b> Highly weighted to automatically reject letters with low geometric slopes (flat curves like 'P' or 'J'). High variability indicates a lack of perceptual consensus among patients, making the letter clinically unstable.</li>
+            <li><b>Span (Max Threshold Difference) [Weight: 10.0]:</b> Highly weighted to enforce strict physical homogeneity. It prevents the algorithm from selecting letters that would require disproportionate size scaling (like 'B'), preserving the chart's structural integrity.</li>
+            <li><b>Δ (Perceptual Distance) [Weight: -2.0]:</b> Acts as a reward (negative cost). Maximizes the overall perceptual separability/orthogonality of the final set.</li>
+        </ul>
     </div>
 
     <div class="metric-box">
