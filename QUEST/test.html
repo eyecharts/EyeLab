@@ -152,7 +152,7 @@
 <body>
 
 <div class="header">
-    <h1>OptoLab (v4.5) - Projeto SLOAN 2.0</h1>
+    <h1>OptoLab (v4.6) - Projeto SLOAN 2.0</h1>
     <p>Plataforma Integrada de Análise Psicométrica e Validação Clínica</p>
 </div>
 
@@ -1254,7 +1254,7 @@ function processarCSV(data){
             <tr><td>Threshold Span (Size Max-Min) ↓</td><td>${metricsGlobal?.span.toFixed(3)}</td><td>${metricsSloan?.span.toFixed(3)}</td><td>${metricsSet?.span.toFixed(3)}</td></tr>
             <tr><td>Perceptual Distance (Δ) ↑</td><td>${metricsGlobal?.dist.toFixed(3)}</td><td>${metricsSloan?.dist.toFixed(3)}</td><td>${metricsSet?.dist.toFixed(3)}</td></tr>
         </table>
-        <canvas id="metricsChart_${uid}" width="800" height="400" style="margin-top:20px; display:block; margin: 0 auto;"></canvas>
+        <canvas id="metricsChart_${uid}" width="800" height="480" style="margin-top:20px; display:block; margin: 0 auto;"></canvas>
     </div>
 
     <div class="metric-box">
@@ -1325,15 +1325,37 @@ function desenharCurvasPsicometricas(canvasId){
 
     lettersToPlot.forEach((l,i) => {
         let obj=lettersData[l]; if(!obj || obj.trials<6) return;
+        
+        // 1. Desenha a linha da curva
         ctx.beginPath();
         for(let x=minX; x<=maxX; x+=0.01){
             let p = psychometric(x,obj.alpha,obj.beta);
             let px = 60+(x-minX)/(maxX-minX)*700, py = 400-p*330;
             if(x===minX) ctx.moveTo(px,py); else ctx.lineTo(px,py);
         }
-        ctx.strokeStyle=`hsla(${i*30},65%,50%,0.35)`; ctx.lineWidth=2; ctx.stroke();
+        let hue = i * 35; // Espalha as cores
+        ctx.strokeStyle = `hsla(${hue}, 75%, 50%, 0.6)`; 
+        ctx.lineWidth = 2; 
+        ctx.stroke();
+
+        // 2. Posiciona a Letra correspondente um pouco acima do threshold (~80% de acerto)
+        let targetX = obj.alpha + (obj.beta * 0.8); 
+        let targetP = psychometric(targetX, obj.alpha, obj.beta);
+        let pxLetra = 60 + (targetX - minX)/(maxX-minX)*700;
+        let pyLetra = 400 - targetP*330;
+
+        // Fundo branco semitransparente para não misturar com as linhas
+        ctx.fillStyle = "rgba(255,255,255,0.75)";
+        ctx.fillRect(pxLetra - 7, pyLetra - 14, 14, 16);
+
+        // Texto da Letra
+        ctx.fillStyle = `hsla(${hue}, 85%, 35%, 1)`; // Mais escuro e legível
+        ctx.font = "bold 13px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText(l, pxLetra, pyLetra - 2);
     });
 
+    // Curva média global (Preta)
     ctx.beginPath();
     for(let x=minX; x<=maxX; x+=0.01){
         let p = psychometric(x,meanAlpha,meanBeta);
@@ -1370,7 +1392,8 @@ function desenharGraficoComparativo(metricsGlobal, metricsSloan, metricsSet, can
         m.gn = Math.max(m.gn, 0.08); m.sn = Math.max(m.sn, 0.08); m.on = Math.max(m.on, 0.08);
     });
 
-    let barW=22, gap=135, startX=90, baseY=380, maxH=260;
+    // 🔥 O "CHÃO" FOI REBAIXADO AQUI: baseY mudou para 440
+    let barW=22, gap=135, startX=90, baseY=440, maxH=260;
     ctx.textAlign="center"; ctx.font="bold 15px Arial"; ctx.fillStyle="black"; ctx.fillText("Comparative performance across optotype sets", 410, 30);
     ctx.textAlign="left"; ctx.font="12px Arial";
     
