@@ -934,7 +934,7 @@ function calcularMetricasAvancadas(tabela, lettersData){
 function letterSetOptimization(tabela, matriz, variabilidadeLetra){
     let SLOAN = ["C","D","H","K","N","O","R","S","V","Z"];
     
-    // 1. CÁLCULO DINÂMICO DO BASELINE
+    // 1. CÁLCULO DINÂMICO DO BASELINE (Sloan Clássico do CSV)
     let sloanPresentes = SLOAN.filter(l => tabela.some(t => t.letra === l));
     let sloanCmax = 1.0; 
     if(sloanPresentes.length > 1) {
@@ -954,11 +954,10 @@ function letterSetOptimization(tabela, matriz, variabilidadeLetra){
     let central = thresholds.filter(t => t >= cutLow && t <= cutHigh);
     let median = central[Math.floor(central.length / 2)];
 
-    // 2. DYNAMIC POOL EXPANDER (Garante que o Monte Carlo vai rodar)
+    // 2. POOL EXPANDER: Procura candidatos perto da mediana
     let tolerancia = 0.065;
     let candidatos = tabela.filter(t => Math.abs(t.threshold - median) <= tolerancia);
     
-    // Se o filtro for muito duro e deixar menos de 12 letras, relaxamos até ter opções suficientes
     while(candidatos.length < 12 && tolerancia < 0.20) {
         tolerancia += 0.01;
         candidatos = tabela.filter(t => Math.abs(t.threshold - median) <= tolerancia);
@@ -967,7 +966,6 @@ function letterSetOptimization(tabela, matriz, variabilidadeLetra){
     let melhorSet = [], melhorScore = Infinity, melhorMetrics = null;
     let ITER = 20000;
 
-    // Agora temos certeza de que há candidatos suficientes para o loop trabalhar
     for(let it=0; it<ITER; it++){
         let MIN_LETTERS = 9, MAX_LETTERS = 10; 
         let maxSize = Math.min(MAX_LETTERS, candidatos.length);
@@ -990,10 +988,18 @@ function letterSetOptimization(tabela, matriz, variabilidadeLetra){
         let span = Math.max(...th) - Math.min(...th);
         if (span > 0.065) continue; 
 
-        let variabSum = 0;
-        set.forEach(l=>{ variabSum += (variabilidadeLetra?.[l.letra] || 0); });
+        // 🔥 NOVO: AVALIAÇÃO DA PIOR LETRA INDIVIDUAL
+        let variabSum = 0, maxVariab = 0;
+        set.forEach(l=>{ 
+            let v = variabilidadeLetra?.[l.letra] || 0;
+            variabSum += v; 
+            if(v > maxVariab) maxVariab = v;
+        });
+        
+        // HARD LIMIT: Se UMA ÚNICA letra for instável (slope ruim), JOGA A CARTELA FORA!
+        if (maxVariab > 0.050) continue; 
+
         let meanVariab = variabSum / set.length;
-        if (meanVariab > 0.045) continue; 
 
         let confSum = 0, pairs = 0, maxPairConf = 0;
         for(let i=0;i<set.length;i++){
@@ -1005,7 +1011,6 @@ function letterSetOptimization(tabela, matriz, variabilidadeLetra){
             }
         }
         
-        // Se Cmax for muito agressivo e o CSV for ruim, aliviamos um pouco para 0.40 (Para não travar a busca)
         let limiteConfusao = Math.max(sloanCmax, 0.40);
         if (maxPairConf > limiteConfusao) continue;
 
@@ -1022,10 +1027,12 @@ function letterSetOptimization(tabela, matriz, variabilidadeLetra){
         }
         let meanDist = dpairs > 0 ? distSum/dpairs : 0;
 
+        // 🔥 NOVO ESCORE: Punição pesadíssima para a pior letra (maxVariab)
         let score = 
             (10.0 * maxPairConf) +  
             (10.0 * LPI) +          
-            (40.0 * meanVariab) +   
+            (20.0 * meanVariab) +   
+            (20.0 * maxVariab) +    // "O Elo Mais Fraco"
             (20.0 * span) -         
             (5.0 * meanDist);       
 
@@ -1036,9 +1043,8 @@ function letterSetOptimization(tabela, matriz, variabilidadeLetra){
         }
     }
 
-    // Failsafe final, caso a matemática seja impiedosa com CSVs muito ruidosos
     if (melhorSet.length === 0) {
-        melhorSet = [...candidatos].slice(0, 10); // Pega os 10 melhores centrais por gravidade
+        melhorSet = [...candidatos].slice(0, 10);
         melhorMetrics = { span: 0.065, meanConf: 0, maxConf: sloanCmax, dist: 0, variability: 0.045, LPI: 0 };
     }
 
