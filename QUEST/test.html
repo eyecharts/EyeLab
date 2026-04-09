@@ -936,9 +936,8 @@ function letterSetOptimization(tabela, matriz, variabilidadeLetra){
     
     // 1. CÁLCULO DINÂMICO DO BASELINE (Sloan Clássico do CSV)
     let sloanPresentes = SLOAN.filter(l => tabela.some(t => t.letra === l));
-    let sloanCmax = 1.0; 
+    let sloanCmax = 0; 
     if(sloanPresentes.length > 1) {
-        sloanCmax = 0;
         for(let i=0; i<sloanPresentes.length; i++){
             for(let j=i+1; j<sloanPresentes.length; j++){
                 let a = sloanPresentes[i], b = sloanPresentes[j];
@@ -954,17 +953,18 @@ function letterSetOptimization(tabela, matriz, variabilidadeLetra){
     let central = thresholds.filter(t => t >= cutLow && t <= cutHigh);
     let median = central[Math.floor(central.length / 2)];
 
-    // 2. POOL EXPANDER: Procura candidatos perto da mediana
-    let tolerancia = 0.065;
+    // 2. POOL DE CANDIDATOS AMPLIADO
+    // Pegamos uma base larga para garantir que o algoritmo tenha peças para jogar
+    let tolerancia = 0.08;
     let candidatos = tabela.filter(t => Math.abs(t.threshold - median) <= tolerancia);
     
-    while(candidatos.length < 12 && tolerancia < 0.20) {
+    while(candidatos.length < 14 && tolerancia < 0.20) {
         tolerancia += 0.01;
         candidatos = tabela.filter(t => Math.abs(t.threshold - median) <= tolerancia);
     }
 
     let melhorSet = [], melhorScore = Infinity, melhorMetrics = null;
-    let ITER = 20000;
+    let ITER = 50000; // Aumentamos para 50.000 iterações (vai levar ~100ms, super rápido)
 
     for(let it=0; it<ITER; it++){
         let MIN_LETTERS = 9, MAX_LETTERS = 10; 
@@ -973,22 +973,17 @@ function letterSetOptimization(tabela, matriz, variabilidadeLetra){
         
         let size = minSize + Math.floor(random()*(maxSize - minSize + 1));
         
-        function shuffleOriginal(array){
-            let arr = [...array];
-            for(let i = arr.length - 1; i > 0; i--){
-                let j = Math.floor(random() * (i + 1));
-                let temp = arr[i]; arr[i] = arr[j]; arr[j] = temp;
-            }
-            return arr;
+        // Embaralhamento ultra-rápido garantindo a Semente Fixa
+        let arr = [...candidatos];
+        for(let i = arr.length - 1; i > 0; i--){
+            let j = Math.floor(random() * (i + 1));
+            let temp = arr[i]; arr[i] = arr[j]; arr[j] = temp;
         }
+        let set = arr.slice(0,size);
         
-        let set = shuffleOriginal(candidatos).slice(0,size);
         let th = set.map(l=>l.threshold);
-        
         let span = Math.max(...th) - Math.min(...th);
-        if (span > 0.065) continue; 
 
-        // 🔥 NOVO: AVALIAÇÃO DA PIOR LETRA INDIVIDUAL
         let variabSum = 0, maxVariab = 0;
         set.forEach(l=>{ 
             let v = variabilidadeLetra?.[l.letra] || 0;
@@ -996,9 +991,6 @@ function letterSetOptimization(tabela, matriz, variabilidadeLetra){
             if(v > maxVariab) maxVariab = v;
         });
         
-        // HARD LIMIT: Se UMA ÚNICA letra for instável (slope ruim), JOGA A CARTELA FORA!
-        if (maxVariab > 0.050) continue; 
-
         let meanVariab = variabSum / set.length;
 
         let confSum = 0, pairs = 0, maxPairConf = 0;
@@ -1011,9 +1003,6 @@ function letterSetOptimization(tabela, matriz, variabilidadeLetra){
             }
         }
         
-        let limiteConfusao = Math.max(sloanCmax, 0.40);
-        if (maxPairConf > limiteConfusao) continue;
-
         let LPI = calcularLPI(set.map(l=>l.letra), matriz);
 
         let distSum=0, dpairs=0;
@@ -1027,14 +1016,24 @@ function letterSetOptimization(tabela, matriz, variabilidadeLetra){
         }
         let meanDist = dpairs > 0 ? distSum/dpairs : 0;
 
-        // 🔥 NOVO ESCORE: Punição pesadíssima para a pior letra (maxVariab)
+        // 🔥 O NOVO SISTEMA DE PUNIÇÕES (MULTAS MILIONÁRIAS)
+        let penalty = 0;
+        let limCmax = Math.max(sloanCmax, 0.35); // Limite de confusão do paciente
+
+        // Se passar das regras de ouro, a multa destrói o Score da cartela:
+        if (span > 0.065) penalty += 1000 + 5000 * (span - 0.065); 
+        if (maxVariab > 0.048) penalty += 2000 + 10000 * (maxVariab - 0.048); // O 'P' e 'M' vão receber multa absurda aqui!
+        if (maxPairConf > limCmax) penalty += 1000 + 5000 * (maxPairConf - limCmax);
+
+        // SCORE FINAL (Escore Base + Multas)
         let score = 
             (10.0 * maxPairConf) +  
             (10.0 * LPI) +          
             (20.0 * meanVariab) +   
-            (20.0 * maxVariab) +    // "O Elo Mais Fraco"
+            (20.0 * maxVariab) +    
             (20.0 * span) -         
-            (5.0 * meanDist);       
+            (5.0 * meanDist) +
+            penalty;                // Punição joga a cartela para o fim da fila
 
         if(score < melhorScore){
             melhorScore = score;
@@ -1043,14 +1042,8 @@ function letterSetOptimization(tabela, matriz, variabilidadeLetra){
         }
     }
 
-    if (melhorSet.length === 0) {
-        melhorSet = [...candidatos].slice(0, 10);
-        melhorMetrics = { span: 0.065, meanConf: 0, maxConf: sloanCmax, dist: 0, variability: 0.045, LPI: 0 };
-    }
-
     return { set:melhorSet, score:melhorScore, metrics:melhorMetrics };
 }
-
 function processarCSV(data){
     seed = 123456; 
     data = normalizarPorSujeito(data); 
