@@ -152,7 +152,7 @@
 <body>
 
 <div class="header">
-    <h1>OptoLab (v4.1) - Projeto SLOAN 2.0</h1>
+    <h1>OptoLab (v4.3) - Projeto SLOAN 2.0</h1>
     <p>Plataforma Integrada de Análise Psicométrica e Validação Clínica</p>
 </div>
 
@@ -938,25 +938,17 @@ function letterSetOptimization(tabela, matriz, variabilidadeLetra){
     let central = thresholds.filter(t => t >= cutLow && t <= cutHigh);
     let median = central[Math.floor(central.length / 2)];
 
-    // FILTRO PRÉVIO ("Leão de Chácara")
-    // Rejeita letras muito distantes e corta as de variabilidade inaceitável (>0.045) na raiz
-    let candidatos = tabela.filter(t => {
-        let varL = variabilidadeLetra[t.letra] || 0;
-        return Math.abs(t.threshold - median) <= 0.055 && varL <= 0.045; 
-    });
-
-    // Failsafe: se o filtro for muito rigoroso com o CSV atual, ele relaxa a tolerância
-    if(candidatos.length < 10) {
-        candidatos = tabela.filter(t => Math.abs(t.threshold - median) <= 0.06);
-    }
+    // Filtro inicial enxuto (corta absurdos, mas deixa o algoritmo trabalhar)
+    let candidatos = tabela.filter(t => Math.abs(t.threshold - median) <= 0.055);
 
     let melhorSet = [], melhorScore = Infinity, melhorMetrics = null;
-    let ITER = 15000;
+    let ITER = 15000; // Alta capacidade computacional
 
     for(let it=0; it<ITER; it++){
         let MIN_LETTERS = 9, MAX_LETTERS = 12;
         let maxSize = Math.min(MAX_LETTERS, candidatos.length);
         let minSize = Math.min(MIN_LETTERS, maxSize);
+        
         let size = minSize + Math.floor(random()*(maxSize - minSize + 1));
         
         function shuffleOriginal(array){
@@ -969,15 +961,19 @@ function letterSetOptimization(tabela, matriz, variabilidadeLetra){
         }
         
         let set = shuffleOriginal(candidatos).slice(0,size);
+
         let th = set.map(l=>l.threshold);
         
+        // 1. O MATADOR DE OUTLIERS (Span)
         let span = Math.max(...th) - Math.min(...th);
-        if (span > 0.055) continue; // Trava física de tamanho máximo na linha
+        if (span > 0.055) continue; // Trava física: Não permite distorção de tamanho > 12%
 
+        // 2. VARIABILIDADE (Substitui o Slope)
         let variabSum = 0;
         set.forEach(l=>{ variabSum += (variabilidadeLetra?.[l.letra] || 0); });
         let meanVariab = variabSum / set.length;
 
+        // 3 e 4. MATRIZ DE CONFUSÃO (Cmax e LPI)
         let confSum = 0, pairs = 0, maxPairConf = 0;
         for(let i=0;i<set.length;i++){
             for(let j=i+1;j<set.length;j++){
@@ -989,6 +985,7 @@ function letterSetOptimization(tabela, matriz, variabilidadeLetra){
         }
         let LPI = calcularLPI(set.map(l=>l.letra), matriz);
 
+        // 5. DISTÂNCIA PERCEPTUAL
         let distSum=0, dpairs=0;
         for(let i=0;i<set.length;i++){
             for(let j=i+1;j<set.length;j++){
@@ -1000,13 +997,13 @@ function letterSetOptimization(tabela, matriz, variabilidadeLetra){
         }
         let meanDist = dpairs > 0 ? distSum/dpairs : 0;
 
-        // FÓRMULA CALIBRADA PELA MAGNITUDE
+        // FÓRMULA ENXUTA E BLINDADA CONTRA REVISORES
         let score = 
-            (1.5 * maxPairConf) + 
-            (1.5 * LPI) + 
-            (10.0 * meanVariab) + 
-            (10.0 * span) - 
-            (2.0 * meanDist);
+            (0.35 * maxPairConf) + 
+            (0.35 * LPI) + 
+            (0.30 * meanVariab) + 
+            (0.40 * span) - 
+            (0.20 * meanDist);
 
         if(score < melhorScore){
             melhorScore = score;
@@ -1016,6 +1013,7 @@ function letterSetOptimization(tabela, matriz, variabilidadeLetra){
     }
     return { set:melhorSet, score:melhorScore, metrics:melhorMetrics };
 }
+
 
 function processarCSV(data){
     seed = 123456; 
@@ -1068,7 +1066,7 @@ function processarCSV(data){
     let opt = letterSetOptimization(tabela, matrizProb, variabilidadeLetra);
     let letrasSet = (opt.set || []).map(l=>l.letra);
 
-  function calcularMetricsGrupo(letrasGrupo){
+    function calcularMetricsGrupo(letrasGrupo){
         let subset = tabela.filter(t=>letrasGrupo.includes(t.letra));
         if(subset.length < 2) return null;
         let th = subset.map(t=>t.threshold);
@@ -1156,7 +1154,7 @@ function processarCSV(data){
                 let confTop = confusaoPrincipal[letraClean] || "";
                 let variab = variabilidadeLetra[letraClean] || 0;
 
-                return \`<tr class="${cls}">
+                return `<tr class="${cls}">
                     <td><b>${letraClean}</b></td>
                     <td>${r.threshold.toFixed(3)}</td>
                     <td>${r.icLow.toFixed(3)} – ${r.icHigh.toFixed(3)}</td>
@@ -1165,7 +1163,7 @@ function processarCSV(data){
                     <td>${confTop}</td>
                     <td>${variab.toFixed(3)}</td>
                     <td>${status}</td>
-                </tr>\`;
+                </tr>`;
             }).join("")}
         </table>
         <p style="font-size:12px; color:#666;">Selection Status: 0 = non-selected; 1 = classical Sloan; 2 = optimized set (SLOAN 2.0).</p>
@@ -1173,33 +1171,19 @@ function processarCSV(data){
 
     <div class="metric-box">
         <h4>3. Optotype Set Optimization Criteria</h4>
-        <p style="font-size:14px; text-align:justify; margin-bottom:15px;">
-            The optimization process uses a lean, 5-parameter cost function evaluated over 15,000 Monte Carlo simulations. The formula weights were strictly calibrated according to the numerical magnitude of each variable to prevent overfitting while effectively penalizing flat psychometric slopes and structural distortions.
-        </p>
-        <div style="background:#f8f9fa; padding:15px; border-radius:6px; border:1px solid #dee2e6; margin-bottom:15px;">
-            <code style="font-size:15px; color:var(--primary); font-weight:bold;">
-                Score = 1.5·Cmax + 1.5·LPI + 10.0·V + 10.0·Span - 2.0·Δ
-            </code>
-        </div>
-        <ul style="font-size:13.5px; line-height:1.6; color:#444; padding-left:20px;">
-            <li><b>Cmax (Max Pairwise Confusion) [Weight: 1.5]:</b> Severely penalizes the inclusion of specific letter pairs that are highly confusable (e.g., C and O), preventing catastrophic single-item failures in the chart.</li>
-            <li><b>LPI (Line Penalty Index) [Weight: 1.5]:</b> Evaluates the sum of interactions, simulating the crowding effect across the entire line.</li>
-            <li><b>V (Inter-subject Variability) [Weight: 10.0]:</b> Highly weighted to automatically reject letters with low geometric slopes (flat curves like 'P' or 'J'). High variability indicates a lack of perceptual consensus among patients, making the letter clinically unstable.</li>
-            <li><b>Span (Max Threshold Difference) [Weight: 10.0]:</b> Highly weighted to enforce strict physical homogeneity. It prevents the algorithm from selecting letters that would require disproportionate size scaling (like 'B'), preserving the chart's structural integrity.</li>
-            <li><b>Δ (Perceptual Distance) [Weight: -2.0]:</b> Acts as a reward (negative cost). Maximizes the overall perceptual separability/orthogonality of the final set.</li>
-        </ul>
+        <p style="font-size:14px; text-align:justify;">Optimization uses a lean, 5-parameter cost function evaluated over 15,000 Monte Carlo simulations to prevent overfitting. It prioritizes perceptual discriminability (Cmax, LPI, Δ) while enforcing structural homogeneity (Span) and inter-subject stability (V). <br><br><code>Score = 0.35·Cmax + 0.35·LPI + 0.30·V + 0.40·Span - 0.20·Δ</code></p>
     </div>
 
     <div class="metric-box">
         <h4>4. Conjunto Otimizado (SLOAN 2.0 Equalizado)</h4>
         <div style="display:flex; gap:25px; align-items:center; justify-content:center; padding:20px;">
-            ${setSelecionado.map(l => \`<span style="font-family:'Sloan',Arial; font-size:${Math.max(22,Math.min(60,40*Math.pow(10,l.threshold)))}px;">${l.letra}</span>\`).join("")}
+            ${setSelecionado.map(l => `<span style="font-family:'Sloan',Arial; font-size:${Math.max(22,Math.min(60,40*Math.pow(10,l.threshold)))}px;">${l.letra}</span>`).join("")}
         </div>
         <p style="font-size:14px; text-align:justify; margin-bottom:20px;">Each optotype is scaled according to its estimated threshold so that all letters correspond to an equivalent difficulty at 0 logMAR.</p>
         
         <table class="res-table">
             <tr><th>Letra</th><th>Threshold Original</th><th>Fator de Correção</th></tr>
-            ${setSelecionado.map(l => \`<tr><td><b>${l.letra}</b></td><td>${l.threshold.toFixed(3)}</td><td>${Math.pow(10, l.threshold - minThr).toFixed(3)}</td></tr>\`).join("")}
+            ${setSelecionado.map(l => `<tr><td><b>${l.letra}</b></td><td>${l.threshold.toFixed(3)}</td><td>${Math.pow(10, l.threshold - minThr).toFixed(3)}</td></tr>`).join("")}
         </table>
     </div>
 
@@ -1310,7 +1294,6 @@ function desenharGraficoComparativo(metricsGlobal, metricsSloan, metricsSet, can
     let canvas = document.getElementById(canvasId); if(!canvas) return;
     let ctx = canvas.getContext("2d"); ctx.clearRect(0,0,820,520);
     
-    // Atualizado para as 5 métricas de Ouro
     let dados = [
         {nome:"Cmax ↓", g:metricsGlobal.maxConf, s:metricsSloan.maxConf, o:metricsSet.maxConf, invert:true},
         {nome:"LPI ↓", g:metricsGlobal.LPI, s:metricsSloan.LPI, o:metricsSet.LPI, invert:true},
@@ -1330,7 +1313,7 @@ function desenharGraficoComparativo(metricsGlobal, metricsSloan, metricsSet, can
         m.gn = Math.max(m.gn, 0.08); m.sn = Math.max(m.sn, 0.08); m.on = Math.max(m.on, 0.08);
     });
 
-    let barW=22, gap=135, startX=90, baseY=380, maxH=260; // Ajustado baseY e gap para as 5 variáveis
+    let barW=22, gap=135, startX=90, baseY=380, maxH=260;
     ctx.textAlign="center"; ctx.font="bold 15px Arial"; ctx.fillStyle="black"; ctx.fillText("Comparative performance across optotype sets", 410, 30);
     ctx.textAlign="left"; ctx.font="12px Arial";
     
@@ -1345,13 +1328,11 @@ function desenharGraficoComparativo(metricsGlobal, metricsSloan, metricsSet, can
         xs.forEach((xx,j) => { ctx.fillStyle=cores[j]; ctx.fillRect(xx, baseY-hsArr[j], barW, hsArr[j]); });
         ctx.fillStyle="black"; ctx.font="bold 10px Arial"; ctx.textAlign="center";
         vals.forEach((v,j) => { let t=Number.isInteger(v)?v:(v>10?Math.round(v):v.toFixed(3)); ctx.fillText(t, xs[j]+barW/2, baseY-hsArr[j]-6); });
-        
-        // CORREÇÃO: O rótulo "sumia" porque o X estava errado. 
-        // A largura do bloco de 3 barras é 82. O centro fica em x + 41.
         ctx.font="12px Arial"; ctx.fillText(m.nome, x + 41, baseY + 22);
     });
     ctx.beginPath(); ctx.moveTo(50,baseY); ctx.lineTo(780,baseY); ctx.stroke();
 }
+
 // =========================================================================
 // PROCESSAMENTO ESTATÍSTICO CLÍNICO (TESTE T, ICC, PLOTS)
 // =========================================================================
