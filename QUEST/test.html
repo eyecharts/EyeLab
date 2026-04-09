@@ -152,7 +152,7 @@
 <body>
 
 <div class="header">
-    <h1>OptoLab (v4.9) - Projeto SLOAN 2.0</h1>
+    <h1>OptoLab (v5.0) - Projeto SLOAN 2.0</h1>
     <p>Plataforma Integrada de Análise Psicométrica e Validação Clínica</p>
 </div>
 
@@ -1205,9 +1205,9 @@ function processarCSV(data){
         <p style="font-size:12px; color:#666;">Selection Status: 0 = non-selected; 1 = classical Sloan; 2 = optimized set (SLOAN 2.0).</p>
     </div>
 
-    <div class="metric-box">
+   <div class="metric-box">
         <h4>3. Optotype Set Optimization Criteria</h4>
-        <p style="font-size:14px; text-align:justify;">Optimization uses a data-driven, 5-parameter cost function evaluated over 20,000 Monte Carlo simulations. The algorithm calculates the Classical Sloan's Maximum Confusion (Cmax) directly from the current dataset and uses it as a dynamic <b>Hard Limit</b>, mathematically guaranteeing that the optimized set will never exhibit higher confusion than the baseline. It penalizes flat slopes (Variability) and prevents excessive physical scaling (Span ≤ 0.065 logMAR). <br><br><code>Score = 10.0·Cmax + 10.0·LPI + 40.0·V + 20.0·Span - 5.0·Δ</code></p>
+        <p style="font-size:14px; text-align:justify;">Optimization uses a data-driven, 6-parameter cost function evaluated over 20,000 Monte Carlo simulations. To prevent the "Free-Rider Effect" (where an unstable letter hides in a set with a good average), the algorithm introduces a strict hard-limit on individual variability (MaxV ≤ 0.050) and directly penalizes the weakest link in the set. <br><br><code>Score = 10.0·Cmax + 10.0·LPI + 20.0·MeanV + 20.0·MaxV + 20.0·Span - 5.0·Δ</code></p>
     
         <ul style="font-size:13.5px; line-height:1.6; color:#444; padding-left:20px;">
             <li><b>Cmax (Max Pairwise Confusion) [Weight: 10.0]:</b> Severely penalizes the inclusion of specific letter pairs that are highly confusable (e.g., C and O), preventing catastrophic single-item failures in the chart.</li>
