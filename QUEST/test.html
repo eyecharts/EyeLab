@@ -1066,7 +1066,7 @@ function processarCSV(data){
     let opt = letterSetOptimization(tabela, matrizProb, variabilidadeLetra);
     let letrasSet = (opt.set || []).map(l=>l.letra);
 
-  function calcularMetricsGrupo(letrasGrupo){
+    function calcularMetricsGrupo(letrasGrupo){
         let subset = tabela.filter(t=>letrasGrupo.includes(t.letra));
         if(subset.length < 2) return null;
         let th = subset.map(t=>t.threshold);
@@ -1154,7 +1154,7 @@ function processarCSV(data){
                 let confTop = confusaoPrincipal[letraClean] || "";
                 let variab = variabilidadeLetra[letraClean] || 0;
 
-                return \`<tr class="${cls}">
+                return `<tr class="${cls}">
                     <td><b>${letraClean}</b></td>
                     <td>${r.threshold.toFixed(3)}</td>
                     <td>${r.icLow.toFixed(3)} – ${r.icHigh.toFixed(3)}</td>
@@ -1163,7 +1163,7 @@ function processarCSV(data){
                     <td>${confTop}</td>
                     <td>${variab.toFixed(3)}</td>
                     <td>${status}</td>
-                </tr>\`;
+                </tr>`;
             }).join("")}
         </table>
         <p style="font-size:12px; color:#666;">Selection Status: 0 = non-selected; 1 = classical Sloan; 2 = optimized set (SLOAN 2.0).</p>
@@ -1177,13 +1177,13 @@ function processarCSV(data){
     <div class="metric-box">
         <h4>4. Conjunto Otimizado (SLOAN 2.0 Equalizado)</h4>
         <div style="display:flex; gap:25px; align-items:center; justify-content:center; padding:20px;">
-            ${setSelecionado.map(l => \`<span style="font-family:'Sloan',Arial; font-size:${Math.max(22,Math.min(60,40*Math.pow(10,l.threshold)))}px;">${l.letra}</span>\`).join("")}
+            ${setSelecionado.map(l => `<span style="font-family:'Sloan',Arial; font-size:${Math.max(22,Math.min(60,40*Math.pow(10,l.threshold)))}px;">${l.letra}</span>`).join("")}
         </div>
         <p style="font-size:14px; text-align:justify; margin-bottom:20px;">Each optotype is scaled according to its estimated threshold so that all letters correspond to an equivalent difficulty at 0 logMAR.</p>
         
         <table class="res-table">
             <tr><th>Letra</th><th>Threshold Original</th><th>Fator de Correção</th></tr>
-            ${setSelecionado.map(l => \`<tr><td><b>${l.letra}</b></td><td>${l.threshold.toFixed(3)}</td><td>${Math.pow(10, l.threshold - minThr).toFixed(3)}</td></tr>\`).join("")}
+            ${setSelecionado.map(l => `<tr><td><b>${l.letra}</b></td><td>${l.threshold.toFixed(3)}</td><td>${Math.pow(10, l.threshold - minThr).toFixed(3)}</td></tr>`).join("")}
         </table>
     </div>
 
@@ -1294,7 +1294,6 @@ function desenharGraficoComparativo(metricsGlobal, metricsSloan, metricsSet, can
     let canvas = document.getElementById(canvasId); if(!canvas) return;
     let ctx = canvas.getContext("2d"); ctx.clearRect(0,0,820,520);
     
-    // Atualizado para as 5 métricas de Ouro
     let dados = [
         {nome:"Cmax ↓", g:metricsGlobal.maxConf, s:metricsSloan.maxConf, o:metricsSet.maxConf, invert:true},
         {nome:"LPI ↓", g:metricsGlobal.LPI, s:metricsSloan.LPI, o:metricsSet.LPI, invert:true},
@@ -1314,7 +1313,7 @@ function desenharGraficoComparativo(metricsGlobal, metricsSloan, metricsSet, can
         m.gn = Math.max(m.gn, 0.08); m.sn = Math.max(m.sn, 0.08); m.on = Math.max(m.on, 0.08);
     });
 
-    let barW=22, gap=135, startX=90, baseY=380, maxH=260; // Ajustado baseY e gap para as 5 variáveis
+    let barW=22, gap=135, startX=90, baseY=380, maxH=260;
     ctx.textAlign="center"; ctx.font="bold 15px Arial"; ctx.fillStyle="black"; ctx.fillText("Comparative performance across optotype sets", 410, 30);
     ctx.textAlign="left"; ctx.font="12px Arial";
     
@@ -1329,13 +1328,11 @@ function desenharGraficoComparativo(metricsGlobal, metricsSloan, metricsSet, can
         xs.forEach((xx,j) => { ctx.fillStyle=cores[j]; ctx.fillRect(xx, baseY-hsArr[j], barW, hsArr[j]); });
         ctx.fillStyle="black"; ctx.font="bold 10px Arial"; ctx.textAlign="center";
         vals.forEach((v,j) => { let t=Number.isInteger(v)?v:(v>10?Math.round(v):v.toFixed(3)); ctx.fillText(t, xs[j]+barW/2, baseY-hsArr[j]-6); });
-        
-        // CORREÇÃO: O rótulo "sumia" porque o X estava errado. 
-        // A largura do bloco de 3 barras é 82. O centro fica em x + 41.
         ctx.font="12px Arial"; ctx.fillText(m.nome, x + 41, baseY + 22);
     });
     ctx.beginPath(); ctx.moveTo(50,baseY); ctx.lineTo(780,baseY); ctx.stroke();
 }
+
 // =========================================================================
 // PROCESSAMENTO ESTATÍSTICO CLÍNICO (TESTE T, ICC, PLOTS)
 // =========================================================================
