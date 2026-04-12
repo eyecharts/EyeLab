@@ -152,7 +152,7 @@
 <body>
 
 <div class="header">
-    <h1>OptoLab (v5.1) - Projeto SLOAN 2.0</h1>
+    <h1>OptoLab (v5.2) - Projeto SLOAN 2.0</h1>
     <p>Plataforma Integrada de Análise Psicométrica e Validação Clínica</p>
 </div>
 
@@ -821,50 +821,7 @@ function runClinicalAnalysisOnCurrentData(encodedCSV) {
 // =========================================================================
 // MÓDULO MATEMÁTICO PSICOMÉTRICO (INTACTO DO SEU CÓDIGO ORIGINAL)
 // =========================================================================
-
 function analisarCSV(){
-    window.currentPsychoTarget = "batchPsychoResults";
-    const input = document.getElementById("csvUploadAnalysis");
-    const files = input ? input.files : null;
-    if(!files || files.length === 0){ alert("Selecione os arquivos CSV psicométricos"); return; }
-    
-    let dados = []; 
-    let pendentes = files.length;
-    document.getElementById("batchPsychoResults").innerHTML = `<h3 style='text-align:center;'>Processando ${files.length} arquivos Psicométricos...</h3>`;
-    
-    for(let f of files){
-        let reader = new FileReader();
-        reader.onload = function(e){
-            let linhas = e.target.result.trim().split("\n");
-            if(linhas.length > 0){
-                // Tenta achar a posição exata das colunas
-                let cabecalho = linhas[0].toLowerCase().split(",").map(s => s.trim());
-                let iSubj = cabecalho.indexOf("subject");
-                let iLett = cabecalho.indexOf("letter");
-                let iAns = cabecalho.indexOf("answer");
-                let iLog = cabecalho.indexOf("logmar");
-                let iCorr = cabecalho.indexOf("correct");
-
-                // Se o CSV for o antigo sem cabeçalho padronizado, usa os índices fixos
-                if(iSubj===-1) iSubj=0; if(iLett===-1) iLett=4; if(iAns===-1) iAns=5; if(iLog===-1) iLog=6; if(iCorr===-1) iCorr=7;
-
-                for(let i=1; i<linhas.length; i++){
-                    let p = linhas[i].split(",");
-                    if(p.length < 5) continue;
-                    let logMAR = parseFloat(p[iLog]), correct = parseInt(p[iCorr]);
-                    if(isNaN(logMAR) || isNaN(correct)) continue;
-                    dados.push({ subject: p[iSubj], letter: p[iLett], answer: p[iAns], logMAR: logMAR, correct: correct });
-                }
-            }
-            
-            pendentes--;
-            // Somente quando ler todos os arquivos simultâneos, ele envia para a matemática
-            if(pendentes === 0) processarCSV(dados); 
-        };
-        reader.readAsText(f);
-    }
-}
-
     window.currentPsychoTarget = "batchPsychoResults";
     const input = document.getElementById("csvUploadAnalysis");
     const files = input ? input.files : null;
@@ -907,6 +864,7 @@ function analisarCSV(){
         reader.readAsText(f);
     }
 }
+
 function gerarMatrizConfusao(data){
     let matriz = {};
     letters.forEach(l => { matriz[l] = {}; letters.forEach(r => matriz[l][r] = 0); });
@@ -1563,7 +1521,6 @@ function processCSV(){
         reader.readAsText(f);
     }
 }
-
 function getPValue(t, df) {
     t = Math.abs(t); let x = df / (df + t * t); let p = Math.pow(x, (df + 1) / 2); 
     if (df > 20) p = 2 * (1 - 1 / (1 + Math.exp(-1.654 * t)));
