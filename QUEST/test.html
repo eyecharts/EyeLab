@@ -152,7 +152,7 @@
 <body>
 
 <div class="header">
-    <h1>OptoLab (v5.2) - Projeto SLOAN 2.0</h1>
+    <h1>OptoLab (v5.5) - Projeto SLOAN 2.0</h1>
     <p>Plataforma Integrada de Análise Psicométrica e Validação Clínica</p>
 </div>
 
@@ -951,7 +951,6 @@ function calcularMetricasAvancadas(tabela, lettersData){
 function letterSetOptimization(tabela, matriz, variabilidadeLetra){
     let SLOAN = ["C","D","H","K","N","O","R","S","V","Z"];
     
-    // 1. CÁLCULO DINÂMICO DO BASELINE (Sloan Clássico do CSV)
     let sloanPresentes = SLOAN.filter(l => tabela.some(t => t.letra === l));
     let sloanCmax = 0; 
     if(sloanPresentes.length > 1) {
@@ -970,8 +969,6 @@ function letterSetOptimization(tabela, matriz, variabilidadeLetra){
     let central = thresholds.filter(t => t >= cutLow && t <= cutHigh);
     let median = central[Math.floor(central.length / 2)];
 
-    // 2. POOL DE CANDIDATOS AMPLIADO
-    // Pegamos uma base larga para garantir que o algoritmo tenha peças para jogar
     let tolerancia = 0.08;
     let candidatos = tabela.filter(t => Math.abs(t.threshold - median) <= tolerancia);
     
@@ -981,7 +978,7 @@ function letterSetOptimization(tabela, matriz, variabilidadeLetra){
     }
 
     let melhorSet = [], melhorScore = Infinity, melhorMetrics = null;
-    let ITER = 50000; // Aumentamos para 50.000 iterações (vai levar ~100ms, super rápido)
+    let ITER = 50000; 
 
     for(let it=0; it<ITER; it++){
         let MIN_LETTERS = 9, MAX_LETTERS = 10; 
@@ -990,7 +987,6 @@ function letterSetOptimization(tabela, matriz, variabilidadeLetra){
         
         let size = minSize + Math.floor(random()*(maxSize - minSize + 1));
         
-        // Embaralhamento ultra-rápido garantindo a Semente Fixa
         let arr = [...candidatos];
         for(let i = arr.length - 1; i > 0; i--){
             let j = Math.floor(random() * (i + 1));
@@ -1033,24 +1029,22 @@ function letterSetOptimization(tabela, matriz, variabilidadeLetra){
         }
         let meanDist = dpairs > 0 ? distSum/dpairs : 0;
 
-        // 🔥 O NOVO SISTEMA DE PUNIÇÕES (MULTAS MILIONÁRIAS)
         let penalty = 0;
-        let limCmax = Math.max(sloanCmax, 0.35); // Limite de confusão do paciente
+        let limCmax = Math.max(sloanCmax, 0.35); 
 
-        // Se passar das regras de ouro, a multa destrói o Score da cartela:
+        // O maxVariab agora atua APENAS como barreira de punição para eliminar letras ruins
         if (span > 0.065) penalty += 1000 + 5000 * (span - 0.065); 
-        if (maxVariab > 0.048) penalty += 2000 + 10000 * (maxVariab - 0.048); // O 'P' e 'M' vão receber multa absurda aqui!
+        if (maxVariab > 0.048) penalty += 2000 + 10000 * (maxVariab - 0.048); 
         if (maxPairConf > limCmax) penalty += 1000 + 5000 * (maxPairConf - limCmax);
 
-        // SCORE FINAL (Escore Base + Multas)
+        // A equação volta a ter 5 parâmetros limpos e não-redundantes!
         let score = 
             (10.0 * maxPairConf) +  
             (10.0 * LPI) +          
-            (20.0 * meanVariab) +   
-            (20.0 * maxVariab) +    
+            (40.0 * meanVariab) +   
             (20.0 * span) -         
             (5.0 * meanDist) +
-            penalty;                // Punição joga a cartela para o fim da fila
+            penalty;                
 
         if(score < melhorScore){
             melhorScore = score;
