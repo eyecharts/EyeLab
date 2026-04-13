@@ -1211,13 +1211,12 @@ function processarCSV(data){
 
 <div class="metric-box">
         <h4>3. Optotype Set Optimization Criteria</h4>
-        <p style="font-size:14px; text-align:justify;">Optimization uses a data-driven, 6-parameter cost function evaluated over 20,000 Monte Carlo simulations. To prevent the "Free-Rider Effect" (where an unstable letter hides in a set with a good average), the algorithm introduces a strict hard-limit on individual variability (MaxV ≤ 0.050) and directly penalizes the weakest link in the set. <br><br><code>Score = 10.0·Cmax + 10.0·LPI + 20.0·MeanV + 20.0·MaxV + 20.0·Span - 5.0·Δ</code></p>
+        <p style="font-size:14px; text-align:justify;">Optimization uses a data-driven, 5-parameter cost function evaluated over 50,000 Monte Carlo simulations. To prevent the "Free-Rider Effect" (where an unstable letter hides in a set with a good average), the algorithm evaluates the set based on Mean Variability (V) but applies a severe background penalty if any single letter exceeds an individual variability limit (MaxV > 0.048). <br><br><code>Score = 10.0·Cmax + 10.0·LPI + 40.0·V + 20.0·Span - 5.0·Δ + Penalty</code></p>
     
         <ul style="font-size:13.5px; line-height:1.6; color:#444; padding-left:20px;">
             <li><b>Cmax (Max Pairwise Confusion) [Weight: 10.0]:</b> Severely penalizes the inclusion of specific letter pairs that are highly confusable (e.g., C and O), preventing catastrophic single-item failures in the chart.</li>
             <li><b>LPI (Line Penalty Index) [Weight: 10.0]:</b> Evaluates the sum of interactions, simulating the crowding effect across the entire line.</li>
-            <li><b>MeanV (Average Inter-subject Variability) [Weight: 20.0]:</b> Penalizes the overall variability of the set. Low variability indicates high geometric slopes across the board, meaning the set as a whole has sharp, decisive psychometric functions.</li>
-            <li><b>MaxV (Maximum Individual Variability) [Weight: 20.0]:</b> Acts as an anchor against the weakest link. By heavily penalizing the single most variable letter in the proposed set, it prevents unstable letters (flat curves like 'P' or 'J') from surviving the selection process.</li>
+            <li><b>V (Average Inter-subject Variability) [Weight: 40.0]:</b> Penalizes the overall variability of the set. Low variability indicates high geometric slopes across the board, meaning the set as a whole has sharp, decisive psychometric functions.</li>
             <li><b>Span (Max Threshold Difference) [Weight: 20.0]:</b> Highly weighted to enforce strict physical homogeneity. It prevents the algorithm from selecting letters that would require disproportionate size scaling (like 'B'), preserving the chart's structural integrity.</li>
             <li><b>Δ (Perceptual Distance) [Weight: -5.0]:</b> Acts as a reward (negative cost). Maximizes the overall perceptual separability/orthogonality of the final set.</li>
         </ul>
