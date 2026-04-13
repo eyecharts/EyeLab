@@ -1034,7 +1034,7 @@ function letterSetOptimization(tabela, matriz, variabilidadeLetra){
 
         // O maxVariab agora atua APENAS como barreira de punição para eliminar letras ruins
         if (span > 0.065) penalty += 1000 + 5000 * (span - 0.065); 
-        if (maxVariab > 0.048) penalty += 2000 + 10000 * (maxVariab - 0.048); 
+        if (maxVariab > 0.055) penalty += 2000 + 10000 * (maxVariab - 0.055); 
         if (maxPairConf > limCmax) penalty += 1000 + 5000 * (maxPairConf - limCmax);
 
         // A equação volta a ter 5 parâmetros limpos e não-redundantes!
@@ -1211,7 +1211,7 @@ function processarCSV(data){
 
 <div class="metric-box">
         <h4>3. Optotype Set Optimization Criteria</h4>
-        <p style="font-size:14px; text-align:justify;">Optimization uses a data-driven, 5-parameter cost function evaluated over 50,000 Monte Carlo simulations. To prevent the "Free-Rider Effect" (where an unstable letter hides in a set with a good average), the algorithm evaluates the set based on Mean Variability (V) but applies a severe background penalty if any single letter exceeds an individual variability limit (MaxV > 0.048). <br><br><code>Score = 10.0·Cmax + 10.0·LPI + 40.0·V + 20.0·Span - 5.0·Δ + Penalty</code></p>
+        <p style="font-size:14px; text-align:justify;">Optimization uses a data-driven, 5-parameter cost function evaluated over 50,000 Monte Carlo simulations. To prevent the "Free-Rider Effect" (where an unstable letter hides in a set with a good average), the algorithm evaluates the set based on Mean Variability (V) but applies a severe background penalty if any single letter exceeds an individual variability limit (MaxV > 0.055). <br><br><code>Score = 10.0·Cmax + 10.0·LPI + 40.0·V + 20.0·Span - 5.0·Δ + Penalty</code></p>
     
         <ul style="font-size:13.5px; line-height:1.6; color:#444; padding-left:20px;">
             <li><b>Cmax (Max Pairwise Confusion) [Weight: 10.0]:</b> Severely penalizes the inclusion of specific letter pairs that are highly confusable (e.g., C and O), preventing catastrophic single-item failures in the chart.</li>
