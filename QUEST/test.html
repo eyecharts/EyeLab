@@ -1735,7 +1735,15 @@ function drawBlandAltman(a, b, containerId){
 
 function drawClinicalConfusionMatrix(confMatrix, title, canvasId, containerTargetId) {
     let lettersSet = new Set();
-    Object.keys(confMatrix).forEach(l => { lettersSet.add(l); Object.keys(confMatrix[l]).forEach(r => lettersSet.add(r)); });
+    
+    // Filtra o "0" para que ele não vire uma coluna/linha visual no gráfico
+    Object.keys(confMatrix).forEach(l => { 
+        if(l !== "0") lettersSet.add(l); 
+        Object.keys(confMatrix[l]).forEach(r => {
+            if(r !== "0" && r.match(/[A-Z]/i)) lettersSet.add(r.toUpperCase());
+        }); 
+    });
+    
     let letras = Array.from(lettersSet).sort(); if (letras.length === 0) return;
 
     let canvasContainer = document.createElement("div");
@@ -1745,12 +1753,20 @@ function drawClinicalConfusionMatrix(confMatrix, title, canvasId, containerTarge
     let size = letras.length, grid = Math.min(35, 450 / size);
     let maxVal = 0, totalApresentacoes = {}, totalErros = {}, globalErrors = 0, globalPresentations = 0;
 
+    // MATEMÁTICA CORRETA: Conta o "0" (omissão) como erro e como apresentação
     letras.forEach(a => {
         totalApresentacoes[a] = 0; totalErros[a] = 0;
-        letras.forEach(b => {
-            let val = confMatrix[a]?.[b] || 0;
-            totalApresentacoes[a] += val; globalPresentations += val;
-            if (a !== b) { maxVal = Math.max(maxVal, val); totalErros[a] += val; globalErrors += val; }
+        Object.keys(confMatrix[a] || {}).forEach(resposta => {
+            let val = confMatrix[a][resposta];
+            totalApresentacoes[a] += val;
+            globalPresentations += val;
+            
+            if (a !== resposta) { 
+                totalErros[a] += val; 
+                globalErrors += val; 
+                // Para o mapa de calor das cores, ignoramos o 0 para não distorcer a escala de vermelho
+                if (resposta !== "0") maxVal = Math.max(maxVal, val); 
+            }
         });
     });
 
@@ -1771,6 +1787,8 @@ function drawClinicalConfusionMatrix(confMatrix, title, canvasId, containerTarge
             ctx.fillRect(x, y, grid, grid); ctx.strokeStyle = "#ddd"; ctx.strokeRect(x, y, grid, grid);
             if (val > 0) { ctx.fillStyle = (a !== b) ? "white" : "black"; if(a!==b && val/(maxVal||1) < 0.4) ctx.fillStyle = "black"; ctx.font = "12px Arial"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(val, x + grid / 2, y + grid / 2); }
         });
+        
+        // Escreve a porcentagem de erro real na lateral direita
         let taxaErro = totalApresentacoes[a] > 0 ? (totalErros[a] / totalApresentacoes[a]) * 100 : 0;
         ctx.fillStyle = "black"; ctx.font = "bold 11px Arial"; ctx.textAlign = "left"; ctx.fillText(`Erro: ${taxaErro.toFixed(1)}%`, offsetX + size * grid + 10, offsetY + i * grid + grid / 2);
     });
