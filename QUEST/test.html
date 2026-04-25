@@ -1649,7 +1649,7 @@ function analyzeCSV(text){
     } else { retestHTML = "<p style='text-align:center;'><i>Dados de reteste indisponíveis.</i></p>"; }
 
    // =========================================================================
-    // NOVO: JUÍZO ELETRÔNICO (Cálculo do Vencedor com Taxa de Linhas Parciais)
+    // NOVO: JUÍZO ELETRÔNICO (Cálculo do Vencedor com Textos Dinâmicos)
     // =========================================================================
     function calcConfRate(matrix) {
         let err = 0, tot = 0;
@@ -1667,11 +1667,10 @@ function analyzeCSV(text){
     let taxaConfClassico = calcConfRate(confClassico);
     let taxaConfSloan20 = calcConfRate(confSloan20);
 
-    // 2. NOVA MÉTRICA: Taxa de Linhas Parciais (Efeito Parede de Tijolos)
+    // 2. Taxa de Linhas Parciais
     function calcPartialLinesRate(chartName) {
         let subset = data.filter(d => d.chart === chartName);
         if(subset.length === 0) return 0;
-        // Conta quantas linhas tiveram pontuação 1, 2, 3 ou 4
         let partials = subset.filter(d => d.correct > 0 && d.correct < 5).length;
         return (partials / subset.length) * 100;
     }
@@ -1679,13 +1678,18 @@ function analyzeCSV(text){
     let tlpClassico = calcPartialLinesRate('CLASSICO');
     let tlpSloan20 = calcPartialLinesRate('SLOAN20');
 
-    // 3. Contagem de Pontos
+    // 3. Contagem de Pontos e Vencedores Individuais (Melhor de 3)
     let pontosSloan = 0, pontosClassico = 0;
     
-    if(taxaConfSloan20 < taxaConfClassico) pontosSloan++; else if(taxaConfClassico < taxaConfSloan20) pontosClassico++;
-    if(tlpSloan20 < tlpClassico) pontosSloan++; else if(tlpClassico < tlpSloan20) pontosClassico++;
+    let venceuConf = "Empate";
+    if(taxaConfSloan20 < taxaConfClassico) { pontosSloan++; venceuConf = "SLOAN 2.0"; } 
+    else if(taxaConfClassico < taxaConfSloan20) { pontosClassico++; venceuConf = "Clássico"; }
 
-    let repTextSloan = "", repTextClassico = "", repNome = "";
+    let venceuTLP = "Empate";
+    if(tlpSloan20 < tlpClassico) { pontosSloan++; venceuTLP = "SLOAN 2.0"; } 
+    else if(tlpClassico < tlpSloan20) { pontosClassico++; venceuTLP = "Clássico"; }
+
+    let repTextSloan = "", repTextClassico = "", repNome = "", venceuRep = "Empate";
     if (pairsC.length >= 1 && pairsS.length >= 1) {
         if (subjects.length === 1) {
             let dC = Math.abs(pairsC[0][0] - pairsC[0][1]);
@@ -1693,14 +1697,16 @@ function analyzeCSV(text){
             repNome = "Variação Absoluta (Δ logMAR) - menor é melhor";
             repTextClassico = dC.toFixed(3);
             repTextSloan = dS.toFixed(3);
-            if(dS < dC) pontosSloan++; else if(dC < dS) pontosClassico++;
+            if(dS < dC) { pontosSloan++; venceuRep = "SLOAN 2.0"; } 
+            else if(dC < dS) { pontosClassico++; venceuRep = "Clássico"; }
         } else {
             repNome = "Confiabilidade (ICC) - maior é melhor";
             let icc_C = iccClassico !== null ? iccClassico : 0;
             let icc_S = iccSloan20 !== null ? iccSloan20 : 0;
             repTextClassico = icc_C.toFixed(3);
             repTextSloan = icc_S.toFixed(3);
-            if(icc_S > icc_C) pontosSloan++; else if(icc_C > icc_S) pontosClassico++;
+            if(icc_S > icc_C) { pontosSloan++; venceuRep = "SLOAN 2.0"; } 
+            else if(icc_C > icc_S) { pontosClassico++; venceuRep = "Clássico"; }
         }
     }
 
@@ -1737,17 +1743,21 @@ function analyzeCSV(text){
     </div>
     
     <div class="metric-box" style="border: 2px solid ${corVencedor}; background: ${bgCor}; margin-top: 30px;">
-        <h4 style="color: ${corVencedor}; border-bottom: 1px solid ${corVencedor};"><i class="fas fa-trophy"></i> 6. Conclusão Clínica: Discernimento e Estabilidade</h4>
+        <h4 style="color: ${corVencedor}; border-bottom: 1px solid ${corVencedor};"><i class="fas fa-trophy"></i> 6. Conclusão Clínica: Placares e Vencedor</h4>
         <div style="font-size: 15px; line-height: 1.6; color: #333; padding-top: 10px;">
-            <p>Com base na análise matemática de 3 pilares independentes, o teste que apresentou letras <b>mais homogeneamente discerníveis</b> foi o <b><span style="color: ${corVencedor}; font-size: 17px; text-transform: uppercase;">${vencedorNome}</span></b>.</p>
+            <p>Com base na análise matemática de 3 pilares independentes (Disputa de Melhor de 3), o teste que apresentou letras <b>mais homogeneamente discerníveis</b> e estáveis globalmente foi o <b><span style="color: ${corVencedor}; font-size: 17px; text-transform: uppercase;">${vencedorNome}</span></b> (Placar: ${pontosSloan} a ${pontosClassico}).</p>
             
             <p style="margin-top: 15px;"><b>1. Efeito "Parede de Tijolos" (Linhas Parciais):</b><br>
-            O SLOAN 2.0 gerou <b>${tlpSloan20.toFixed(1)}%</b> de linhas parciais (acertos entre 1 e 4) contra <b>${tlpClassico.toFixed(1)}%</b> do Clássico. Uma menor proporção indica um limiar mais abrupto e perfeito (acerta 5 ou acerta 0). Quando as letras têm exatamente a mesma dificuldade, o paciente não "gagueja" lendo a tabela.</p>
+            O SLOAN 2.0 gerou <b>${tlpSloan20.toFixed(1)}%</b> de linhas parciais (acertos entre 1 e 4) contra <b>${tlpClassico.toFixed(1)}%</b> do Clássico. Uma menor proporção indica um limiar mais abrupto (sem "gaguejar" na linha).<br>
+            ➔ <b>Vantagem neste quesito: <span style="color:${venceuTLP === 'SLOAN 2.0' ? 'var(--success)' : (venceuTLP === 'Clássico' ? 'var(--primary)' : '#666')}; font-weight:bold;">${venceuTLP.toUpperCase()}</span></b></p>
 
             <p style="margin-top: 10px;"><b>2. Efeito Crowding (Confusão Visual):</b><br>
-            O SLOAN 2.0 apresentou uma taxa de confusão global de <b>${taxaConfSloan20.toFixed(1)}%</b> contra <b>${taxaConfClassico.toFixed(1)}%</b>. Valores menores indicam que, no limiar da visão, o paciente comete menos erros por semelhança morfológica entre as letras, mitigando o crowding indesejado.</p>
+            O SLOAN 2.0 apresentou uma taxa de confusão global de <b>${taxaConfSloan20.toFixed(1)}%</b> contra <b>${taxaConfClassico.toFixed(1)}%</b> do Clássico. Valores menores mitigam o crowding e reduzem os erros por semelhança morfológica.<br>
+            ➔ <b>Vantagem neste quesito: <span style="color:${venceuConf === 'SLOAN 2.0' ? 'var(--success)' : (venceuConf === 'Clássico' ? 'var(--primary)' : '#666')}; font-weight:bold;">${venceuConf.toUpperCase()}</span></b></p>
 
-            ${repNome ? `<p style="margin-top: 10px;"><b>3. Reprodutibilidade (${repNome.split(' -')[0]}):</b><br> O SLOAN 2.0 marcou <b>${repTextSloan}</b> vs <b>${repTextClassico}</b> do Clássico. O aumento da reprodutibilidade é a consequência direta do nivelamento da dificuldade das letras.</p>` : `<p style="margin-top: 10px;"><b>3. Reprodutibilidade:</b> <i>Dados insuficientes para calcular no reteste.</i></p>`}
+            ${repNome ? `<p style="margin-top: 10px;"><b>3. Reprodutibilidade (${repNome.split(' -')[0]}):</b><br> 
+            O SLOAN 2.0 marcou <b>${repTextSloan}</b> vs <b>${repTextClassico}</b> do Clássico. O aumento da reprodutibilidade reflete a estabilidade da leitura.<br>
+            ➔ <b>Vantagem neste quesito: <span style="color:${venceuRep === 'SLOAN 2.0' ? 'var(--success)' : (venceuRep === 'Clássico' ? 'var(--primary)' : '#666')}; font-weight:bold;">${venceuRep.toUpperCase()}</span></b></p>` : `<p style="margin-top: 10px;"><b>3. Reprodutibilidade:</b> <i>Dados insuficientes para calcular no reteste.</i></p>`}
         </div>
     </div>
     `;
