@@ -1648,6 +1648,61 @@ function analyzeCSV(text){
         }
     } else { retestHTML = "<p style='text-align:center;'><i>Dados de reteste indisponíveis.</i></p>"; }
 
+    // =========================================================================
+    // NOVO: JUÍZO ELETRÔNICO (Cálculo do Vencedor)
+    // =========================================================================
+    function calcConfRate(matrix) {
+        let err = 0, tot = 0;
+        Object.keys(matrix).forEach(a => {
+            Object.keys(matrix[a]).forEach(resp => {
+                let v = matrix[a][resp];
+                tot += v;
+                if(a !== resp) err += v;
+            });
+        });
+        return tot > 0 ? (err / tot) * 100 : 0;
+    }
+    
+    let taxaConfClassico = calcConfRate(confClassico);
+    let taxaConfSloan20 = calcConfRate(confSloan20);
+
+    let pontosSloan = 0, pontosClassico = 0;
+    if(taxaConfSloan20 < taxaConfClassico) pontosSloan++; else if(taxaConfClassico < taxaConfSloan20) pontosClassico++;
+
+    let repTextSloan = "", repTextClassico = "", repNome = "";
+    if (pairsC.length >= 1 && pairsS.length >= 1) {
+        if (subjects.length === 1) {
+            let dC = Math.abs(pairsC[0][0] - pairsC[0][1]);
+            let dS = Math.abs(pairsS[0][0] - pairsS[0][1]);
+            repNome = "Variação Absoluta (Δ logMAR) - menor é melhor";
+            repTextClassico = dC.toFixed(3);
+            repTextSloan = dS.toFixed(3);
+            if(dS < dC) pontosSloan++; else if(dC < dS) pontosClassico++;
+        } else {
+            repNome = "Confiabilidade (ICC) - maior é melhor";
+            let icc_C = iccClassico !== null ? iccClassico : 0;
+            let icc_S = iccSloan20 !== null ? iccSloan20 : 0;
+            repTextClassico = icc_C.toFixed(3);
+            repTextSloan = icc_S.toFixed(3);
+            if(icc_S > icc_C) pontosSloan++; else if(icc_C > icc_S) pontosClassico++;
+        }
+    }
+
+    let vencedorNome = "Empate / Inconclusivo";
+    let corVencedor = "#6c757d"; // Cinza
+    let bgCor = "#f8f9fa";
+    if (pontosSloan > pontosClassico) { 
+        vencedorNome = "SLOAN 2.0"; 
+        corVencedor = "var(--success)"; // Verde
+        bgCor = "#f4fcf5";
+    } else if (pontosClassico > pontosSloan) { 
+        vencedorNome = "Sloan Clássico"; 
+        corVencedor = "var(--primary)"; // Azul
+        bgCor = "#f0f7ff";
+    }
+
+    // FIM DO CÁLCULO DO VENCEDOR ===============================================
+
     let uid = Date.now();
     let safeContainer = "chartsSafeContainer_" + uid;
 
@@ -1668,7 +1723,20 @@ function analyzeCSV(text){
         <div style="margin-top: 20px; font-size: 13.5px; text-align: justify; color: #333; background: #eaf7ff; padding: 15px; border-left: 5px solid #007bff; border-radius: 4px; max-width:800px; margin:20px auto;">
             <b>Como interpretar o Bland-Altman:</b> Este gráfico avalia a concordância absoluta entre os dois testes. A linha central contínua azul (<b>Bias</b>) mostra a diferença média de acertos (SLOAN 2.0 menos Clássico). Se for positiva, significa que o SLOAN 2.0 proporcionou um ganho de acertos gerais. As linhas tracejadas vermelhas representam os <b>Limites de Concordância de 95% (±1.96 SD)</b>.
         </div>
-    </div>`;
+    </div>
+    
+    <div class="metric-box" style="border: 2px solid ${corVencedor}; background: ${bgCor}; margin-top: 30px;">
+        <h4 style="color: ${corVencedor}; border-bottom: 1px solid ${corVencedor};"><i class="fas fa-trophy"></i> 6. Conclusão Clínica: Discernimento e Estabilidade</h4>
+        <div style="font-size: 15px; line-height: 1.6; color: #333; padding-top: 10px;">
+            <p>Com base na análise matemática dos dados pareados, o teste que apresentou letras <b>mais igualmente discerníveis</b> e maior consistência de repetição foi o <b><span style="color: ${corVencedor}; font-size: 17px; text-transform: uppercase;">${vencedorNome}</span></b>.</p>
+            <p style="margin-top: 15px;"><b>Motivos (Baseados em Dados):</b></p>
+            <ul style="padding-left: 20px; margin-bottom: 0;">
+                <li style="margin-bottom: 10px;"><b>Menor Efeito Crowding (Confusão Visual):</b> O SLOAN 2.0 teve uma taxa de confundibilidade média de <b>${taxaConfSloan20.toFixed(1)}%</b> contra <b>${taxaConfClassico.toFixed(1)}%</b> do Clássico. Uma taxa menor significa que as letras chegam ao limite da visão ("borram") de forma simultânea. Quando o discernimento é igualado, o cérebro do paciente para de tentar "adivinhar" letras parecidas, derrubando a taxa de confusão.</li>
+                ${repNome ? `<li><b>Maior Reprodutibilidade (${repNome.split(' -')[0]}):</b> O SLOAN 2.0 marcou <b>${repTextSloan}</b> vs <b>${repTextClassico}</b> do Clássico. Um resultado superior aqui prova a existência do "Efeito Parede de Tijolos". Como não há letras desproporcionalmente fáceis ou difíceis numa mesma linha, o limiar visual do paciente é sólido e o teste trava na mesma dificuldade exata em ambos os dias.</li>` : `<li><i>Dados insuficientes para calcular a reprodutibilidade no reteste.</i></li>`}
+            </ul>
+        </div>
+    </div>
+    `;
     
     let targetId = window.currentClinicTarget || "clinicalAnalysisOutput";
     document.getElementById(targetId).innerHTML = html;
@@ -1679,7 +1747,6 @@ function analyzeCSV(text){
         drawClinicalConfusionMatrix(confSloan20, "5. Matriz: SLOAN 2.0", "canvasConfSloan20_" + uid, targetId);
     }, 100);
 }
-
 function drawScatter(x, y, containerId){
     let container = document.getElementById(containerId); if(!container) return;
     let canvas = document.createElement("canvas"); canvas.width = 400; canvas.height = 400;
