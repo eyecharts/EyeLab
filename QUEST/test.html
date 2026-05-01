@@ -1016,26 +1016,6 @@ function letterSetOptimization(tabela, matriz, variabilidadeLetra){
             }
         }
         
-        // NOVO: Cálculo de Confusão Externa (Out-of-Set Confusion)
-        // Vasculha se alguma letra do set se confunde fatalmente com o resto do alfabeto
-        let maxOutConf = 0;
-        set.forEach(l => {
-            let letraA = l.letra;
-            Object.keys(matriz[letraA] || {}).forEach(letraB => {
-                // Se a letraB não está no set sorteado e não é a própria letra
-                if (letraA !== letraB && !set.some(t => t.letra === letraB)) {
-                    
-                    // 🔥 HEURÍSTICA CLÍNICA: Perdoa a confusão do V com o Y
-                    let isException = (letraA === 'V' && letraB === 'Y') || (letraA === 'Y' && letraB === 'V');
-                    
-                    if (!isException) {
-                        let outConf = matriz[letraA][letraB];
-                        if (outConf > maxOutConf) maxOutConf = outConf;
-                    }
-                }
-            });
-        });
-
         let LPI = calcularLPI(set.map(l=>l.letra), matriz);
 
         let distSum=0, dpairs=0;
@@ -1052,15 +1032,14 @@ function letterSetOptimization(tabela, matriz, variabilidadeLetra){
         let penalty = 0;
         let limCmax = Math.max(sloanCmax, 0.35); 
 
-        // Punições
+        // O maxVariab agora atua APENAS como barreira de punição para eliminar letras ruins
         if (span > 0.065) penalty += 1000 + 5000 * (span - 0.065); 
         if (maxVariab > 0.055) penalty += 2000 + 10000 * (maxVariab - 0.055); 
         if (maxPairConf > limCmax) penalty += 1000 + 5000 * (maxPairConf - limCmax);
 
-        // NOVA EQUAÇÃO DE SCORE: Adiciona o peso da Confusão Externa (maxOutConf)
+        // A equação volta a ter 5 parâmetros limpos e não-redundantes!
         let score = 
             (10.0 * maxPairConf) +  
-            (15.0 * maxOutConf) +   // <--- Pune letras que se confundem com letras fantasmas (ex: F com P)
             (10.0 * LPI) +          
             (40.0 * meanVariab) +   
             (20.0 * span) -         
