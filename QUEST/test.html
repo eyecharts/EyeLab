@@ -576,14 +576,33 @@ function showTrial(){
 // =========================================================================
 // LISTENER GERAL DE TECLADO
 // =========================================================================
+// =========================================================================
+// LISTENER GERAL DE TECLADO
+// =========================================================================
 document.addEventListener("keydown", function(e){
     if(e.repeat || paused) return;
     let key = e.key.toUpperCase();
 
     if(clinicalMode){
         if(!/^[A-Z0]$/.test(key)) return;
-        responses.push(key);
-        if(responses.length === lettersLine.length) processLine();
+        
+        // NOVO: Lógica visual da setinha indicadora
+        let currentIndex = responses.length;
+        
+        // Esconde a seta da letra atual antes de salvar a resposta
+        let currentArrow = document.getElementById("clinicArrow_" + currentIndex);
+        if(currentArrow) currentArrow.style.visibility = "hidden";
+        
+        responses.push(key); // Salva o input do paciente
+        
+        // Se ainda não preencheu as 5 letras, acende a seta da próxima
+        if(responses.length < lettersLine.length){
+            let nextArrow = document.getElementById("clinicArrow_" + responses.length);
+            if(nextArrow) nextArrow.style.visibility = "visible";
+        } else {
+            // Se chegou na última letra, avalia a linha e avança
+            processLine();
+        }
         return;
     }
 
@@ -804,24 +823,45 @@ function nextLine(){
     
     const baseSize = logMARtoPx(logMAR);
     const card = document.createElement("div");
-    card.className = "card"; card.style.display = "inline-block"; card.style.padding = "50px";
+    card.className = "card"; card.style.display = "inline-block"; card.style.padding = "40px 50px";
     
     const lineDiv = document.createElement("div");
-    lineDiv.style.display = "flex"; lineDiv.style.gap = baseSize + "px"; lineDiv.style.alignItems = "center";
+    // NOVO: 'flex-end' garante que a base das letras fique alinhada, independentemente de haver correção de tamanho
+    lineDiv.style.display = "flex"; lineDiv.style.gap = baseSize + "px"; lineDiv.style.alignItems = "flex-end"; 
     
-    lettersLine.forEach(letter => {
+    lettersLine.forEach((letter, index) => {
         let size = baseSize;
         
-        // NOVO: Busca o fator de correção na ALL_FACTORS (que tem o fator de TODAS as letras testadas)
-        // Se por ventura a letra não existir na base de testes, ele protege e aplica 1.0
         if(chartType === "SLOAN20") {
             let fatorCorrecao = (window.ALL_FACTORS && window.ALL_FACTORS[letter]) ? window.ALL_FACTORS[letter] : 1.0;
             size = baseSize * fatorCorrecao;
         }
         
+        // NOVO: Container vertical que segura a Seta em cima e a Letra embaixo
+        const colDiv = document.createElement("div");
+        colDiv.style.display = "flex";
+        colDiv.style.flexDirection = "column";
+        colDiv.style.alignItems = "center";
+        
+        // NOVO: Seta indicadora
+        const arrow = document.createElement("div");
+        arrow.id = "clinicArrow_" + index; // ID único para controle
+        arrow.innerText = "▼";
+        arrow.style.fontSize = Math.max(14, baseSize * 0.25) + "px"; // Responsivo, mas nunca menor que 14px
+        arrow.style.color = "var(--danger)"; // Usa o vermelho de alerta do seu CSS
+        arrow.style.marginBottom = "8px"; // Espaço entre a seta e o optótipo
+        // Somente a primeira começa visível (o atributo 'visibility' esconde sem mexer no layout)
+        arrow.style.visibility = (index === 0) ? "visible" : "hidden"; 
+        
         const span = document.createElement("span");
-        span.innerText = letter; span.style.fontSize = size + "px"; span.style.fontFamily = "'Sloan', sans-serif";
-        lineDiv.appendChild(span);
+        span.innerText = letter; 
+        span.style.fontSize = size + "px"; 
+        span.style.fontFamily = "'Sloan', sans-serif";
+        span.style.lineHeight = "1";
+        
+        colDiv.appendChild(arrow);
+        colDiv.appendChild(span);
+        lineDiv.appendChild(colDiv);
     });
     
     card.appendChild(lineDiv);
@@ -830,6 +870,7 @@ function nextLine(){
     startTime = performance.now();
     lineIndex++;
 }
+
 function processLine(){
     const time = Math.round(performance.now() - startTime);
     let correct = 0;
