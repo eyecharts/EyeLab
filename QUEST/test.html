@@ -1154,6 +1154,101 @@ function letterSetOptimization(tabela, matriz, variabilidadeLetra){
 
     return { set:melhorSet, score:melhorScore, metrics:melhorMetrics };
 }
+// Variável global para armazenar o estado da análise e permitir edições em tempo real
+window.psychoCache = {};
+
+function calcularMetricsDoGrupo(letrasGrupo, tabela, matriz, matrizProb, variabilidadeLetra){
+    let subset = tabela.filter(t=>letrasGrupo.includes(t.letra));
+    if(subset.length < 2) return null;
+    let th = subset.map(t=>t.threshold);
+    let span = Math.max(...th) - Math.min(...th);
+    
+    let confSum=0, maxConf=0, pairs=0;
+    for(let i=0;i<letrasGrupo.length;i++){
+        for(let j=i+1;j<letrasGrupo.length;j++){
+            let a = letrasGrupo[i], b = letrasGrupo[j];
+            let conf = (matriz[a]?.[b]||0) + (matriz[b]?.[a]||0);
+            confSum+=conf; if(conf>maxConf) maxConf=conf; pairs++;
+        }
+    }
+    
+    let distSum=0, dpairs=0;
+    for(let i=0;i<letrasGrupo.length;i++){
+        for(let j=i+1;j<letrasGrupo.length;j++){
+            let a=letrasGrupo[i], b=letrasGrupo[j];
+            let v1=Object.values(matrizProb[a] || {}), v2=Object.values(matrizProb[b] || {});
+            let d=0; for(let k=0;k<v1.length;k++) d+=Math.pow(v1[k]-v2[k],2);
+            distSum+=Math.sqrt(d); dpairs++;
+        }
+    }
+    let dist = dpairs>0 ? distSum/dpairs : 0;
+    let variabSum=0; letrasGrupo.forEach(l=>{ variabSum += variabilidadeLetra[l] || 0; });
+    return { span, maxConf, dist, variability: variabSum/letrasGrupo.length, LPI: calcularLPI(letrasGrupo, matriz) };
+}
+
+function atualizarSloanCustomizado(uid) {
+    let input = document.getElementById("custom_sloan_input_" + uid);
+    if(!input) return;
+    
+    let novasLetrasStr = input.value.toUpperCase().replace(/[^A-Z]/g, '');
+    let novasLetras = Array.from(new Set(novasLetrasStr.split(''))); // Remove duplicatas
+    
+    if(novasLetras.length < 5) { alert("⚠️ Digite pelo menos 5 letras para compor a linha ETDRS."); return; }
+
+    input.value = novasLetras.join(""); 
+    window.letrasSelecionadas = novasLetras; // Atualiza globalmente para as curvas psicométricas
+
+    let cache = window.psychoCache;
+    let subsetTabela = cache.tabela.filter(t => novasLetras.includes(t.letra)).sort((a,b)=>a.threshold-b.threshold);
+    let minThr = subsetTabela.length > 0 ? Math.min(...subsetTabela.map(l=>l.threshold)) : 0;
+    let newMetricsSet = calcularMetricsDoGrupo(novasLetras, cache.tabela, cache.matriz, cache.matrizProb, cache.variabilidadeLetra);
+
+    // 1. Atualiza a Tabela 2 (Visual e Status de Seleção) para refletir as novas escolhas
+    let SLOAN = ["C","D","H","K","N","O","R","S","V","Z"];
+    cache.tabela.forEach(t => {
+        let l = t.letra;
+        let isSet = novasLetras.includes(l);
+        let isSloan = SLOAN.includes(l);
+        let status = isSet ? 2 : (isSloan ? 1 : 0);
+        let cls = (isSet && isSloan) ? "bothLetter" : (isSet ? "bestLetter" : (isSloan ? "sloanLetter" : ""));
+        
+        let row = document.getElementById(`row_${uid}_${l}`);
+        if(row) row.className = cls;
+        let statusTd = document.getElementById(`status_${uid}_${l}`);
+        if(statusTd) statusTd.innerText = status;
+    });
+
+    // 2. Atualiza os blocos visuais da Seção 4 (Letras grandes e tabela de fatores)
+    let htmlSec4 = `
+        <div style="display:flex; gap:25px; align-items:center; justify-content:center; padding:20px;">
+            ${subsetTabela.map(l => `<span style="font-family:'Sloan',Arial; font-size:${Math.max(22,Math.min(60,40*Math.pow(10,l.threshold)))}px;">${l.letra}</span>`).join("")}
+        </div>
+        <p style="font-size:14px; text-align:justify; margin-bottom:20px;">Each optotype is scaled according to its estimated threshold so that all letters correspond to an equivalent difficulty at 0 logMAR.</p>
+        <table class="res-table">
+            <tr><th>Letra</th><th>Threshold Original</th><th>Fator de Correção</th></tr>
+            ${subsetTabela.map(l => `<tr><td><b>${l.letra}</b></td><td>${l.threshold.toFixed(3)}</td><td>${Math.pow(10, l.threshold - minThr).toFixed(3)}</td></tr>`).join("")}
+        </table>
+    `;
+    document.getElementById("render_section4_" + uid).innerHTML = htmlSec4;
+
+    // 3. Atualiza a Tabela de Métricas Comparativas da Seção 5
+    let htmlSec5 = `
+        <table class="res-table">
+            <tr><th>Metric</th><th>Global (A–Z)</th><th>Classical Sloan</th><th>SLOAN 2.0 (Customizado)</th></tr>
+            <tr><td>Max Pairwise Confusion (Cmax) ↓</td><td>${cache.metricsGlobal?.maxConf.toFixed(3)}</td><td>${cache.metricsSloan?.maxConf.toFixed(3)}</td><td>${newMetricsSet?.maxConf.toFixed(3)}</td></tr>
+            <tr><td>Line Penalty Index (LPI) ↓</td><td>${cache.metricsGlobal?.LPI.toFixed(3)}</td><td>${cache.metricsSloan?.LPI.toFixed(3)}</td><td style="background:#d4edda; font-weight:bold;">${newMetricsSet?.LPI.toFixed(3)}</td></tr>
+            <tr><td>Inter-subject Variability (V) ↓</td><td>${cache.metricsGlobal?.variability.toFixed(3)}</td><td>${cache.metricsSloan?.variability.toFixed(3)}</td><td>${newMetricsSet?.variability.toFixed(3)}</td></tr>
+            <tr><td>Threshold Span (Size Max-Min) ↓</td><td>${cache.metricsGlobal?.span.toFixed(3)}</td><td>${cache.metricsSloan?.span.toFixed(3)}</td><td>${newMetricsSet?.span.toFixed(3)}</td></tr>
+            <tr><td>Perceptual Distance (Δ) ↑</td><td>${cache.metricsGlobal?.dist.toFixed(3)}</td><td>${cache.metricsSloan?.dist.toFixed(3)}</td><td>${newMetricsSet?.dist.toFixed(3)}</td></tr>
+        </table>
+    `;
+    document.getElementById("render_section5_" + uid).innerHTML = htmlSec5;
+
+    // 4. Redesenha os Canvas afetados pela mudança de grupo
+    desenharGraficoComparativo(cache.metricsGlobal, cache.metricsSloan, newMetricsSet, "metricsChart_" + uid);
+    desenharCurvasPsicometricas("psychometricCurves_" + uid);
+}
+
 function processarCSV(data){
     seed = 123456; 
     data = normalizarPorSujeito(data); 
@@ -1184,16 +1279,13 @@ function processarCSV(data){
         }
         obj.alpha=bestA; obj.beta=bestB;
         
-        // Mantém a aleatoriedade estrita para o algoritmo de otimização
         if(obj.data.length >= 6){
             let estimate = obj.alpha;
             let jitter = (random()-0.5)*step; 
             obj.stimulus = estimate + jitter;
         }
 
-        // 🔥 CORREÇÃO MATEMÁTICA: Slope Real (1 / beta)
         let slopeReal = 1 / obj.beta;
-
         tabela.push({ letra:l, threshold:obj.alpha+obj.beta*Math.log(3), slope: slopeReal, n:obj.trials });
     });
     tabela.sort((a,b)=>a.threshold-b.threshold);
@@ -1205,43 +1297,9 @@ function processarCSV(data){
     let opt = letterSetOptimization(tabela, matrizProb, variabilidadeLetra);
     let letrasSet = (opt.set || []).map(l=>l.letra);
 
-    function calcularMetricsGrupo(letrasGrupo){
-        let subset = tabela.filter(t=>letrasGrupo.includes(t.letra));
-        if(subset.length < 2) return null;
-        let th = subset.map(t=>t.threshold);
-        
-        // 1. NOVA MÉTRICA DE DISPERSÃO ENXUTA: SPAN (Substitui SD e Outliers)
-        let span = Math.max(...th) - Math.min(...th);
-        
-        let confSum=0, maxConf=0, pairs=0;
-        for(let i=0;i<letrasGrupo.length;i++){
-            for(let j=i+1;j<letrasGrupo.length;j++){
-                let a = letrasGrupo[i], b = letrasGrupo[j];
-                let conf = (matriz[a]?.[b]||0) + (matriz[b]?.[a]||0);
-                confSum+=conf; if(conf>maxConf) maxConf=conf; pairs++;
-            }
-        }
-        
-        let distSum=0, dpairs=0;
-        for(let i=0;i<letrasGrupo.length;i++){
-            for(let j=i+1;j<letrasGrupo.length;j++){
-                let a=letrasGrupo[i], b=letrasGrupo[j];
-                let v1=Object.values(matrizProb[a] || {}), v2=Object.values(matrizProb[b] || {});
-                let d=0; for(let k=0;k<v1.length;k++) d+=Math.pow(v1[k]-v2[k],2);
-                distSum+=Math.sqrt(d); dpairs++;
-            }
-        }
-        let dist = dpairs>0 ? distSum/dpairs : 0;
-        
-        let variabSum=0; letrasGrupo.forEach(l=>{ variabSum += variabilidadeLetra[l] || 0; });
-        
-        // Retornamos exatamente as 5 métricas atualizadas
-        return { span, maxConf, dist, variability: variabSum/letrasGrupo.length, LPI: calcularLPI(letrasGrupo, matriz) };
-    }
-
-    let metricsGlobal = calcularMetricsGrupo(tabela.map(t=>t.letra));
-    let metricsSloan  = calcularMetricsGrupo(SLOAN.filter(l => tabela.map(t=>t.letra).includes(l)));
-    let metricsSet    = calcularMetricsGrupo(letrasSet);
+    let metricsGlobal = calcularMetricsDoGrupo(tabela.map(t=>t.letra), tabela, matriz, matrizProb, variabilidadeLetra);
+    let metricsSloan  = calcularMetricsDoGrupo(SLOAN.filter(l => tabela.map(t=>t.letra).includes(l)), tabela, matriz, matrizProb, variabilidadeLetra);
+    let metricsSet    = calcularMetricsDoGrupo(letrasSet, tabela, matriz, matrizProb, variabilidadeLetra);
 
     window.letrasSelecionadas = letrasSet;
     let avancado = calcularMetricasAvancadas(tabela,lettersData);
@@ -1258,12 +1316,12 @@ function processarCSV(data){
         confusaoPrincipal[l] = lista.length>0 ? lista[0].letra : "";
     });
 
-    // =========================================================================
-    // GERAÇÃO DO HTML (DESIGN MODERNO E 5 VARIÁVEIS)
-    // =========================================================================
     let uid = Date.now();
     let setSelecionado = (opt.set || []).slice().sort((a,b)=>a.threshold-b.threshold);
     let minThr = setSelecionado.length > 0 ? Math.min(...setSelecionado.map(l=>l.threshold)) : 0;
+
+    // SALVA NO CACHE GLOBAL PARA PERMITIR A EDIÇÃO MANUAL POSTERIOR
+    window.psychoCache = { tabela, matriz, matrizProb, variabilidadeLetra, metricsGlobal, metricsSloan, uid };
 
     let html = `
     <div class="metric-box">
@@ -1281,7 +1339,7 @@ function processarCSV(data){
     <div class="metric-box">
         <h4>2. Optotype-Level Psychometric Results</h4>
         <p style="font-size:13px; color:var(--text-muted); text-align:justify; margin-bottom:15px;"><b>Table 2.</b> Psychometric properties of individual optotypes. Thresholds are reported in logMAR units with corresponding 95% confidence intervals (CI). Slope represents the true geometric steepness of the psychometric function (calculated as 1/β). Confusion rate indicates the proportion of incorrect identifications, and primary confusion denotes the most frequently confused optotype.</p>
-        <table class="res-table">
+        <table class="res-table" id="table_psychometric_results_${uid}">
             <tr><th>Optotype</th><th>Threshold (logMAR)</th><th>95% CI</th><th>Slope (1/β)</th><th>Confusion Rate</th><th>Primary Confusion</th><th>Inter-subject Variability</th><th>Selection Status</th></tr>
             ${avancado.map(r => {
                 let letraClean = r.letra;
@@ -1293,7 +1351,7 @@ function processarCSV(data){
                 let confTop = confusaoPrincipal[letraClean] || "";
                 let variab = variabilidadeLetra[letraClean] || 0;
 
-                return `<tr class="${cls}">
+                return `<tr id="row_${uid}_${letraClean}" class="${cls}">
                     <td><b>${letraClean}</b></td>
                     <td>${r.threshold.toFixed(3)}</td>
                     <td>${r.icLow.toFixed(3)} – ${r.icHigh.toFixed(3)}</td>
@@ -1301,49 +1359,53 @@ function processarCSV(data){
                     <td>${conf.toFixed(3)}</td>
                     <td>${confTop}</td>
                     <td>${variab.toFixed(3)}</td>
-                    <td>${status}</td>
+                    <td><span id="status_${uid}_${letraClean}">${status}</span></td>
                 </tr>`;
             }).join("")}
         </table>
         <p style="font-size:12px; color:#666;">Selection Status: 0 = non-selected; 1 = classical Sloan; 2 = optimized set (SLOAN 2.0).</p>
     </div>
 
-<div class="metric-box">
+    <div class="metric-box">
         <h4>3. Optotype Set Optimization Criteria</h4>
         <p style="font-size:14px; text-align:justify;">Optimization uses a data-driven, 5-parameter cost function evaluated over 50,000 Monte Carlo simulations. To prevent the "Free-Rider Effect" (where an unstable letter hides in a set with a good average), the algorithm evaluates the set based on Mean Variability (V) but applies a severe background penalty if any single letter exceeds an individual variability limit (MaxV > 0.055). <br><br><code>Score = 10.0·Cmax + 10.0·LPI + 40.0·V + 20.0·Span - 5.0·Δ + Penalty</code></p>
-    
-        <ul style="font-size:13.5px; line-height:1.6; color:#444; padding-left:20px;">
-            <li><b>Cmax (Max Pairwise Confusion) [Weight: 10.0]:</b> Severely penalizes the inclusion of specific letter pairs that are highly confusable (e.g., C and O), preventing catastrophic single-item failures in the chart.</li>
-            <li><b>LPI (Line Penalty Index) [Weight: 10.0]:</b> Evaluates the sum of interactions, simulating the crowding effect across the entire line.</li>
-            <li><b>V (Average Inter-subject Variability) [Weight: 40.0]:</b> Penalizes the overall variability of the set. Low variability indicates high geometric slopes across the board, meaning the set as a whole has sharp, decisive psychometric functions.</li>
-            <li><b>Span (Max Threshold Difference) [Weight: 20.0]:</b> Highly weighted to enforce strict physical homogeneity. It prevents the algorithm from selecting letters that would require disproportionate size scaling (like 'B'), preserving the chart's structural integrity.</li>
-            <li><b>Δ (Perceptual Distance) [Weight: -5.0]:</b> Acts as a reward (negative cost). Maximizes the overall perceptual separability/orthogonality of the final set.</li>
-        </ul>
     </div>
 
     <div class="metric-box">
         <h4>4. Conjunto Otimizado (SLOAN 2.0 Equalizado)</h4>
-        <div style="display:flex; gap:25px; align-items:center; justify-content:center; padding:20px;">
-            ${setSelecionado.map(l => `<span style="font-family:'Sloan',Arial; font-size:${Math.max(22,Math.min(60,40*Math.pow(10,l.threshold)))}px;">${l.letra}</span>`).join("")}
-        </div>
-        <p style="font-size:14px; text-align:justify; margin-bottom:20px;">Each optotype is scaled according to its estimated threshold so that all letters correspond to an equivalent difficulty at 0 logMAR.</p>
         
-        <table class="res-table">
-            <tr><th>Letra</th><th>Threshold Original</th><th>Fator de Correção</th></tr>
-            ${setSelecionado.map(l => `<tr><td><b>${l.letra}</b></td><td>${l.threshold.toFixed(3)}</td><td>${Math.pow(10, l.threshold - minThr).toFixed(3)}</td></tr>`).join("")}
-        </table>
+        <div style="background:#f8f9fa; border:1px solid #ddd; padding:15px; border-radius:8px; margin-bottom:20px; text-align:center;">
+            <label style="font-weight:bold; display:inline-block; margin-right:10px;">Ajuste Fino Manual do SLOAN 2.0:</label>
+            <input type="text" id="custom_sloan_input_${uid}" value="${letrasSet.join("")}" style="font-size:18px; text-transform:uppercase; letter-spacing:3px; padding:5px 10px; font-weight:bold; width:250px; text-align:center; border:1px solid #ccc; border-radius:5px;">
+            <button class="btn-primary" onclick="atualizarSloanCustomizado(${uid})" style="padding: 6px 15px; margin-left:10px;">🔄 Atualizar Gráficos</button>
+            <div style="font-size:12px; color:#666; margin-top:8px;">Edite as letras e clique em Atualizar para recalcular fatores, tabelas comparativas e curvas dinamicamente.</div>
+        </div>
+
+        <div id="render_section4_${uid}">
+            <div style="display:flex; gap:25px; align-items:center; justify-content:center; padding:20px;">
+                ${setSelecionado.map(l => `<span style="font-family:'Sloan',Arial; font-size:${Math.max(22,Math.min(60,40*Math.pow(10,l.threshold)))}px;">${l.letra}</span>`).join("")}
+            </div>
+            <p style="font-size:14px; text-align:justify; margin-bottom:20px;">Each optotype is scaled according to its estimated threshold so that all letters correspond to an equivalent difficulty at 0 logMAR.</p>
+            
+            <table class="res-table">
+                <tr><th>Letra</th><th>Threshold Original</th><th>Fator de Correção</th></tr>
+                ${setSelecionado.map(l => `<tr><td><b>${l.letra}</b></td><td>${l.threshold.toFixed(3)}</td><td>${Math.pow(10, l.threshold - minThr).toFixed(3)}</td></tr>`).join("")}
+            </table>
+        </div>
     </div>
 
     <div class="metric-box">
         <h4>5. Comparison of Metrics Across Optotype Sets</h4>
-        <table class="res-table">
-            <tr><th>Metric</th><th>Global (A–Z)</th><th>Classical Sloan</th><th>SLOAN 2.0</th></tr>
-            <tr><td>Max Pairwise Confusion (Cmax) ↓</td><td>${metricsGlobal?.maxConf.toFixed(3)}</td><td>${metricsSloan?.maxConf.toFixed(3)}</td><td>${metricsSet?.maxConf.toFixed(3)}</td></tr>
-            <tr><td>Line Penalty Index (LPI) ↓</td><td>${metricsGlobal?.LPI.toFixed(3)}</td><td>${metricsSloan?.LPI.toFixed(3)}</td><td style="background:#d4edda; font-weight:bold;">${metricsSet?.LPI.toFixed(3)}</td></tr>
-            <tr><td>Inter-subject Variability (V) ↓</td><td>${metricsGlobal?.variability.toFixed(3)}</td><td>${metricsSloan?.variability.toFixed(3)}</td><td>${metricsSet?.variability.toFixed(3)}</td></tr>
-            <tr><td>Threshold Span (Size Max-Min) ↓</td><td>${metricsGlobal?.span.toFixed(3)}</td><td>${metricsSloan?.span.toFixed(3)}</td><td>${metricsSet?.span.toFixed(3)}</td></tr>
-            <tr><td>Perceptual Distance (Δ) ↑</td><td>${metricsGlobal?.dist.toFixed(3)}</td><td>${metricsSloan?.dist.toFixed(3)}</td><td>${metricsSet?.dist.toFixed(3)}</td></tr>
-        </table>
+        <div id="render_section5_${uid}">
+            <table class="res-table">
+                <tr><th>Metric</th><th>Global (A–Z)</th><th>Classical Sloan</th><th>SLOAN 2.0</th></tr>
+                <tr><td>Max Pairwise Confusion (Cmax) ↓</td><td>${metricsGlobal?.maxConf.toFixed(3)}</td><td>${metricsSloan?.maxConf.toFixed(3)}</td><td>${metricsSet?.maxConf.toFixed(3)}</td></tr>
+                <tr><td>Line Penalty Index (LPI) ↓</td><td>${metricsGlobal?.LPI.toFixed(3)}</td><td>${metricsSloan?.LPI.toFixed(3)}</td><td style="background:#d4edda; font-weight:bold;">${metricsSet?.LPI.toFixed(3)}</td></tr>
+                <tr><td>Inter-subject Variability (V) ↓</td><td>${metricsGlobal?.variability.toFixed(3)}</td><td>${metricsSloan?.variability.toFixed(3)}</td><td>${metricsSet?.variability.toFixed(3)}</td></tr>
+                <tr><td>Threshold Span (Size Max-Min) ↓</td><td>${metricsGlobal?.span.toFixed(3)}</td><td>${metricsSloan?.span.toFixed(3)}</td><td>${metricsSet?.span.toFixed(3)}</td></tr>
+                <tr><td>Perceptual Distance (Δ) ↑</td><td>${metricsGlobal?.dist.toFixed(3)}</td><td>${metricsSloan?.dist.toFixed(3)}</td><td>${metricsSet?.dist.toFixed(3)}</td></tr>
+            </table>
+        </div>
         <canvas id="metricsChart_${uid}" width="800" height="480" style="margin-top:20px; display:block; margin: 0 auto;"></canvas>
     </div>
 
@@ -1367,7 +1429,6 @@ function processarCSV(data){
         desenharGraficoComparativo(metricsGlobal, metricsSloan, metricsSet, `metricsChart_${uid}`);
     }, 100);
 }
-
 // PSICO DRAW FUNCTIONS
 function desenharHeatmap(matriz, canvasId){
     let canvas = document.getElementById(canvasId); if(!canvas) return;
