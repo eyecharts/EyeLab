@@ -304,10 +304,15 @@ function abrirAba(nome){
         extractThresholdsFromTable();
         let inputSloan2 = document.getElementById("sloan2_input");
         if(inputSloan2){
+            // Libera o campo para edição do usuário e ajusta visualmente
+            inputSloan2.removeAttribute("readonly");
+            inputSloan2.style.background = "#ffffff";
+            inputSloan2.placeholder = "Ex: ABCDEFG...";
+
             if(window.SLOAN20_FACTORS && Object.keys(window.SLOAN20_FACTORS).length > 0){
                 inputSloan2.value = Object.keys(window.SLOAN20_FACTORS).join("");
-            } else {
-                inputSloan2.value = "Aguardando psicométrico...";
+            } else if (inputSloan2.value === "Aguardando psicométrico...") {
+                inputSloan2.value = "";
             }
         }
     }
@@ -670,26 +675,62 @@ function endTest(){
 // =========================================================================
 function extractThresholdsFromTable(){
     const tables = document.querySelectorAll("table");
-    let targetTable = null;
+    let table2 = null;
+    
+    // Procura especificamente a Tabela 2 (Optotype-Level Psychometric Results)
     tables.forEach(table => {
         const headers = table.querySelectorAll("th");
-        if(headers.length >= 3){
+        if(headers.length >= 8){ 
             const h0 = headers[0].textContent.toLowerCase();
-            const h2 = headers[2].textContent.toLowerCase();
-            if(h0.includes("letra") && h2.includes("fator")){ targetTable = table; }
+            const h1 = headers[1].textContent.toLowerCase();
+            if(h0.includes("optotype") && h1.includes("threshold")){ table2 = table; }
         }
     });
 
-    window.SLOAN20_FACTORS = {};
-    if(!targetTable) return;
-    const rows = targetTable.querySelectorAll("tr");
+    window.SLOAN20_FACTORS = {}; // Para preencher o input inicialmente
+    window.ALL_FACTORS = {};     // NOVO: Banco de dados com o fator de TODAS as letras
+
+    if(!table2) return;
+    
+    let allThresholds = {};
+    let selectedThresholds = [];
+    
+    const rows = table2.querySelectorAll("tr");
+    rows.forEach((row, index) => {
+        if(index === 0) return; // Pula o cabeçalho
+        const cells = row.querySelectorAll("td");
+        if(cells.length < 8) return;
+        
+        const letter = cells[0].textContent.trim();
+        const threshold = parseFloat(cells[1].textContent);
+        const status = parseInt(cells[7].textContent); // Status 2 = Selecionada
+        
+        if(letter && !isNaN(threshold)){
+            allThresholds[letter] = threshold;
+            if(status === 2) {
+                selectedThresholds.push(threshold);
+            }
+        }
+    });
+
+    // Descobre o tamanho base (minThr) usado nas selecionadas para nivelar todo o resto
+    let minThr = selectedThresholds.length > 0 ? Math.min(...selectedThresholds) : Math.min(...Object.values(allThresholds));
+    
+    // Calcula e armazena o fator de correção de TODAS as letras
+    Object.keys(allThresholds).forEach(l => {
+        window.ALL_FACTORS[l] = Math.pow(10, allThresholds[l] - minThr);
+    });
+    
+    // Popula o objeto SLOAN20_FACTORS apenas com as letras que o sistema escolheu
     rows.forEach((row, index) => {
         if(index === 0) return;
         const cells = row.querySelectorAll("td");
-        if(cells.length < 3) return;
+        if(cells.length < 8) return;
         const letter = cells[0].textContent.trim();
-        const fator = parseFloat(cells[2].textContent);
-        if(letter && !isNaN(fator)) window.SLOAN20_FACTORS[letter] = fator;
+        const status = parseInt(cells[7].textContent);
+        if(status === 2 && window.ALL_FACTORS[letter]) {
+            window.SLOAN20_FACTORS[letter] = window.ALL_FACTORS[letter];
+        }
     });
 }
 
@@ -715,12 +756,22 @@ function startClinicalTest(){
     let salvaLocal = localStorage.getItem("pxPorMm_Sloan2");
     if(!pxPorMm && !salvaLocal){ alert("❌ Calibre a tela antes de iniciar."); return; }
 
-    extractThresholdsFromTable();
-    if(!window.SLOAN20_FACTORS || Object.keys(window.SLOAN20_FACTORS).length === 0){
-        alert("❌ Execute a Análise Psicométrica primeiro para gerar o Sloan 2.0."); return;
+    extractThresholdsFromTable(); 
+
+    // Lê as letras digitadas, remove espaços/números e converte para maiúsculo
+    let inputVal = document.getElementById("sloan2_input").value.toUpperCase().replace(/[^A-Z]/g, '');
+    
+    if(!inputVal || inputVal.length < 5){
+        alert("❌ Digite pelo menos 5 letras no campo 'Conjunto Otimizado (Sloan 2.0)' para poder formar uma linha."); 
+        return;
     }
 
-    document.getElementById("sloan2_input").value = Object.keys(window.SLOAN20_FACTORS).join("");
+    // Atualiza o input visualmente deixando apenas as letras limpas
+    document.getElementById("sloan2_input").value = inputVal;
+
+    // Salva o conjunto de letras digitadas para ser usado no sorteio
+    window.SLOAN20_CUSTOM_POOL = inputVal.split("");
+
     document.getElementById("clinicStartCard").style.display = "none";
     document.getElementById("clinicalAnalysisOutput").innerHTML = "";
 
@@ -733,7 +784,8 @@ function nextLine(){
     let blockIndex = Math.floor(lineIndex / TOTAL_LINES_PER_BLOCK);
     chartType = (blockIndex === 0 || blockIndex === 2) ? "CLASSICO" : "SLOAN20";
 
-    const pool = chartType === "CLASSICO" ? ["C","D","H","K","N","O","R","S","V","Z"] : Object.keys(window.SLOAN20_FACTORS);
+    // Usa o conjunto customizado do input em vez da lista estática do sistema
+    const pool = chartType === "CLASSICO" ? ["C","D","H","K","N","O","R","S","V","Z"] : window.SLOAN20_CUSTOM_POOL;
 
     function getNextLetters(pool, lineIndex){
         const start = (lineIndex * 5) % pool.length;
@@ -759,7 +811,14 @@ function nextLine(){
     
     lettersLine.forEach(letter => {
         let size = baseSize;
-        if(chartType === "SLOAN20" && window.SLOAN20_FACTORS[letter]) size = baseSize * window.SLOAN20_FACTORS[letter];
+        
+        // NOVO: Busca o fator de correção na ALL_FACTORS (que tem o fator de TODAS as letras testadas)
+        // Se por ventura a letra não existir na base de testes, ele protege e aplica 1.0
+        if(chartType === "SLOAN20") {
+            let fatorCorrecao = (window.ALL_FACTORS && window.ALL_FACTORS[letter]) ? window.ALL_FACTORS[letter] : 1.0;
+            size = baseSize * fatorCorrecao;
+        }
+        
         const span = document.createElement("span");
         span.innerText = letter; span.style.fontSize = size + "px"; span.style.fontFamily = "'Sloan', sans-serif";
         lineDiv.appendChild(span);
@@ -771,7 +830,6 @@ function nextLine(){
     startTime = performance.now();
     lineIndex++;
 }
-
 function processLine(){
     const time = Math.round(performance.now() - startTime);
     let correct = 0;
