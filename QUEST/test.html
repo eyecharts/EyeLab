@@ -213,6 +213,7 @@
                 <input id="sloan2_input" value="" style="font-size:18px; text-align:center; font-weight:bold; letter-spacing:3px; padding:10px; border:1px solid #ccc; border-radius:5px; background:#e9ecef; color:#333;" readonly>
             </div><br>
             <button class="btn-primary" onclick="startClinicalTest()">▶ Iniciar Teste Clínico</button>
+            <button class="btn-success" onclick="startDreamTeamClinicalTest()" style="margin-left: 10px;">✨ Iniciar teste com o SLOAN2.0</button>
         </div>
 
         <div id="clinicalArea" style="margin-top:20px; text-align:center;"></div>
@@ -500,6 +501,7 @@ function atualizarBarraConvergencia(obj){
     document.getElementById("status").innerText += `\nIC95%: ${largura.toFixed(3)}`;
 }
 
+
 function startTest(){
     let id = document.getElementById("subjectID").value.trim();
     if(!id){ alert("Preencha o ID do voluntário no topo da página"); return; }
@@ -769,6 +771,43 @@ function shuffleClinical(array){
     return arr;
 }
 
+function startDreamTeamClinicalTest() {
+    let id = document.getElementById("subjectID").value.trim();
+    if(!id){ alert("❌ Preencha o 'ID voluntário' (no topo da página)."); return; }
+    let salvaLocal = localStorage.getItem("pxPorMm_Sloan2");
+    if(!pxPorMm && !salvaLocal){ alert("❌ Calibre a tela antes de iniciar."); return; }
+
+    // 1. Injeta os fatores de correção definitivos na memória (Bypassa a necessidade do CSV/Tabela)
+    window.ALL_FACTORS = {
+        "Z": 1.000,
+        "P": 1.009,
+        "X": 1.096,
+        "E": 1.148,
+        "O": 1.159,
+        "K": 1.202,
+        "V": 1.202,
+        "M": 1.208,
+        "H": 1.265,
+        "R": 1.265
+    };
+
+    // 2. Preenche o input visualmente com o Dream Team
+    let dreamTeamStr = "XEOKVMRHZP";
+    document.getElementById("sloan2_input").value = dreamTeamStr;
+
+    // 3. Define o pool customizado para o sorteador do teste clínico
+    window.SLOAN20_CUSTOM_POOL = dreamTeamStr.split("");
+
+    // 4. Inicia a interface clínica diretamente
+    document.getElementById("clinicStartCard").style.display = "none";
+    document.getElementById("clinicalAnalysisOutput").innerHTML = "";
+
+    clinicalMode = true; 
+    dataClinical = []; 
+    lineIndex = 0;
+    
+    nextLine();
+}
 function startClinicalTest(){
     let id = document.getElementById("subjectID").value.trim();
     if(!id){ alert("❌ Preencha o 'ID voluntário' (no topo da página)."); return; }
