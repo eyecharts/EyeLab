@@ -1377,6 +1377,7 @@ function processarCSV(data){
         <div style="background:#f8f9fa; border:1px solid #ddd; padding:15px; border-radius:8px; margin-bottom:20px; text-align:center;">
             <label style="font-weight:bold; display:inline-block; margin-right:10px;">Ajuste Fino Manual do SLOAN 2.0:</label>
             <input type="text" id="custom_sloan_input_${uid}" value="${letrasSet.join("")}" style="font-size:18px; text-transform:uppercase; letter-spacing:3px; padding:5px 10px; font-weight:bold; width:250px; text-align:center; border:1px solid #ccc; border-radius:5px;">
+            <button class="btn-success" onclick="document.getElementById('custom_sloan_input_${uid}').value='XEOKVMRHZP'; atualizarSloanCustomizado(${uid});" style="padding: 6px 15px; margin-left:5px;">✨ Aplicar Sloan 2.0 Definitivo</button>
             <button class="btn-primary" onclick="atualizarSloanCustomizado(${uid})" style="padding: 6px 15px; margin-left:10px;">🔄 Atualizar Gráficos</button>
             <div style="font-size:12px; color:#666; margin-top:8px;">Edite as letras e clique em Atualizar para recalcular fatores, tabelas comparativas e curvas dinamicamente.</div>
         </div>
