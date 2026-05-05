@@ -164,7 +164,7 @@
 <body>
 
 <div class="header">
-    <h1>OptoLab (v5.5) - Projeto SLOAN 2.0</h1>
+    <h1>OptoLab (v<span id="versao-display"></span>) - Projeto SLOAN 2.0</h1>
     <p>Plataforma Integrada de Análise Psicométrica e Validação Clínica</p>
 </div>
 
@@ -350,6 +350,7 @@ function toggleFullscreen(){
 }
 
 window.onload = function(){
+    document.getElementById("versao-display").innerText = versaoOptoLab; // Injeta a versão no título
     carregarConfig();
     carregarCalibracao();
 }
