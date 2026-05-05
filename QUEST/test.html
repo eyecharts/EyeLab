@@ -8,7 +8,7 @@
 <title>Sloan 2.0 – Plataforma Científica e Clínica</title>
 <!-- SCRIPT DE AUTO-ATUALIZAÇÃO (FORÇA LIMPEZA DE CACHE) -->
 <script>
-    const versaoOptoLab = "6.1.5"; // ⚠️ MUDE ESTE NÚMERO TODA VEZ QUE ATUALIZAR O CÓDIGO NO GITHUB
+    const versaoOptoLab = "6.1.6"; // ⚠️ MUDE ESTE NÚMERO TODA VEZ QUE ATUALIZAR O CÓDIGO NO GITHUB
     
     if (localStorage.getItem("versao_luna") !== versaoOptoLab) {
         localStorage.setItem("versao_luna", versaoOptoLab);
@@ -1591,7 +1591,7 @@ let tabela=[];
             <div style="font-size:12px; color:#666; margin-top:8px;">Edite as letras e clique em Atualizar para recalcular fatores, tabelas comparativas e curvas dinamicamente.</div>
         
             <div id="render_section4_${uid}">
-            <div style="display:flex; gap:50px; align-items:center; justify-content:center; padding:20px;">
+            <div style="display:flex; gap:50px; align-items:center; justify-content:center; padding:20px; flex-wrap:wrap; background:white; border-radius:8px; border:1px solid #dee2e6;">
                 ${setSelecionado.map(l => `<span style="font-family:'Sloan',Arial; font-size:${Math.max(22,Math.min(60,40*Math.pow(10, l.th90 - minThr)))}px;">${l.letra}</span>`).join("")}
             </div>
             <p style="font-size:14px; text-align:justify; margin-bottom:20px;">Each optotype is scaled according to its estimated threshold so that all letters correspond to an equivalent difficulty at 0 logMAR.</p>
