@@ -6,7 +6,16 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Sloan 2.0 – Plataforma Científica e Clínica</title>
-
+<!-- SCRIPT DE AUTO-ATUALIZAÇÃO (FORÇA LIMPEZA DE CACHE) -->
+<script>
+    const versaoOptoLab = "6.0.4"; // ⚠️ MUDE ESTE NÚMERO TODA VEZ QUE ATUALIZAR O CÓDIGO NO GITHUB
+    
+    if (localStorage.getItem("versao_luna") !== versaoOptoLab) {
+        localStorage.setItem("versao_luna", versaoOptoLab);
+        // O parâmetro ?v= na URL engana o navegador e obriga ele a baixar o arquivo do zero
+        window.location.replace(window.location.pathname + "?v=" + versaoOptoLab);
+    }
+</script>
 <style>
     :root {
         --primary: #0d6efd;
