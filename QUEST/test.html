@@ -925,11 +925,24 @@ function processLine(){
     else { finishClinical(); }
 }
 
+    
 function finishClinical(){
     clinicalMode = false;
+    
+    // Captura os dados do painel superior
     let subj = document.getElementById("subjectID").value.trim() || "voluntario";
-    let csv = "subject,run,chart,line,logMAR,letters,responses,correct,time\n";
-    dataClinical.forEach(d => { csv += `${subj},${d.run},${d.chart},${d.line},${d.logMAR},${d.letters},${d.responses},${d.correct},${d.time}\n`; });
+    let idade = document.getElementById("idade").value || "";
+    let sexo = document.getElementById("sexo").value || "";
+    let esferico = document.getElementById("esferico").value || "";
+    
+    // Adiciona as 3 novas colunas no final do cabeçalho
+    let csv = "subject,run,chart,line,logMAR,letters,responses,correct,time,idade,sexo,esferico\n";
+    
+    // Insere os dados em cada linha gravada
+    dataClinical.forEach(d => { 
+        csv += `${subj},${d.run},${d.chart},${d.line},${d.logMAR},${d.letters},${d.responses},${d.correct},${d.time},${idade},${sexo},${esferico}\n`; 
+    });
+    
     let filename = subj + "_clinical.csv";
     
     document.getElementById("clinicalArea").innerHTML = `
@@ -1736,30 +1749,38 @@ function analyzeCSV(text){
     const lines = text.trim().split("\n");
     const headers = lines[0].split(",").map(h => h.trim().toLowerCase());
     
+    // Mapeamento direto das colunas do novo padrão LUNA
     const idxSubj = headers.indexOf("subject"), idxRun = headers.indexOf("run"),
           idxChart = headers.indexOf("chart"), idxLine = headers.indexOf("line"),
           idxLogMAR = headers.indexOf("logmar"), idxLetters = headers.indexOf("letters"),
           idxResponses = headers.indexOf("responses"), idxCorrect = headers.indexOf("correct"),
-          idxTime = headers.indexOf("time");
+          idxTime = headers.indexOf("time"),
+          idxIdade = headers.indexOf("idade"), idxSexo = headers.indexOf("sexo"),
+          idxEsferico = headers.indexOf("esferico");
 
-    const data = lines.slice(1).map((l, i) => {
-        const v = l.split(","); if(v.length < 5) return {};
+    const data = lines.slice(1).map(l => {
+        const v = l.split(","); 
+        // Agora exige rigorosamente as 12 colunas do novo CSV
+        if(v.length < 12) return {}; 
+        
         return {
-            subject: idxSubj >= 0 ? v[idxSubj] : "Desconhecido",
-            run: idxRun >= 0 ? parseInt(v[idxRun]) : (i < 14 ? 1 : 2),
-            chart: idxChart >= 0 ? v[idxChart].trim().toUpperCase() : (v[0] ? v[0].trim().toUpperCase() : ""),
-            line: idxLine >= 0 ? parseInt(v[idxLine]) : parseInt(v[1]),
-            logMAR: idxLogMAR >= 0 ? parseFloat(v[idxLogMAR]) : parseFloat(v[2]),
-            letters: idxLetters >= 0 ? v[idxLetters] : "",
-            responses: idxResponses >= 0 ? v[idxResponses] : "",
-            correct: idxCorrect >= 0 ? parseFloat(v[idxCorrect]) : 0,
-            time: idxTime >= 0 ? parseFloat(v[idxTime]) : 0
+            subject: v[idxSubj],
+            run: parseInt(v[idxRun]),
+            chart: v[idxChart].trim().toUpperCase(),
+            line: parseInt(v[idxLine]),
+            logMAR: parseFloat(v[idxLogMAR]),
+            letters: v[idxLetters],
+            responses: v[idxResponses],
+            correct: parseFloat(v[idxCorrect]),
+            time: parseFloat(v[idxTime]),
+            idade: v[idxIdade],
+            sexo: v[idxSexo],
+            esferico: v[idxEsferico]
         };
     }).filter(d => d.chart && !isNaN(d.logMAR));
 
     let results = { CLASSICO: { correct: 0, errors: 0, time: 0 }, SLOAN20: { correct: 0, errors: 0, time: 0 } };
     let confClassico = {}, confSloan20 = {};
-
     data.forEach(d => {
         let ch = d.chart; if(!results[ch]) return;
         results[ch].correct += d.correct; results[ch].errors += (5 - d.correct); results[ch].time += d.time;
