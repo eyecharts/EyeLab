@@ -1268,7 +1268,51 @@ function calcularMetricsDoGrupo(letrasGrupo, tabela, matriz, matrizProb, variabi
     let variabSum=0; letrasGrupo.forEach(l=>{ variabSum += variabilidadeLetra[l] || 0; });
     return { span, maxConf, dist, variability: variabSum/letrasGrupo.length, LPI: calcularLPI(letrasGrupo, matriz) };
 }
+function atualizarSandboxLivre(uid) {
+    let input = document.getElementById("custom_free_input_" + uid);
+    if(!input) return;
 
+    let novasLetrasStr = input.value.toUpperCase().replace(/[^A-Z]/g, '');
+    let novasLetras = Array.from(new Set(novasLetrasStr.split(''))); 
+
+    if(novasLetras.length < 5) { alert("⚠️ Digite pelo menos 5 letras."); return; }
+    input.value = novasLetras.join(""); 
+
+    let cache = window.psychoCache;
+    let subsetTabela = cache.tabela.filter(t => novasLetras.includes(t.letra));
+
+    if(subsetTabela.length === 0) return;
+
+    // Ordena ESTRITAMENTE pelo Threshold ORIGINAL matemático
+    subsetTabela.sort((a, b) => a.threshold - b.threshold);
+
+    let minThr = Math.min(...subsetTabela.map(l=>l.threshold));
+    let baseSizePx = 40 * Math.pow(10, minThr);
+
+    let html = `
+        <div style="display:flex; gap:40px; align-items:center; justify-content:center; padding:20px; flex-wrap:wrap; background:white; border-radius:8px; border:1px solid #dee2e6;">
+            ${subsetTabela.map(l => {
+                let calcFactor = Math.pow(10, l.threshold - minThr);
+                let fontSize = baseSizePx * calcFactor;
+                return \`<span style="font-family:'Sloan',Arial; font-size:\${Math.max(22,Math.min(80, fontSize))}px;">\${l.letra}</span>\`;
+            }).join("")}
+        </div>
+        <table class="res-table" style="margin-top:20px;">
+            <tr style="background:#e9ecef;"><th>Letra</th><th>Threshold Bruto (logMAR)</th><th>Fator Matemático Puro</th></tr>
+            ${subsetTabela.map(l => {
+                let calcFactor = Math.pow(10, l.threshold - minThr);
+                return \`<tr>
+                    <td><b>\${l.letra}</b></td>
+                    <td>\${l.threshold.toFixed(3)}</td>
+                    <td>\${calcFactor.toFixed(3)}</td>
+                </tr>\`;
+            }).join("")}
+        </table>
+    `;
+    
+    document.getElementById("render_sandbox_" + uid).innerHTML = html;
+}
+                               
 function atualizarSloanCustomizado(uid) {
     let input = document.getElementById("custom_sloan_input_" + uid);
     if(!input) return;
@@ -1499,6 +1543,19 @@ function atualizarSloanCustomizado(uid) {
             
             <div style="font-size:12px; color:#666; margin-top:8px;">Edite as letras e clique em Atualizar para recalcular fatores, tabelas comparativas e curvas dinamicamente.</div>
         </div>
+
+        <div class="metric-box" style="border: 2px dashed #adb5bd; background: #f8f9fa;">
+        <h4><i class="fas fa-flask"></i> Sandbox: Exploração Livre (Matemática Bruta)</h4>
+        <p style="font-size:13px; color:#666;">Use este painel para testar qualquer combinação de letras. Os tamanhos exibidos aqui ignoram os ajustes heurísticos do L.U.N.A. Set e refletem <b>100% os limiares originais crus</b> extraídos do QUEST+.</p>
+        
+        <div style="text-align:center; margin-bottom:20px;">
+            <input type="text" id="custom_free_input_${uid}" value="CDHKNORSVZ" placeholder="Digite as letras..." style="font-size:18px; text-transform:uppercase; letter-spacing:3px; padding:5px 10px; font-weight:bold; width:250px; text-align:center; border:1px solid #ccc; border-radius:5px;">
+            <button class="btn-secondary" onclick="atualizarSandboxLivre(${uid})" style="padding: 6px 15px; margin-left:10px; background:#6c757d; color:white; border:none; border-radius:5px; font-weight:bold; cursor:pointer;">🧪 Calcular Matemática Bruta</button>
+        </div>
+        <div id="render_sandbox_${uid}" style="min-height: 100px;">
+            <!-- O resultado bruto aparecerá aqui -->
+        </div>
+    </div>
 
         <div id="render_section4_${uid}">
             <div style="display:flex; gap:40px; align-items:center; justify-content:center; padding:20px;">
