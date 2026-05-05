@@ -773,7 +773,15 @@ function shuffleClinical(array){
 
 function startDreamTeamClinicalTest() {
     let id = document.getElementById("subjectID").value.trim();
+    let idade = document.getElementById("idade").value.trim();
+    let sexo = document.getElementById("sexo").value;
+    let esferico = document.getElementById("esferico").value.trim();
+
     if(!id){ alert("❌ Preencha o 'ID voluntário' (no topo da página)."); return; }
+    if(!idade){ alert("❌ Preencha a 'Idade' do voluntário."); return; }
+    if(!sexo){ alert("❌ Selecione o 'Sexo' do voluntário."); return; }
+    if(!esferico){ alert("❌ Preencha o 'Grau Esférico' do voluntário."); return; }
+
     let salvaLocal = localStorage.getItem("pxPorMm_Sloan2");
     if(!pxPorMm && !salvaLocal){ alert("❌ Calibre a tela antes de iniciar."); return; }
 
@@ -808,9 +816,19 @@ function startDreamTeamClinicalTest() {
     
     nextLine();
 }
-function startClinicalTest(){
+    
+    
+    function startClinicalTest(){
     let id = document.getElementById("subjectID").value.trim();
+    let idade = document.getElementById("idade").value.trim();
+    let sexo = document.getElementById("sexo").value;
+    let esferico = document.getElementById("esferico").value.trim();
+
     if(!id){ alert("❌ Preencha o 'ID voluntário' (no topo da página)."); return; }
+    if(!idade){ alert("❌ Preencha a 'Idade' do voluntário."); return; }
+    if(!sexo){ alert("❌ Selecione o 'Sexo' do voluntário."); return; }
+    if(!esferico){ alert("❌ Preencha o 'Grau Esférico' do voluntário."); return; }
+
     let salvaLocal = localStorage.getItem("pxPorMm_Sloan2");
     if(!pxPorMm && !salvaLocal){ alert("❌ Calibre a tela antes de iniciar."); return; }
 
