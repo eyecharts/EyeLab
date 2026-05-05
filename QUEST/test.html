@@ -1299,7 +1299,7 @@ function atualizarSloanCustomizado(uid) {
 
     // 2. Atualiza os blocos visuais da Seção 4 com os Fatores Heurísticos
     let htmlSec4 = `
-        <div style="display:flex; gap:70px; align-items:center; justify-content:center; padding:20px; flex-wrap:wrap;">
+        <div style="display:flex; gap:60px; align-items:center; justify-content:center; padding:20px; flex-wrap:wrap;">
             ${subsetTabela.map(l => {
                 let calcFactor = Math.pow(10, l.threshold - minThr);
                 let finalFactor = heuristicFactors[l.letra] !== undefined ? heuristicFactors[l.letra] : calcFactor;
