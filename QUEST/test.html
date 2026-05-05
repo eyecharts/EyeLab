@@ -8,7 +8,7 @@
 <title>Sloan 2.0 – Plataforma Científica e Clínica</title>
 <!-- SCRIPT DE AUTO-ATUALIZAÇÃO (FORÇA LIMPEZA DE CACHE) -->
 <script>
-    const versaoOptoLab = "6.0.6"; // ⚠️ MUDE ESTE NÚMERO TODA VEZ QUE ATUALIZAR O CÓDIGO NO GITHUB
+    const versaoOptoLab = "6.0.7"; // ⚠️ MUDE ESTE NÚMERO TODA VEZ QUE ATUALIZAR O CÓDIGO NO GITHUB
     
     if (localStorage.getItem("versao_luna") !== versaoOptoLab) {
         localStorage.setItem("versao_luna", versaoOptoLab);
@@ -1271,6 +1271,7 @@ function calcularMetricsDoGrupo(letrasGrupo, tabela, matriz, matrizProb, variabi
     let variabSum=0; letrasGrupo.forEach(l=>{ variabSum += variabilidadeLetra[l] || 0; });
     return { span, maxConf, dist, variability: variabSum/letrasGrupo.length, LPI: calcularLPI(letrasGrupo, matriz) };
 }
+
 function atualizarSandboxLivre(uid) {
     let input = document.getElementById("custom_free_input_" + uid);
     if(!input) return;
@@ -1286,27 +1287,27 @@ function atualizarSandboxLivre(uid) {
 
     if(subsetTabela.length === 0) return;
 
-    // Ordena ESTRITAMENTE pelo Threshold ORIGINAL matemático
-    subsetTabela.sort((a, b) => a.threshold - b.threshold);
+    // Ordena ESTRITAMENTE pelo Th90
+    subsetTabela.sort((a, b) => a.th90 - b.th90);
 
-    let minThr = Math.min(...subsetTabela.map(l=>l.threshold));
+    let minThr = Math.min(...subsetTabela.map(l=>l.th90));
     let baseSizePx = 40 * Math.pow(10, minThr);
 
     let html = `
         <div style="display:flex; gap:40px; align-items:center; justify-content:center; padding:20px; flex-wrap:wrap; background:white; border-radius:8px; border:1px solid #dee2e6;">
             ${subsetTabela.map(l => {
-                let calcFactor = Math.pow(10, l.threshold - minThr);
+                let calcFactor = Math.pow(10, l.th90 - minThr);
                 let fontSize = baseSizePx * calcFactor;
                 return `<span style="font-family:'Sloan',Arial; font-size:${Math.max(22,Math.min(80, fontSize))}px;">${l.letra}</span>`;
             }).join("")}
         </div>
         <table class="res-table" style="margin-top:20px;">
-            <tr style="background:#e9ecef;"><th>Letra</th><th>Threshold Bruto (logMAR)</th><th>Fator Matemático Puro</th></tr>
+            <tr style="background:#e9ecef;"><th>Letra</th><th>Threshold Bruto (Th90)</th><th>Fator Matemático Puro</th></tr>
             ${subsetTabela.map(l => {
-                let calcFactor = Math.pow(10, l.threshold - minThr);
+                let calcFactor = Math.pow(10, l.th90 - minThr);
                 return `<tr>
                     <td><b>${l.letra}</b></td>
-                    <td>${l.threshold.toFixed(3)}</td>
+                    <td>${l.th90.toFixed(3)}</td>
                     <td>${calcFactor.toFixed(3)}</td>
                 </tr>`;
             }).join("")}
@@ -1314,8 +1315,28 @@ function atualizarSandboxLivre(uid) {
     `;
     
     document.getElementById("render_sandbox_" + uid).innerHTML = html;
+
+    // === NOVO: Atualiza Tabelas Comparativas e Gráficos Globais ===
+    window.letrasSelecionadas = novasLetras; 
+    let newMetricsSet = calcularMetricsDoGrupo(novasLetras, cache.tabela, cache.matriz, cache.matrizProb, cache.variabilidadeLetra);
+    
+    let htmlSec5 = `
+        <table class="res-table">
+            <tr><th>Metric</th><th>Global (A–Z)</th><th>Classical Sloan</th><th>Sandbox Set</th></tr>
+            <tr><td>Max Pairwise Confusion (Cmax) ↓</td><td>${cache.metricsGlobal?.maxConf.toFixed(3)}</td><td>${cache.metricsSloan?.maxConf.toFixed(3)}</td><td>${newMetricsSet?.maxConf.toFixed(3)}</td></tr>
+            <tr><td>Line Penalty Index (LPI) ↓</td><td>${cache.metricsGlobal?.LPI.toFixed(3)}</td><td>${cache.metricsSloan?.LPI.toFixed(3)}</td><td style="background:#d4edda; font-weight:bold;">${newMetricsSet?.LPI.toFixed(3)}</td></tr>
+            <tr><td>Inter-subject Variability (V) ↓</td><td>${cache.metricsGlobal?.variability.toFixed(3)}</td><td>${cache.metricsSloan?.variability.toFixed(3)}</td><td>${newMetricsSet?.variability.toFixed(3)}</td></tr>
+            <tr><td>Threshold Span (Size Max-Min) ↓</td><td>${cache.metricsGlobal?.span.toFixed(3)}</td><td>${cache.metricsSloan?.span.toFixed(3)}</td><td>${newMetricsSet?.span.toFixed(3)}</td></tr>
+            <tr><td>Perceptual Distance (Δ) ↑</td><td>${cache.metricsGlobal?.dist.toFixed(3)}</td><td>${cache.metricsSloan?.dist.toFixed(3)}</td><td>${newMetricsSet?.dist.toFixed(3)}</td></tr>
+        </table>
+    `;
+    let sec5 = document.getElementById("render_section5_" + uid);
+    if(sec5) sec5.innerHTML = htmlSec5;
+
+    desenharGraficoComparativo(cache.metricsGlobal, cache.metricsSloan, newMetricsSet, "metricsChart_" + uid);
+    desenharCurvasPsicometricas("psychometricCurves_" + uid);
 }
-                               
+
 function atualizarSloanCustomizado(uid) {
     let input = document.getElementById("custom_sloan_input_" + uid);
     if(!input) return;
@@ -1331,17 +1352,16 @@ function atualizarSloanCustomizado(uid) {
     let cache = window.psychoCache;
     let subsetTabela = cache.tabela.filter(t => novasLetras.includes(t.letra));
     
-    // 1. Descobre o mínimo matemático para base de cálculo
-    let minThr = subsetTabela.length > 0 ? Math.min(...subsetTabela.map(l=>l.threshold)) : 0;
+    // 1. Descobre o mínimo matemático baseado no Th90
+    let minThr = subsetTabela.length > 0 ? Math.min(...subsetTabela.map(l=>l.th90)) : 0;
     
     // === DICIONÁRIO DE AJUSTE FINO HEURÍSTICO (L.U.N.A. SET) ===
- 
     let heuristicFactors = window.LUNA_FACTORS;
 
-    // 2. ORDENAÇÃO CORRIGIDA: Ordena pelo tamanho VISUAL FINAL (Fator Ajustado)
+    // 2. Ordena pelo tamanho VISUAL FINAL (Fator Ajustado)
     subsetTabela.sort((a, b) => {
-        let fatorA = heuristicFactors[a.letra] !== undefined ? heuristicFactors[a.letra] : Math.pow(10, a.threshold - minThr);
-        let fatorB = heuristicFactors[b.letra] !== undefined ? heuristicFactors[b.letra] : Math.pow(10, b.threshold - minThr);
+        let fatorA = heuristicFactors[a.letra] !== undefined ? heuristicFactors[a.letra] : Math.pow(10, a.th90 - minThr);
+        let fatorB = heuristicFactors[b.letra] !== undefined ? heuristicFactors[b.letra] : Math.pow(10, b.th90 - minThr);
         return fatorA - fatorB;
     });
 
@@ -1362,14 +1382,13 @@ function atualizarSloanCustomizado(uid) {
         if(statusTd) statusTd.innerText = status;
     });
     
-    // O tamanho base em pixels (ancorado no limiar mínimo)
     let baseSizePx = 40 * Math.pow(10, minThr);
 
-    // 4. Atualiza os blocos visuais da Seção 4 com os Fatores Heurísticos
+    // 4. Atualiza os blocos visuais usando o Th90
     let htmlSec4 = `
         <div style="display:flex; gap:50px; align-items:center; justify-content:center; padding:20px; flex-wrap:wrap;">
             ${subsetTabela.map(l => {
-                let calcFactor = Math.pow(10, l.threshold - minThr);
+                let calcFactor = Math.pow(10, l.th90 - minThr);
                 let finalFactor = heuristicFactors[l.letra] !== undefined ? heuristicFactors[l.letra] : calcFactor;
                 let fontSize = baseSizePx * finalFactor;
                 return `<span style="font-family:'Sloan',Arial; font-size:${Math.max(22,Math.min(80, fontSize))}px;">${l.letra}</span>`;
@@ -1379,14 +1398,14 @@ function atualizarSloanCustomizado(uid) {
             Each optotype is scaled according to its estimated threshold. <b>Note:</b> The L.U.N.A. Set includes heuristic supra-threshold adjustments to compensate for slope variance and morphological aliasing (e.g., P and V).
         </p>
         <table class="res-table">
-            <tr><th>Letra</th><th>Threshold Original</th><th>Fator Matemático</th><th>Fator Ajustado (L.U.N.A.)</th></tr>
+            <tr><th>Letra</th><th>Threshold (Th90)</th><th>Fator Matemático</th><th>Fator Ajustado (L.U.N.A.)</th></tr>
             ${subsetTabela.map(l => {
-                let calcFactor = Math.pow(10, l.threshold - minThr);
+                let calcFactor = Math.pow(10, l.th90 - minThr);
                 let finalFactor = heuristicFactors[l.letra] !== undefined ? heuristicFactors[l.letra] : calcFactor;
                 let isAdjusted = Math.abs(finalFactor - calcFactor) > 0.005;
                 return `<tr>
                     <td><b>${l.letra}</b></td>
-                    <td>${l.threshold.toFixed(3)}</td>
+                    <td>${l.th90.toFixed(3)}</td>
                     <td>${calcFactor.toFixed(3)}</td>
                     <td style="${isAdjusted ? 'font-weight:bold; color:var(--primary); background:#e9ecef;' : ''}">${finalFactor.toFixed(3)}</td>
                 </tr>`;
@@ -1411,8 +1430,10 @@ function atualizarSloanCustomizado(uid) {
     // 6. Redesenha os Canvas afetados pela mudança de grupo
     desenharGraficoComparativo(cache.metricsGlobal, cache.metricsSloan, newMetricsSet, "metricsChart_" + uid);
     desenharCurvasPsicometricas("psychometricCurves_" + uid);
-}    
-    function processarCSV(data){
+}
+
+
+function processarCSV(data){
     seed = 123456; 
     data = normalizarPorSujeito(data); 
     results = data;
@@ -1490,9 +1511,9 @@ let tabela=[];
     });
 
     let uid = Date.now();
-    let setSelecionado = (opt.set || []).slice().sort((a,b)=>a.threshold-b.threshold);
-    let minThr = setSelecionado.length > 0 ? Math.min(...setSelecionado.map(l=>l.threshold)) : 0;
-
+  let setSelecionado = (opt.set || []).slice().sort((a,b)=>a.th90-b.th90);
+    let minThr = setSelecionado.length > 0 ? Math.min(...setSelecionado.map(l=>l.th90)) : 0;
+    
     // SALVA NO CACHE GLOBAL PARA PERMITIR A EDIÇÃO MANUAL POSTERIOR
     window.psychoCache = { tabela, matriz, matrizProb, variabilidadeLetra, metricsGlobal, metricsSloan, uid };
 
@@ -1556,13 +1577,13 @@ let tabela=[];
         
             <div id="render_section4_${uid}">
             <div style="display:flex; gap:40px; align-items:center; justify-content:center; padding:20px;">
-                ${setSelecionado.map(l => `<span style="font-family:'Sloan',Arial; font-size:${Math.max(22,Math.min(60,40*Math.pow(10,l.threshold)))}px;">${l.letra}</span>`).join("")}
+                ${setSelecionado.map(l => `<span style="font-family:'Sloan',Arial; font-size:${Math.max(22,Math.min(60,40*Math.pow(10, l.th90 - minThr)))}px;">${l.letra}</span>`).join("")}
             </div>
             <p style="font-size:14px; text-align:justify; margin-bottom:20px;">Each optotype is scaled according to its estimated threshold so that all letters correspond to an equivalent difficulty at 0 logMAR.</p>
             
             <table class="res-table">
-                <tr><th>Letra</th><th>Threshold Original</th><th>Fator de Correção</th></tr>
-                ${setSelecionado.map(l => `<tr><td><b>${l.letra}</b></td><td>${l.threshold.toFixed(3)}</td><td>${Math.pow(10, l.threshold - minThr).toFixed(3)}</td></tr>`).join("")}
+                <tr><th>Letra</th><th>Threshold (Th90)</th><th>Fator de Correção</th></tr>
+                ${setSelecionado.map(l => `<tr><td><b>${l.letra}</b></td><td>${l.th90.toFixed(3)}</td><td>${Math.pow(10, l.th90 - minThr).toFixed(3)}</td></tr>`).join("")}
             </table>
         </div>
         
