@@ -1293,6 +1293,22 @@ function atualizarSandboxLivre(uid) {
     let minThr = Math.min(...subsetTabela.map(l=>l.th90));
     let baseSizePx = 40 * Math.pow(10, minThr);
 
+    // === NOVO: Atualiza as cores da Tabela 2 (Optotype-Level Psychometric Results) ===
+    let SLOAN = ["C","D","H","K","N","O","R","S","V","Z"];
+    cache.tabela.forEach(t => {
+        let l = t.letra;
+        let isSet = novasLetras.includes(l);
+        let isSloan = SLOAN.includes(l);
+        let status = isSet ? 2 : (isSloan ? 1 : 0);
+        let cls = (isSet && isSloan) ? "bothLetter" : (isSet ? "bestLetter" : (isSloan ? "sloanLetter" : ""));
+        
+        let row = document.getElementById(`row_${uid}_${l}`);
+        if(row) row.className = cls;
+        let statusTd = document.getElementById(`status_${uid}_${l}`);
+        if(statusTd) statusTd.innerText = status;
+    });
+    // ==============================================================================
+
     let html = `
         <div style="display:flex; gap:40px; align-items:center; justify-content:center; padding:20px; flex-wrap:wrap; background:white; border-radius:8px; border:1px solid #dee2e6;">
             ${subsetTabela.map(l => {
@@ -1316,7 +1332,7 @@ function atualizarSandboxLivre(uid) {
     
     document.getElementById("render_sandbox_" + uid).innerHTML = html;
 
-    // === NOVO: Atualiza Tabelas Comparativas e Gráficos Globais ===
+    // === Atualiza Tabelas Comparativas e Gráficos Globais ===
     window.letrasSelecionadas = novasLetras; 
     let newMetricsSet = calcularMetricsDoGrupo(novasLetras, cache.tabela, cache.matriz, cache.matrizProb, cache.variabilidadeLetra);
     
