@@ -6,15 +6,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Sloan 2.0 – Plataforma Científica e Clínica</title>
-<script>
-    const versaoOptoLab = "6.0.2"; // ⚠️ MUDE ESTE NÚMERO TODA VEZ QUE ATUALIZAR O CÓDIGO NO GITHUB
-    
-    if (localStorage.getItem("versao_luna") !== versaoOptoLab) {
-        localStorage.setItem("versao_luna", versaoOptoLab);
-        // O parâmetro ?v= na URL engana o navegador e obriga ele a baixar o arquivo do zero
-        window.location.replace(window.location.pathname + "?v=" + versaoOptoLab);
-    }
-</script>
+
 <style>
     :root {
         --primary: #0d6efd;
@@ -1125,11 +1117,12 @@ function calcularMetricasAvancadas(tabela, lettersData){
         let efficiency=t.slope/(sd+0.0001);
         let p=0.75;
         let info=(t.slope*t.slope)*p*(1-p);
-        resultados.push({ letra:letra, threshold:t.threshold, slope:t.slope, icLow:icLow, icHigh:icHigh, reliability:reliability, efficiency:efficiency, info:info });
+        
+        // Adicionamos o "th90: t.th90" nesta linha final:
+        resultados.push({ letra:letra, threshold:t.threshold, th90: t.th90, slope:t.slope, icLow:icLow, icHigh:icHigh, reliability:reliability, efficiency:efficiency, info:info });
     });
     return resultados;
 }
-
 function letterSetOptimization(tabela, matriz, variabilidadeLetra){
     let SLOAN = ["C","D","H","K","N","O","R","S","V","Z"];
     
@@ -1425,8 +1418,12 @@ function atualizarSloanCustomizado(uid) {
         lettersData[d.letter].data.push({ logMAR:d.logMAR, correct:d.correct }); 
         lettersData[d.letter].trials++; 
     });
+let tabela=[];
+    // Calcula o Fator de Punição para 90% de Acerto (Th90)
+    let targetP = 0.90;
+    let innerLog = ((1 - gamma - lambda) / (targetP - gamma)) - 1;
+    let penaltyK = innerLog > 0 ? -Math.log(innerLog) : 0; 
 
-    let tabela=[];
     letters.forEach(l=>{
         let obj=lettersData[l]; if(obj.data.length<6) return;
         let bestLL=-Infinity, bestA=0, bestB=0.1;
@@ -1446,9 +1443,15 @@ function atualizarSloanCustomizado(uid) {
         }
 
         let slopeReal = 1 / obj.beta;
-        tabela.push({ letra:l, threshold:obj.alpha+obj.beta*Math.log(3), slope: slopeReal, n:obj.trials });
+        let threshold75 = obj.alpha + obj.beta * Math.log(3);
+        // O Pulo do Gato: Calcula o Threshold punido pelo Slope
+        let th90 = obj.alpha + penaltyK * obj.beta; 
+        
+        tabela.push({ letra:l, threshold: threshold75, slope: slopeReal, th90: th90, n:obj.trials });
     });
-    tabela.sort((a,b)=>a.threshold-b.threshold);
+    
+    // 🔥 ORDENA A TABELA PELO THRESHOLD CLINICO (Th90) E NÃO PELO 75%
+    tabela.sort((a,b)=>a.th90 - b.th90);
 
     let matriz = gerarMatrizConfusao(results);
     let matrizProb = normalizarMatriz(matriz);
@@ -1498,9 +1501,9 @@ function atualizarSloanCustomizado(uid) {
     
     <div class="metric-box">
         <h4>2. Optotype-Level Psychometric Results</h4>
-        <p style="font-size:13px; color:var(--text-muted); text-align:justify; margin-bottom:15px;"><b>Table 2.</b> Psychometric properties of individual optotypes. Thresholds are reported in logMAR units with corresponding 95% confidence intervals (CI). Slope represents the true geometric steepness of the psychometric function (calculated as 1/β). Confusion rate indicates the proportion of incorrect identifications, and primary confusion denotes the most frequently confused optotype.</p>
+        <p style="font-size:13px; color:var(--text-muted); text-align:justify; margin-bottom:15px;"><b>Table 2.</b> Psychometric properties of individual optotypes. <b>Th75</b> is the raw detection threshold (~75% correct). <b>Th90 (Slope-Adjusted)</b> represents the clinical legibility threshold projected for 90% correct recognition, inherently penalizing optotypes with shallow slopes.</p>
         <table class="res-table" id="table_psychometric_results_${uid}">
-            <tr><th>Optotype</th><th>Threshold (logMAR)</th><th>95% CI</th><th>Slope (1/β)</th><th>Confusion Rate</th><th>Primary Confusion</th><th>Inter-subject Variability</th><th>Selection Status</th></tr>
+            <tr><th>Optotype</th><th>Th75 (Raw)</th><th>Th90 (Slope-Adjusted)</th><th>95% CI</th><th>Slope (1/β)</th><th>Confusion Rate</th><th>Primary Confusion</th><th>Selection Status</th></tr>
             ${avancado.map(r => {
                 let letraClean = r.letra;
                 let isSet = letrasSet.includes(letraClean);
@@ -1509,21 +1512,19 @@ function atualizarSloanCustomizado(uid) {
                 let status = isSet ? 2 : (isSloan ? 1 : 0);
                 let conf = confusaoLetra[letraClean] || 0;
                 let confTop = confusaoPrincipal[letraClean] || "";
-                let variab = variabilidadeLetra[letraClean] || 0;
 
                 return `<tr id="row_${uid}_${letraClean}" class="${cls}">
                     <td><b>${letraClean}</b></td>
                     <td>${r.threshold.toFixed(3)}</td>
+                    <td style="background-color:#fff3cd; font-weight:bold; color:#856404;">${r.th90.toFixed(3)}</td>
                     <td>${r.icLow.toFixed(3)} – ${r.icHigh.toFixed(3)}</td>
                     <td>${r.slope.toFixed(2)}</td>
                     <td>${conf.toFixed(3)}</td>
                     <td>${confTop}</td>
-                    <td>${variab.toFixed(3)}</td>
                     <td><span id="status_${uid}_${letraClean}">${status}</span></td>
                 </tr>`;
             }).join("")}
         </table>
-        <p style="font-size:12px; color:#666;">Selection Status: 0 = non-selected; 1 = classical Sloan; 2 = optimized set (SLOAN 2.0).</p>
     </div>
 
     <div class="metric-box">
