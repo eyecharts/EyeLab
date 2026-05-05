@@ -1269,11 +1269,27 @@ function atualizarSloanCustomizado(uid) {
     window.letrasSelecionadas = novasLetras; 
 
     let cache = window.psychoCache;
-    let subsetTabela = cache.tabela.filter(t => novasLetras.includes(t.letra)).sort((a,b)=>a.threshold-b.threshold);
+    let subsetTabela = cache.tabela.filter(t => novasLetras.includes(t.letra));
+    
+    // 1. Descobre o mínimo matemático para base de cálculo
     let minThr = subsetTabela.length > 0 ? Math.min(...subsetTabela.map(l=>l.threshold)) : 0;
+    
+    // === DICIONÁRIO DE AJUSTE FINO HEURÍSTICO (L.U.N.A. SET) ===
+    let heuristicFactors = {
+        "Z": 1.000, "U": 1.052, "P": 1.065, "X": 1.096, "E": 1.148, 
+        "O": 1.159, "V": 1.159, "K": 1.202, "H": 1.265, "R": 1.265
+    };
+
+    // 2. ORDENAÇÃO CORRIGIDA: Ordena pelo tamanho VISUAL FINAL (Fator Ajustado)
+    subsetTabela.sort((a, b) => {
+        let fatorA = heuristicFactors[a.letra] !== undefined ? heuristicFactors[a.letra] : Math.pow(10, a.threshold - minThr);
+        let fatorB = heuristicFactors[b.letra] !== undefined ? heuristicFactors[b.letra] : Math.pow(10, b.threshold - minThr);
+        return fatorA - fatorB;
+    });
+
     let newMetricsSet = calcularMetricsDoGrupo(novasLetras, cache.tabela, cache.matriz, cache.matrizProb, cache.variabilidadeLetra);
 
-    // 1. Atualiza a Tabela 2 (Visual e Status)
+    // 3. Atualiza a Tabela 2 (Visual e Status)
     let SLOAN = ["C","D","H","K","N","O","R","S","V","Z"];
     cache.tabela.forEach(t => {
         let l = t.letra;
@@ -1287,19 +1303,13 @@ function atualizarSloanCustomizado(uid) {
         let statusTd = document.getElementById(`status_${uid}_${l}`);
         if(statusTd) statusTd.innerText = status;
     });
-
-    // === DICIONÁRIO DE AJUSTE FINO HEURÍSTICO (L.U.N.A. SET) ===
-    let heuristicFactors = {
-        "Z": 1.000, "U": 1.052, "P": 1.065, "X": 1.096, "E": 1.148, 
-        "O": 1.159, "V": 1.159, "K": 1.202, "H": 1.265, "R": 1.265
-    };
     
     // O tamanho base em pixels (ancorado no limiar mínimo)
     let baseSizePx = 40 * Math.pow(10, minThr);
 
-    // 2. Atualiza os blocos visuais da Seção 4 com os Fatores Heurísticos
+    // 4. Atualiza os blocos visuais da Seção 4 com os Fatores Heurísticos
     let htmlSec4 = `
-        <div style="display:flex; gap:60px; align-items:center; justify-content:center; padding:20px; flex-wrap:wrap;">
+        <div style="display:flex; gap:50px; align-items:center; justify-content:center; padding:20px; flex-wrap:wrap;">
             ${subsetTabela.map(l => {
                 let calcFactor = Math.pow(10, l.threshold - minThr);
                 let finalFactor = heuristicFactors[l.letra] !== undefined ? heuristicFactors[l.letra] : calcFactor;
@@ -1327,7 +1337,7 @@ function atualizarSloanCustomizado(uid) {
     `;
     document.getElementById("render_section4_" + uid).innerHTML = htmlSec4;
 
-    // 3. Atualiza a Tabela de Métricas Comparativas da Seção 5
+    // 5. Atualiza a Tabela de Métricas Comparativas da Seção 5
     let htmlSec5 = `
         <table class="res-table">
             <tr><th>Metric</th><th>Global (A–Z)</th><th>Classical Sloan</th><th>L.U.N.A. Set</th></tr>
@@ -1340,11 +1350,10 @@ function atualizarSloanCustomizado(uid) {
     `;
     document.getElementById("render_section5_" + uid).innerHTML = htmlSec5;
 
-    // 4. Redesenha os Canvas afetados pela mudança de grupo
+    // 6. Redesenha os Canvas afetados pela mudança de grupo
     desenharGraficoComparativo(cache.metricsGlobal, cache.metricsSloan, newMetricsSet, "metricsChart_" + uid);
     desenharCurvasPsicometricas("psychometricCurves_" + uid);
-}
-    
+}    
     function processarCSV(data){
     seed = 123456; 
     data = normalizarPorSujeito(data); 
