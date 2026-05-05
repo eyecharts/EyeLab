@@ -2,17 +2,11 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>Sloan 2.0 – Plataforma Científica e Clínica</title>
-<script>
-    const versaoOptoLab = "6.0.3"; // ⚠️ MUDE ESTE NÚMERO TODA VEZ QUE ATUALIZAR O CÓDIGO NO GITHUB
-    
-    if (localStorage.getItem("versao_luna") !== versaoOptoLab) {
-        localStorage.setItem("versao_luna", versaoOptoLab);
-        // O parâmetro ?v= na URL engana o navegador e obriga ele a baixar o arquivo do zero
-        window.location.replace(window.location.pathname + "?v=" + versaoOptoLab);
-    }
-</script>
+
 <style>
     :root {
         --primary: #0d6efd;
@@ -1293,18 +1287,18 @@ function atualizarSandboxLivre(uid) {
             ${subsetTabela.map(l => {
                 let calcFactor = Math.pow(10, l.threshold - minThr);
                 let fontSize = baseSizePx * calcFactor;
-                return \`<span style="font-family:'Sloan',Arial; font-size:\${Math.max(22,Math.min(80, fontSize))}px;">\${l.letra}</span>\`;
+                return `<span style="font-family:'Sloan',Arial; font-size:${Math.max(22,Math.min(80, fontSize))}px;">${l.letra}</span>`;
             }).join("")}
         </div>
         <table class="res-table" style="margin-top:20px;">
             <tr style="background:#e9ecef;"><th>Letra</th><th>Threshold Bruto (logMAR)</th><th>Fator Matemático Puro</th></tr>
             ${subsetTabela.map(l => {
                 let calcFactor = Math.pow(10, l.threshold - minThr);
-                return \`<tr>
-                    <td><b>\${l.letra}</b></td>
-                    <td>\${l.threshold.toFixed(3)}</td>
-                    <td>\${calcFactor.toFixed(3)}</td>
-                </tr>\`;
+                return `<tr>
+                    <td><b>${l.letra}</b></td>
+                    <td>${l.threshold.toFixed(3)}</td>
+                    <td>${calcFactor.toFixed(3)}</td>
+                </tr>`;
             }).join("")}
         </table>
     `;
