@@ -8,7 +8,7 @@
 <title>Sloan 2.0 – Plataforma Científica e Clínica</title>
 <!-- SCRIPT DE AUTO-ATUALIZAÇÃO (FORÇA LIMPEZA DE CACHE) -->
 <script>
-    const versaoOptoLab = "6.0.9"; // ⚠️ MUDE ESTE NÚMERO TODA VEZ QUE ATUALIZAR O CÓDIGO NO GITHUB
+    const versaoOptoLab = "6.1.1"; // ⚠️ MUDE ESTE NÚMERO TODA VEZ QUE ATUALIZAR O CÓDIGO NO GITHUB
     
     if (localStorage.getItem("versao_luna") !== versaoOptoLab) {
         localStorage.setItem("versao_luna", versaoOptoLab);
@@ -295,8 +295,8 @@ window.LUNA_FACTORS = {
     "V": 1.025,
     "X": 1.090,
     "E": 1.093,
-    "O": 1.095,
-    "P": 1.104,
+    "P": 1.099,
+    "0": 1.104,
     "K": 1.133,
     "H": 1.143,
     "R": 1.143
@@ -1586,7 +1586,7 @@ let tabela=[];
             <label style="font-weight:bold; display:inline-block; margin-right:10px;">Ajuste Fino Manual do L.U.N.A. Set:</label>
             <input type="text" id="custom_sloan_input_${uid}" value="${letrasSet.join("")}" style="font-size:18px; text-transform:uppercase; letter-spacing:3px; padding:5px 10px; font-weight:bold; width:250px; text-align:center; border:1px solid #ccc; border-radius:5px;">
             
-            <button class="btn-success" onclick="document.getElementById('custom_sloan_input_${uid}').value='ZUVXEOPKHR'; atualizarSloanCustomizado(${uid});" style="padding: 6px 15px; margin-left:5px;">✨ Aplicar L.U.N.A. Set</button>
+            <button class="btn-success" onclick="document.getElementById('custom_sloan_input_${uid}').value='ZUVXEPOKHR'; atualizarSloanCustomizado(${uid});" style="padding: 6px 15px; margin-left:5px;">✨ Aplicar L.U.N.A. Set</button>
             <button class="btn-primary" onclick="atualizarSloanCustomizado(${uid})" style="padding: 6px 15px; margin-left:10px;">🔄 Atualizar Gráficos</button>
             
             <div style="font-size:12px; color:#666; margin-top:8px;">Edite as letras e clique em Atualizar para recalcular fatores, tabelas comparativas e curvas dinamicamente.</div>
@@ -1611,7 +1611,7 @@ let tabela=[];
         
         <div style="text-align:center; margin-bottom:20px;">
             <input type="text" id="custom_free_input_${uid}" value="ZUVXEPOKHR" placeholder="Digite as letras..." style="font-size:18px; text-transform:uppercase; letter-spacing:3px; padding:5px 10px; font-weight:bold; width:250px; text-align:center; border:1px solid #ccc; border-radius:5px;">
-            <button class="btn-secondary" onclick="atualizarSandboxLivre(${uid})" style="padding: 6px 15px; margin-left:10px; background:#6c757d; color:white; border:none; border-radius:5px; font-weight:bold; cursor:pointer;">🧪 Calcular Matemática Bruta</button>
+            <button class="btn-secondary" onclick="atualizarSandboxLivre(${uid})" style="padding: 6px 15px; margin-left:10px; background:#6c757d; color:white; border:none; border-radius:5px; font-weight:bold; cursor:pointer;">🧪 Calcular com Set Personalizado</button>
         </div>
         <div id="render_sandbox_${uid}" style="min-height: 100px;">
             <!-- O resultado bruto aparecerá aqui -->
