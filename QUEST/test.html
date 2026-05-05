@@ -1311,7 +1311,7 @@ function atualizarSandboxLivre(uid) {
     let html = `
         <div style="display:flex; gap:30px; align-items:center; justify-content:center; padding:20px; flex-wrap:wrap; background:white; border-radius:8px; border:1px solid #dee2e6;">
             ${subsetTabela.map(l => {
-                let calcFactor = Math.pow(10, l.th90 - minThr);
+                let calcFactor = Math.pow(10, (l.th90 - minThr) * 0.42);
                 let fontSize = baseSizePx * calcFactor;
                 return `<span style="font-family:'Sloan',Arial; font-size:${Math.max(22,Math.min(80, fontSize))}px;">${l.letra}</span>`;
             }).join("")}
@@ -1319,7 +1319,7 @@ function atualizarSandboxLivre(uid) {
         <table class="res-table" style="margin-top:20px;">
             <tr style="background:#e9ecef;"><th>Letra</th><th>Threshold Bruto (Th90)</th><th>Fator Matemático Puro</th></tr>
             ${subsetTabela.map(l => {
-                let calcFactor = Math.pow(10, l.th90 - minThr);
+                let calcFactor = Math.pow(10, (l.th90 - minThr) * 0.42);
                 return `<tr>
                     <td><b>${l.letra}</b></td>
                     <td>${l.th90.toFixed(3)}</td>
@@ -1403,7 +1403,7 @@ function atualizarSloanCustomizado(uid) {
     let htmlSec4 = `
         <div style="display:flex; gap:30px; align-items:center; justify-content:center; padding:20px; flex-wrap:wrap;">
             ${subsetTabela.map(l => {
-                let calcFactor = Math.pow(10, l.th90 - minThr);
+                let calcFactor = Math.pow(10, (l.th90 - minThr) * 0.42);
                 let finalFactor = heuristicFactors[l.letra] !== undefined ? heuristicFactors[l.letra] : calcFactor;
                 let fontSize = baseSizePx * finalFactor;
                 return `<span style="font-family:'Sloan',Arial; font-size:${Math.max(22,Math.min(80, fontSize))}px;">${l.letra}</span>`;
@@ -1415,7 +1415,7 @@ function atualizarSloanCustomizado(uid) {
         <table class="res-table">
             <tr><th>Letra</th><th>Threshold (Th90)</th><th>Fator Matemático</th><th>Fator Ajustado (L.U.N.A.)</th></tr>
             ${subsetTabela.map(l => {
-                let calcFactor = Math.pow(10, l.th90 - minThr);
+                let calcFactor = Math.pow(10, (l.th90 - minThr) * 0.42);
                 let finalFactor = heuristicFactors[l.letra] !== undefined ? heuristicFactors[l.letra] : calcFactor;
                 let isAdjusted = Math.abs(finalFactor - calcFactor) > 0.005;
                 return `<tr>
