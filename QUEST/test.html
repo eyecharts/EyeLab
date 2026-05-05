@@ -13,7 +13,6 @@
     if (localStorage.getItem("versao_luna") !== versaoOptoLab) {
         localStorage.setItem("versao_luna", versaoOptoLab);
         // O parâmetro ?v= na URL engana o navegador e obriga ele a baixar o arquivo do zero
-        window.location.replace(window.location.pathname + "?v=" + versaoOptoLab);
     }
 </script>
 <style>
