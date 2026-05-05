@@ -1309,7 +1309,7 @@ function atualizarSandboxLivre(uid) {
     // ==============================================================================
 
     let html = `
-        <div style="display:flex; gap:30px; align-items:center; justify-content:center; padding:20px; flex-wrap:wrap; background:white; border-radius:8px; border:1px solid #dee2e6;">
+        <div style="display:flex; gap:40px; align-items:center; justify-content:center; padding:20px; flex-wrap:wrap; background:white; border-radius:8px; border:1px solid #dee2e6;">
             ${subsetTabela.map(l => {
                 let calcFactor = Math.pow(10, (l.th90 - minThr) * 0.42);
                 let fontSize = baseSizePx * calcFactor;
@@ -1401,7 +1401,7 @@ function atualizarSloanCustomizado(uid) {
 
     // 4. Atualiza os blocos visuais usando o Th90
     let htmlSec4 = `
-        <div style="display:flex; gap:30px; align-items:center; justify-content:center; padding:20px; flex-wrap:wrap;">
+        <div style="display:flex; gap:40px; align-items:center; justify-content:center; padding:20px; flex-wrap:wrap;">
             ${subsetTabela.map(l => {
                 let calcFactor = Math.pow(10, (l.th90 - minThr) * 0.42);
                 let finalFactor = heuristicFactors[l.letra] !== undefined ? heuristicFactors[l.letra] : calcFactor;
