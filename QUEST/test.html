@@ -1290,7 +1290,7 @@ function atualizarSloanCustomizado(uid) {
 
     // 2. Atualiza os blocos visuais da Seção 4 (Letras grandes e tabela de fatores)
     let htmlSec4 = `
-        <div style="display:flex; gap:25px; align-items:center; justify-content:center; padding:20px;">
+        <div style="display:flex; gap:40px; align-items:center; justify-content:center; padding:20px;">
             ${subsetTabela.map(l => `<span style="font-family:'Sloan',Arial; font-size:${Math.max(22,Math.min(60,40*Math.pow(10,l.threshold)))}px;">${l.letra}</span>`).join("")}
         </div>
         <p style="font-size:14px; text-align:justify; margin-bottom:20px;">Each optotype is scaled according to its estimated threshold so that all letters correspond to an equivalent difficulty at 0 logMAR.</p>
