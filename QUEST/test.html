@@ -1309,7 +1309,7 @@ function atualizarSandboxLivre(uid) {
     // ==============================================================================
 
     let html = `
-        <div style="display:flex; gap:40px; align-items:center; justify-content:center; padding:20px; flex-wrap:wrap; background:white; border-radius:8px; border:1px solid #dee2e6;">
+        <div style="display:flex; gap:50px; align-items:center; justify-content:center; padding:20px; flex-wrap:wrap; background:white; border-radius:8px; border:1px solid #dee2e6;">
             ${subsetTabela.map(l => {
                 let calcFactor = Math.pow(10, (l.th90 - minThr) * 0.42);
                 let fontSize = baseSizePx * calcFactor;
@@ -1401,7 +1401,7 @@ function atualizarSloanCustomizado(uid) {
 
     // 4. Atualiza os blocos visuais usando o Th90
     let htmlSec4 = `
-        <div style="display:flex; gap:40px; align-items:center; justify-content:center; padding:20px; flex-wrap:wrap;">
+        <div style="display:flex; gap:50px; align-items:center; justify-content:center; padding:20px; flex-wrap:wrap;">
             ${subsetTabela.map(l => {
                 let calcFactor = Math.pow(10, (l.th90 - minThr) * 0.42);
                 let finalFactor = heuristicFactors[l.letra] !== undefined ? heuristicFactors[l.letra] : calcFactor;
@@ -1591,7 +1591,7 @@ let tabela=[];
             <div style="font-size:12px; color:#666; margin-top:8px;">Edite as letras e clique em Atualizar para recalcular fatores, tabelas comparativas e curvas dinamicamente.</div>
         
             <div id="render_section4_${uid}">
-            <div style="display:flex; gap:30px; align-items:center; justify-content:center; padding:20px;">
+            <div style="display:flex; gap:50px; align-items:center; justify-content:center; padding:20px;">
                 ${setSelecionado.map(l => `<span style="font-family:'Sloan',Arial; font-size:${Math.max(22,Math.min(60,40*Math.pow(10, l.th90 - minThr)))}px;">${l.letra}</span>`).join("")}
             </div>
             <p style="font-size:14px; text-align:justify; margin-bottom:20px;">Each optotype is scaled according to its estimated threshold so that all letters correspond to an equivalent difficulty at 0 logMAR.</p>
