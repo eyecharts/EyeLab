@@ -8,7 +8,7 @@
 <title>Sloan 2.0 – Plataforma Científica e Clínica</title>
 <!-- SCRIPT DE AUTO-ATUALIZAÇÃO (FORÇA LIMPEZA DE CACHE) -->
 <script>
-    const versaoOptoLab = "6.1.4"; // ⚠️ MUDE ESTE NÚMERO TODA VEZ QUE ATUALIZAR O CÓDIGO NO GITHUB
+    const versaoOptoLab = "6.1.5"; // ⚠️ MUDE ESTE NÚMERO TODA VEZ QUE ATUALIZAR O CÓDIGO NO GITHUB
     
     if (localStorage.getItem("versao_luna") !== versaoOptoLab) {
         localStorage.setItem("versao_luna", versaoOptoLab);
@@ -1401,7 +1401,7 @@ function atualizarSloanCustomizado(uid) {
 
     // 4. Atualiza os blocos visuais usando o Th90
     let htmlSec4 = `
-        <div style="display:flex; gap:50px; align-items:center; justify-content:center; padding:20px; flex-wrap:wrap;">
+        <div style="display:flex; gap:50px; align-items:center; justify-content:center; padding:20px; flex-wrap:wrap; background:white; border-radius:8px; border:1px solid #dee2e6;">
             ${subsetTabela.map(l => {
                 let calcFactor = Math.pow(10, (l.th90 - minThr) * 0.42);
                 let finalFactor = heuristicFactors[l.letra] !== undefined ? heuristicFactors[l.letra] : calcFactor;
