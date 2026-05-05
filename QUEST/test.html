@@ -1261,19 +1261,19 @@ function atualizarSloanCustomizado(uid) {
     if(!input) return;
     
     let novasLetrasStr = input.value.toUpperCase().replace(/[^A-Z]/g, '');
-    let novasLetras = Array.from(new Set(novasLetrasStr.split(''))); // Remove duplicatas
+    let novasLetras = Array.from(new Set(novasLetrasStr.split(''))); 
     
     if(novasLetras.length < 5) { alert("⚠️ Digite pelo menos 5 letras para compor a linha ETDRS."); return; }
 
     input.value = novasLetras.join(""); 
-    window.letrasSelecionadas = novasLetras; // Atualiza globalmente para as curvas psicométricas
+    window.letrasSelecionadas = novasLetras; 
 
     let cache = window.psychoCache;
     let subsetTabela = cache.tabela.filter(t => novasLetras.includes(t.letra)).sort((a,b)=>a.threshold-b.threshold);
     let minThr = subsetTabela.length > 0 ? Math.min(...subsetTabela.map(l=>l.threshold)) : 0;
     let newMetricsSet = calcularMetricsDoGrupo(novasLetras, cache.tabela, cache.matriz, cache.matrizProb, cache.variabilidadeLetra);
 
-    // 1. Atualiza a Tabela 2 (Visual e Status de Seleção) para refletir as novas escolhas
+    // 1. Atualiza a Tabela 2 (Visual e Status)
     let SLOAN = ["C","D","H","K","N","O","R","S","V","Z"];
     cache.tabela.forEach(t => {
         let l = t.letra;
@@ -1288,15 +1288,41 @@ function atualizarSloanCustomizado(uid) {
         if(statusTd) statusTd.innerText = status;
     });
 
-    // 2. Atualiza os blocos visuais da Seção 4 (Letras grandes e tabela de fatores)
+    // === DICIONÁRIO DE AJUSTE FINO HEURÍSTICO (L.U.N.A. SET) ===
+    let heuristicFactors = {
+        "Z": 1.000, "U": 1.052, "P": 1.065, "X": 1.096, "E": 1.148, 
+        "O": 1.159, "V": 1.159, "K": 1.202, "H": 1.265, "R": 1.265
+    };
+    
+    // O tamanho base em pixels (ancorado no limiar mínimo)
+    let baseSizePx = 40 * Math.pow(10, minThr);
+
+    // 2. Atualiza os blocos visuais da Seção 4 com os Fatores Heurísticos
     let htmlSec4 = `
-        <div style="display:flex; gap:70px; align-items:center; justify-content:center; padding:20px;">
-            ${subsetTabela.map(l => `<span style="font-family:'Sloan',Arial; font-size:${Math.max(22,Math.min(60,40*Math.pow(10,l.threshold)))}px;">${l.letra}</span>`).join("")}
+        <div style="display:flex; gap:50px; align-items:center; justify-content:center; padding:20px; flex-wrap:wrap;">
+            ${subsetTabela.map(l => {
+                let calcFactor = Math.pow(10, l.threshold - minThr);
+                let finalFactor = heuristicFactors[l.letra] !== undefined ? heuristicFactors[l.letra] : calcFactor;
+                let fontSize = baseSizePx * finalFactor;
+                return `<span style="font-family:'Sloan',Arial; font-size:${Math.max(22,Math.min(80, fontSize))}px;">${l.letra}</span>`;
+            }).join("")}
         </div>
-        <p style="font-size:14px; text-align:justify; margin-bottom:20px;">Each optotype is scaled according to its estimated threshold so that all letters correspond to an equivalent difficulty at 0 logMAR.</p>
+        <p style="font-size:14px; text-align:justify; margin-bottom:20px;">
+            Each optotype is scaled according to its estimated threshold. <b>Note:</b> The L.U.N.A. Set includes heuristic supra-threshold adjustments to compensate for slope variance and morphological aliasing (e.g., P and V).
+        </p>
         <table class="res-table">
-            <tr><th>Letra</th><th>Threshold Original</th><th>Fator de Correção</th></tr>
-            ${subsetTabela.map(l => `<tr><td><b>${l.letra}</b></td><td>${l.threshold.toFixed(3)}</td><td>${Math.pow(10, l.threshold - minThr).toFixed(3)}</td></tr>`).join("")}
+            <tr><th>Letra</th><th>Threshold Original</th><th>Fator Matemático</th><th>Fator Ajustado (L.U.N.A.)</th></tr>
+            ${subsetTabela.map(l => {
+                let calcFactor = Math.pow(10, l.threshold - minThr);
+                let finalFactor = heuristicFactors[l.letra] !== undefined ? heuristicFactors[l.letra] : calcFactor;
+                let isAdjusted = Math.abs(finalFactor - calcFactor) > 0.005;
+                return `<tr>
+                    <td><b>${l.letra}</b></td>
+                    <td>${l.threshold.toFixed(3)}</td>
+                    <td>${calcFactor.toFixed(3)}</td>
+                    <td style="${isAdjusted ? 'font-weight:bold; color:var(--primary); background:#e9ecef;' : ''}">${finalFactor.toFixed(3)}</td>
+                </tr>`;
+            }).join("")}
         </table>
     `;
     document.getElementById("render_section4_" + uid).innerHTML = htmlSec4;
@@ -1304,7 +1330,7 @@ function atualizarSloanCustomizado(uid) {
     // 3. Atualiza a Tabela de Métricas Comparativas da Seção 5
     let htmlSec5 = `
         <table class="res-table">
-            <tr><th>Metric</th><th>Global (A–Z)</th><th>Classical Sloan</th><th>SLOAN 2.0 (Customizado)</th></tr>
+            <tr><th>Metric</th><th>Global (A–Z)</th><th>Classical Sloan</th><th>L.U.N.A. Set</th></tr>
             <tr><td>Max Pairwise Confusion (Cmax) ↓</td><td>${cache.metricsGlobal?.maxConf.toFixed(3)}</td><td>${cache.metricsSloan?.maxConf.toFixed(3)}</td><td>${newMetricsSet?.maxConf.toFixed(3)}</td></tr>
             <tr><td>Line Penalty Index (LPI) ↓</td><td>${cache.metricsGlobal?.LPI.toFixed(3)}</td><td>${cache.metricsSloan?.LPI.toFixed(3)}</td><td style="background:#d4edda; font-weight:bold;">${newMetricsSet?.LPI.toFixed(3)}</td></tr>
             <tr><td>Inter-subject Variability (V) ↓</td><td>${cache.metricsGlobal?.variability.toFixed(3)}</td><td>${cache.metricsSloan?.variability.toFixed(3)}</td><td>${newMetricsSet?.variability.toFixed(3)}</td></tr>
@@ -1318,8 +1344,8 @@ function atualizarSloanCustomizado(uid) {
     desenharGraficoComparativo(cache.metricsGlobal, cache.metricsSloan, newMetricsSet, "metricsChart_" + uid);
     desenharCurvasPsicometricas("psychometricCurves_" + uid);
 }
-
-function processarCSV(data){
+    
+    function processarCSV(data){
     seed = 123456; 
     data = normalizarPorSujeito(data); 
     results = data;
