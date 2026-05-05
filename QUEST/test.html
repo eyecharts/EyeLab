@@ -5,7 +5,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>Sloan 2.0 – Plataforma Científica e Clínica</title>
+<title>L.U.N.A. set – Plataforma Científica e Clínica</title>
 <!-- SCRIPT DE AUTO-ATUALIZAÇÃO (FORÇA LIMPEZA DE CACHE) -->
 <script>
     const versaoOptoLab = "6.1.7"; // ⚠️ MUDE ESTE NÚMERO TODA VEZ QUE ATUALIZAR O CÓDIGO NO GITHUB
@@ -163,7 +163,7 @@
 <body>
 
 <div class="header">
-    <h1>OptoLab (v<span id="versao-display"></span>) - Projeto SLOAN 2.0</h1>
+    <h1>OptoLab (v<span id="versao-display"></span>) - Projeto L.U.N.A. (Logarithmically Unified Normalized Alphabet) Optotypes</h1>
     <p>Plataforma Integrada de Análise Psicométrica e Validação Clínica</p>
 </div>
 
@@ -218,9 +218,9 @@
     <div id="aba-clinico" class="aba" style="display:none;">
         <div class="card text-center" id="clinicStartCard">
             <h3>Validação Clínica ETDRS</h3>
-            <p style="color:var(--text-muted); margin-bottom:20px;">Compara o Sloan Clássico vs SLOAN 2.0.</p>
+            <p style="color:var(--text-muted); margin-bottom:20px;">Compara o Sloan Clássico vs L.U.N.A. set.</p>
             <div style="background:#f8f9fa; padding:15px; border-radius:8px; display:inline-block; margin-bottom:20px; border:1px solid #ddd;">
-                <label style="font-weight:bold; display:block; margin-bottom:8px;">Conjunto Otimizado (Sloan 2.0):</label>
+                <label style="font-weight:bold; display:block; margin-bottom:8px;">Conjunto Otimizado (L.U.N.A. set):</label>
                 <input id="sloan2_input" value="" style="font-size:18px; text-align:center; font-weight:bold; letter-spacing:3px; padding:10px; border:1px solid #ccc; border-radius:5px; background:#e9ecef; color:#333;" readonly>
             </div><br>
             <button class="btn-primary" onclick="startClinicalTest()">▶ Iniciar Teste Clínico</button>
@@ -852,7 +852,7 @@ function startDreamTeamClinicalTest() {
     let inputVal = document.getElementById("sloan2_input").value.toUpperCase().replace(/[^A-Z]/g, '');
     
     if(!inputVal || inputVal.length < 5){
-        alert("❌ Digite pelo menos 5 letras no campo 'Conjunto Otimizado (Sloan 2.0)' para poder formar uma linha."); 
+        alert("❌ Digite pelo menos 5 letras no campo 'Conjunto Otimizado (L.U.N.A. Optotypes)' para poder formar uma linha."); 
         return;
     }
 
@@ -1579,7 +1579,7 @@ let tabela=[];
     </div>
 
     <div class="metric-box">
-        <h4>4. Conjunto Otimizado (SLOAN 2.0 Equalizado)</h4>
+        <h4>4. Conjunto Otimizado (L.U.N.A. set Equalizado)</h4>
         
         <div style="background:#f8f9fa; border:1px solid #ddd; padding:15px; border-radius:8px; margin-bottom:20px; text-align:center;">
             <label style="font-weight:bold; display:inline-block; margin-right:10px;">Ajuste Fino Manual do L.U.N.A. Set:</label>
@@ -1624,7 +1624,7 @@ let tabela=[];
         <h4>5. Comparison of Metrics Across Optotype Sets</h4>
         <div id="render_section5_${uid}">
             <table class="res-table">
-                <tr><th>Metric</th><th>Global (A–Z)</th><th>Classical Sloan</th><th>SLOAN 2.0</th></tr>
+                <tr><th>Metric</th><th>Global (A–Z)</th><th>Classical Sloan</th><th>L.U.N.A. set</th></tr>
                 <tr><td>Max Pairwise Confusion (Cmax) ↓</td><td>${metricsGlobal?.maxConf.toFixed(3)}</td><td>${metricsSloan?.maxConf.toFixed(3)}</td><td>${metricsSet?.maxConf.toFixed(3)}</td></tr>
                 <tr><td>Line Penalty Index (LPI) ↓</td><td>${metricsGlobal?.LPI.toFixed(3)}</td><td>${metricsSloan?.LPI.toFixed(3)}</td><td style="background:#d4edda; font-weight:bold;">${metricsSet?.LPI.toFixed(3)}</td></tr>
                 <tr><td>Inter-subject Variability (V) ↓</td><td>${metricsGlobal?.variability.toFixed(3)}</td><td>${metricsSloan?.variability.toFixed(3)}</td><td>${metricsSet?.variability.toFixed(3)}</td></tr>
@@ -1843,7 +1843,7 @@ function desenharGraficoComparativo(metricsGlobal, metricsSloan, metricsSet, can
     ctx.textAlign="left"; ctx.font="12px Arial";
     
     function leg(x,c,t){ ctx.fillStyle=c; ctx.fillRect(x,60,16,16); ctx.fillStyle="black"; ctx.fillText(t,x+22,73); }
-    leg(120,"#999","Global"); leg(300,"#007bff","Sloan Clássico"); leg(480,"#28a745","SLOAN 2.0");
+    leg(120,"#999","Global"); leg(300,"#007bff","Sloan Clássico"); leg(480,"#28a745","L.U.N.A. set");
     
     ctx.font="11px Arial"; ctx.fillStyle="#333"; ctx.fillText("↓ Lower = better (inverted)", 120, 100); ctx.fillText("↑ Higher = better", 120, 115);
 
@@ -2013,7 +2013,7 @@ function analyzeCSV(text){
         <p style="font-size:14px; text-align:center; color:#555; margin-bottom:15px;">Comparação da performance da mesma linha de dificuldade (N = ${vC.length} pares).</p>
         <table class="res-table" style="max-width:600px; margin:auto;">
             <tr><th style="width:50%;">Estatística</th><th>Resultado</th></tr>
-            <tr><td><b>Diferença Média (Ganho)</b></td><td style="color:${diffMean > 0 ? 'var(--success)' : 'inherit'}; font-weight:bold;">${diffMean > 0 ? '+' : ''}${diffMean.toFixed(2)} letras a favor do Sloan 2.0</td></tr>
+            <tr><td><b>Diferença Média (Ganho)</b></td><td style="color:${diffMean > 0 ? 'var(--success)' : 'inherit'}; font-weight:bold;">${diffMean > 0 ? '+' : ''}${diffMean.toFixed(2)} letras a favor do L.U.N.A. set</td></tr>
             <tr><td><b>Teste T-pareado (t)</b></td><td>${tStat.toFixed(3)}</td></tr>
             <tr><td><b>Valor-P</b></td><td>${pVal < 0.001 ? '< 0.001' : pVal.toFixed(4)} ${pVal < 0.05 ? '⭐ Significativo' : ''}</td></tr>
             <tr><td><b>IC95%</b></td><td>${ciL.toFixed(2)} a ${ciH.toFixed(2)} letras</td></tr>
@@ -2028,7 +2028,7 @@ function analyzeCSV(text){
             <table class="res-table" style="max-width:600px; margin:auto;">
                 <tr><th>Teste</th><th>Variação Absoluta (Δ logMAR)</th></tr>
                 <tr><td>Clássico</td><td>${deltaC.toFixed(3)}</td></tr>
-                <tr><td>SLOAN 2.0</td><td>${deltaS.toFixed(3)}</td></tr>
+                <tr><td>L.U.N.A. set</td><td>${deltaS.toFixed(3)}</td></tr>
             </table>
             <p style="font-size:12px; text-align:center; color:#666;">* ICC indisponível para apenas 1 paciente. Valores Δ mais baixos indicam maior estabilidade do teste.</p>`;
         } else {
@@ -2036,7 +2036,7 @@ function analyzeCSV(text){
             <table class="res-table" style="max-width:600px; margin:auto;">
                 <tr><th>Teste</th><th>Confiabilidade (ICC)</th></tr>
                 <tr><td>Clássico</td><td>${iccClassico !== null ? iccClassico.toFixed(3) : 'N/A'}</td></tr>
-                <tr><td>SLOAN 2.0</td><td style="font-weight:bold;">${iccSloan20 !== null ? iccSloan20.toFixed(3) : 'N/A'}</td></tr>
+                <tr><td>L.U.N.A. set</td><td style="font-weight:bold;">${iccSloan20 !== null ? iccSloan20.toFixed(3) : 'N/A'}</td></tr>
             </table>
             <p style="font-size:12px; text-align:center; color:#666;">* Valores de ICC mais próximos de 1.0 indicam maior reprodutibilidade do teste clínico.</p>`;
         }
@@ -2076,11 +2076,11 @@ function analyzeCSV(text){
     let pontosSloan = 0, pontosClassico = 0;
     
     let venceuConf = "Empate";
-    if(taxaConfSloan20 < taxaConfClassico) { pontosSloan++; venceuConf = "SLOAN 2.0"; } 
+    if(taxaConfSloan20 < taxaConfClassico) { pontosSloan++; venceuConf = "L.U.N.A. set"; } 
     else if(taxaConfClassico < taxaConfSloan20) { pontosClassico++; venceuConf = "Clássico"; }
 
     let venceuTLP = "Empate";
-    if(tlpSloan20 < tlpClassico) { pontosSloan++; venceuTLP = "SLOAN 2.0"; } 
+    if(tlpSloan20 < tlpClassico) { pontosSloan++; venceuTLP = "L.U.N.A. set"; } 
     else if(tlpClassico < tlpSloan20) { pontosClassico++; venceuTLP = "Clássico"; }
 
     let repTextSloan = "", repTextClassico = "", repNome = "", venceuRep = "Empate";
@@ -2091,7 +2091,7 @@ function analyzeCSV(text){
             repNome = "Variação Absoluta (Δ logMAR) - menor é melhor";
             repTextClassico = dC.toFixed(3);
             repTextSloan = dS.toFixed(3);
-            if(dS < dC) { pontosSloan++; venceuRep = "SLOAN 2.0"; } 
+            if(dS < dC) { pontosSloan++; venceuRep = "L.U.N.A. set"; } 
             else if(dC < dS) { pontosClassico++; venceuRep = "Clássico"; }
         } else {
             repNome = "Confiabilidade (ICC) - maior é melhor";
@@ -2099,7 +2099,7 @@ function analyzeCSV(text){
             let icc_S = iccSloan20 !== null ? iccSloan20 : 0;
             repTextClassico = icc_C.toFixed(3);
             repTextSloan = icc_S.toFixed(3);
-            if(icc_S > icc_C) { pontosSloan++; venceuRep = "SLOAN 2.0"; } 
+            if(icc_S > icc_C) { pontosSloan++; venceuRep = "L.U.N.A. set"; } 
             else if(icc_C > icc_S) { pontosClassico++; venceuRep = "Clássico"; }
         }
     }
@@ -2108,7 +2108,7 @@ function analyzeCSV(text){
     let corVencedor = "#6c757d"; 
     let bgCor = "#f8f9fa";
     if (pontosSloan > pontosClassico) { 
-        vencedorNome = "SLOAN 2.0"; 
+        vencedorNome = "L.U.N.A. set"; 
         corVencedor = "var(--success)"; 
         bgCor = "#f4fcf5";
     } else if (pontosClassico > pontosSloan) { 
@@ -2124,13 +2124,13 @@ function analyzeCSV(text){
     <div class="metric-box">
         <h4>1. Performance Geral (${subjects.length} voluntários analisados)</h4>
         <table class="res-table" style="max-width:700px; margin:auto;">
-            <tr><th>Métrica</th><th>Sloan Clássico</th><th>SLOAN 2.0</th></tr>
+            <tr><th>Métrica</th><th>Sloan Clássico</th><th>L.U.N.A. set</th></tr>
             <tr><td><b>Erros Totais</b></td><td>${results.CLASSICO.errors}</td><td>${results.SLOAN20.errors}</td></tr>
             <tr><td><b>AV ETDRS Média (logMAR)</b></td><td>${results.CLASSICO.acuity.toFixed(3)}</td><td>${results.SLOAN20.acuity.toFixed(3)}</td></tr>
         </table>
     </div>
     <div class="metric-box"><h4>2. Reprodutibilidade (Teste-Reteste)</h4>${retestHTML}</div>
-    <div class="metric-box"><h4>3. Inferência Estatística (Sloan 2.0 vs Clássico)</h4>${tTestHTML}</div>
+    <div class="metric-box"><h4>3. Inferência Estatística (L.U.N.A. set vs Clássico)</h4>${tTestHTML}</div>
     <div class="metric-box">
         <h4>4. Correlação e Concordância</h4>
         <div id="${safeContainer}" style="display:flex; flex-wrap:wrap; justify-content:center; gap:20px; margin-top:10px;"></div>
@@ -2142,16 +2142,16 @@ function analyzeCSV(text){
             <p>Com base na análise matemática de 3 pilares independentes (Disputa de Melhor de 3), o teste que apresentou letras <b>mais homogeneamente discerníveis</b> e estáveis globalmente foi o <b><span style="color: ${corVencedor}; font-size: 17px; text-transform: uppercase;">${vencedorNome}</span></b> (Placar: ${pontosSloan} a ${pontosClassico}).</p>
             
             <p style="margin-top: 15px;"><b>1. Efeito "Parede de Tijolos" (Linhas Parciais):</b><br>
-            O SLOAN 2.0 gerou <b>${tlpSloan20.toFixed(1)}%</b> de linhas parciais (acertos entre 1 e 4) contra <b>${tlpClassico.toFixed(1)}%</b> do Clássico. Uma menor proporção indica um limiar mais abrupto (sem "gaguejar" na linha).<br>
-            ➔ <b>Vantagem neste quesito: <span style="color:${venceuTLP === 'SLOAN 2.0' ? 'var(--success)' : (venceuTLP === 'Clássico' ? 'var(--primary)' : '#666')}; font-weight:bold;">${venceuTLP.toUpperCase()}</span></b></p>
+            O L.U.N.A. set gerou <b>${tlpSloan20.toFixed(1)}%</b> de linhas parciais (acertos entre 1 e 4) contra <b>${tlpClassico.toFixed(1)}%</b> do Clássico. Uma menor proporção indica um limiar mais abrupto (sem "gaguejar" na linha).<br>
+            ➔ <b>Vantagem neste quesito: <span style="color:${venceuTLP === 'L.U.N.A. set' ? 'var(--success)' : (venceuTLP === 'Clássico' ? 'var(--primary)' : '#666')}; font-weight:bold;">${venceuTLP.toUpperCase()}</span></b></p>
 
             <p style="margin-top: 10px;"><b>2. Efeito Crowding (Confusão Visual):</b><br>
-            O SLOAN 2.0 apresentou uma taxa de confusão global de <b>${taxaConfSloan20.toFixed(1)}%</b> contra <b>${taxaConfClassico.toFixed(1)}%</b> do Clássico. Valores menores mitigam o crowding e reduzem os erros por semelhança morfológica.<br>
-            ➔ <b>Vantagem neste quesito: <span style="color:${venceuConf === 'SLOAN 2.0' ? 'var(--success)' : (venceuConf === 'Clássico' ? 'var(--primary)' : '#666')}; font-weight:bold;">${venceuConf.toUpperCase()}</span></b></p>
+            O L.U.N.A. set apresentou uma taxa de confusão global de <b>${taxaConfSloan20.toFixed(1)}%</b> contra <b>${taxaConfClassico.toFixed(1)}%</b> do Clássico. Valores menores mitigam o crowding e reduzem os erros por semelhança morfológica.<br>
+            ➔ <b>Vantagem neste quesito: <span style="color:${venceuConf === 'L.U.N.A. set' ? 'var(--success)' : (venceuConf === 'Clássico' ? 'var(--primary)' : '#666')}; font-weight:bold;">${venceuConf.toUpperCase()}</span></b></p>
 
             ${repNome ? `<p style="margin-top: 10px;"><b>3. Reprodutibilidade (${repNome.split(' -')[0]}):</b><br> 
-            O SLOAN 2.0 marcou <b>${repTextSloan}</b> vs <b>${repTextClassico}</b> do Clássico. O aumento da reprodutibilidade reflete a estabilidade da leitura.<br>
-            ➔ <b>Vantagem neste quesito: <span style="color:${venceuRep === 'SLOAN 2.0' ? 'var(--success)' : (venceuRep === 'Clássico' ? 'var(--primary)' : '#666')}; font-weight:bold;">${venceuRep.toUpperCase()}</span></b></p>` : `<p style="margin-top: 10px;"><b>3. Reprodutibilidade:</b> <i>Dados insuficientes para calcular no reteste.</i></p>`}
+            O L.U.N.A. set marcou <b>${repTextSloan}</b> vs <b>${repTextClassico}</b> do Clássico. O aumento da reprodutibilidade reflete a estabilidade da leitura.<br>
+            ➔ <b>Vantagem neste quesito: <span style="color:${venceuRep === 'L.U.N.A. set' ? 'var(--success)' : (venceuRep === 'Clássico' ? 'var(--primary)' : '#666')}; font-weight:bold;">${venceuRep.toUpperCase()}</span></b></p>` : `<p style="margin-top: 10px;"><b>3. Reprodutibilidade:</b> <i>Dados insuficientes para calcular no reteste.</i></p>`}
         </div>
     </div>
     `;
@@ -2162,7 +2162,7 @@ function analyzeCSV(text){
     setTimeout(() => {
         if(vC.length >= 3){ drawScatter(vC, vS, safeContainer); drawBlandAltman(vC, vS, safeContainer); }
         drawClinicalConfusionMatrix(confClassico, "5. Matriz: Clássico", "canvasConfClassico_" + uid, targetId);
-        drawClinicalConfusionMatrix(confSloan20, "5. Matriz: SLOAN 2.0", "canvasConfSloan20_" + uid, targetId);
+        drawClinicalConfusionMatrix(confSloan20, "5. Matriz: L.U.N.A. set", "canvasConfSloan20_" + uid, targetId);
     }, 100);
 }
 function drawScatter(x, y, containerId){
@@ -2171,9 +2171,9 @@ function drawScatter(x, y, containerId){
     canvas.style.border = "1px solid var(--border-color)"; canvas.style.background = "#fff"; container.appendChild(canvas);
     const ctx = canvas.getContext("2d"); ctx.clearRect(0,0,400,400);
 
-    ctx.fillStyle = "black"; ctx.font = "bold 14px Arial"; ctx.textAlign = "center"; ctx.fillText("Correlação: Clássico vs SLOAN 2.0", 200, 25);
+    ctx.fillStyle = "black"; ctx.font = "bold 14px Arial"; ctx.textAlign = "center"; ctx.fillText("Correlação: Clássico vs L.U.N.A. set", 200, 25);
     ctx.font = "12px Arial"; ctx.fillText("Acertos - Clássico", 200, 390);
-    ctx.save(); ctx.translate(15, 200); ctx.rotate(-Math.PI/2); ctx.fillText("Acertos - SLOAN 2.0", 0, 0); ctx.restore();
+    ctx.save(); ctx.translate(15, 200); ctx.rotate(-Math.PI/2); ctx.fillText("Acertos - L.U.N.A. set", 0, 0); ctx.restore();
 
     ctx.strokeStyle = "#eee";
     for(let i=0; i<=5; i++){ let px = 50 + i*(300/5); ctx.beginPath(); ctx.moveTo(px,50); ctx.lineTo(px,350); ctx.stroke(); ctx.beginPath(); ctx.moveTo(50,px); ctx.lineTo(350,px); ctx.stroke(); }
@@ -2197,7 +2197,7 @@ function drawBlandAltman(a, b, containerId){
     const meanDiff = diffs.reduce((x,y)=>x+y,0)/diffs.length;
     const sdDiff = Math.sqrt(diffs.reduce((x,y)=>x+Math.pow(y-meanDiff,2),0)/(diffs.length-1 || 1));
 
-    ctx.fillStyle = "black"; ctx.font = "bold 14px Arial"; ctx.textAlign = "center"; ctx.fillText("Bland-Altman (SLOAN 2.0 - Clássico)", 250, 25);
+    ctx.fillStyle = "black"; ctx.font = "bold 14px Arial"; ctx.textAlign = "center"; ctx.fillText("Bland-Altman (L.U.N.A. set - Clássico)", 250, 25);
     ctx.font = "12px Arial"; ctx.fillText("Média de Acertos (Clássico e 2.0)", 250, 390);
     ctx.save(); ctx.translate(15, 200); ctx.rotate(-Math.PI/2); ctx.fillText("Diferença de Acertos (Ganho)", 0, 0); ctx.restore();
 
