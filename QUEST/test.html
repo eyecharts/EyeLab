@@ -787,16 +787,7 @@ function startDreamTeamClinicalTest() {
 
     // 1. Injeta os fatores de correção definitivos na memória (Bypassa a necessidade do CSV/Tabela)
     window.ALL_FACTORS = {
-        "Z": 1.000,
-        "U": 1.002,
-        "X": 1.044,
-        "E": 1.093,
-        "P": 1.095,
-        "V": 1.095,
-        "O": 1.104,
-        "K": 1.133,
-        "H": 1.143,
-        "R": 1.143
+        "Z": 1.000, "U": 1.002, "V": 1.025, "X": 1.055, "E": 1.093, "P": 1.095, "O": 1.104, "K": 1.133, "H": 1.143, "R": 1.143
     };
 
     // 2. Preenche o input visualmente com o Dream Team
@@ -1277,8 +1268,7 @@ function atualizarSloanCustomizado(uid) {
     // === DICIONÁRIO DE AJUSTE FINO HEURÍSTICO (L.U.N.A. SET) ===
  
     let heuristicFactors = {
-        "Z": 1.000, "U": 1.002, "X": 1.044, "E": 1.093, "P": 1.095, 
-        "V": 1.095, "O": 1.104, "K": 1.133, "H": 1.143, "R": 1.143
+        "Z": 1.000, "U": 1.002, "V": 1.025, "X": 1.055, "E": 1.093, "P": 1.095, "O": 1.104, "K": 1.133, "H": 1.143, "R": 1.143
     };
 
     // 2. ORDENAÇÃO CORRIGIDA: Ordena pelo tamanho VISUAL FINAL (Fator Ajustado)
