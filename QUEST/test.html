@@ -8,7 +8,7 @@
 <title>Sloan 2.0 – Plataforma Científica e Clínica</title>
 <!-- SCRIPT DE AUTO-ATUALIZAÇÃO (FORÇA LIMPEZA DE CACHE) -->
 <script>
-    const versaoOptoLab = "6.1.2"; // ⚠️ MUDE ESTE NÚMERO TODA VEZ QUE ATUALIZAR O CÓDIGO NO GITHUB
+    const versaoOptoLab = "6.1.3"; // ⚠️ MUDE ESTE NÚMERO TODA VEZ QUE ATUALIZAR O CÓDIGO NO GITHUB
     
     if (localStorage.getItem("versao_luna") !== versaoOptoLab) {
         localStorage.setItem("versao_luna", versaoOptoLab);
@@ -1467,7 +1467,7 @@ function processarCSV(data){
     });
 let tabela=[];
     // Calcula o Fator de Punição para 90% de Acerto (Th90)
-    let targetP = 0.96;
+    let targetP = 0.93;
     let innerLog = ((1 - gamma - lambda) / (targetP - gamma)) - 1;
     let penaltyK = innerLog > 0 ? -Math.log(innerLog) : 0; 
 
