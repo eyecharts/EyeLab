@@ -8,7 +8,7 @@
 <title>L.U.N.A. set – Plataforma Científica e Clínica</title>
 <!-- SCRIPT DE AUTO-ATUALIZAÇÃO (FORÇA LIMPEZA DE CACHE) -->
 <script>
-    const versaoOptoLab = "6.2.1"; // ⚠️ MUDE ESTE NÚMERO TODA VEZ QUE ATUALIZAR O CÓDIGO NO GITHUB
+    const versaoOptoLab = "6.2.2"; // ⚠️ MUDE ESTE NÚMERO TODA VEZ QUE ATUALIZAR O CÓDIGO NO GITHUB
     
     if (localStorage.getItem("versao_luna") !== versaoOptoLab) {
         localStorage.setItem("versao_luna", versaoOptoLab);
@@ -1900,7 +1900,7 @@ function processCSV(){
         reader.readAsText(f);
     }
 
-    gerarTextoArtigo(arrayX_Classico, arrayY_Luna);
+    
 }
 function getPValue(t, df) {
     t = Math.abs(t); let x = df / (df + t * t); let p = Math.pow(x, (df + 1) / 2); 
@@ -2173,7 +2173,11 @@ function analyzeCSV(text){
     document.getElementById(targetId).innerHTML = html;
 
     setTimeout(() => {
-        if(vC.length >= 3){ drawScatter(vC, vS, safeContainer); drawBlandAltman(vC, vS, safeContainer); }
+        if(vC.length >= 3){ 
+            drawScatter(vC, vS, safeContainer); 
+            drawBlandAltman(vC, vS, safeContainer); 
+            gerarTextoArtigo(vC, vS); // <--- A MÁGICA ENTRA AQUI!
+        }
         drawClinicalConfusionMatrix(confClassico, "5. Matriz: Clássico", "canvasConfClassico_" + uid, targetId);
         drawClinicalConfusionMatrix(confSloan20, "5. Matriz: L.U.N.A. set", "canvasConfSloan20_" + uid, targetId);
     }, 100);
