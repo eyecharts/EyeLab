@@ -8,7 +8,7 @@
 <title>L.U.N.A. set – Plataforma Científica e Clínica</title>
 <!-- SCRIPT DE AUTO-ATUALIZAÇÃO (FORÇA LIMPEZA DE CACHE) -->
 <script>
-    const versaoOptoLab = "6.2.5"; // ⚠️ MUDE ESTE NÚMERO TODA VEZ QUE ATUALIZAR O CÓDIGO NO GITHUB
+    const versaoOptoLab = "6.2.6"; // ⚠️ MUDE ESTE NÚMERO TODA VEZ QUE ATUALIZAR O CÓDIGO NO GITHUB
     
     if (localStorage.getItem("versao_luna") !== versaoOptoLab) {
         localStorage.setItem("versao_luna", versaoOptoLab);
@@ -2132,6 +2132,54 @@ function analyzeCSV(text){
     let uid = Date.now();
     let safeContainer = "chartsSafeContainer_" + uid;
 
+    // =========================================================================
+    // CÁLCULO DOS P-VALUES PARA O PLACAR FINAL
+    // =========================================================================
+    function calcPValueParaPlacar(arr1, arr2) {
+        if(!arr1 || !arr2 || arr1.length < 2 || arr2.length < 2 || arr1.length !== arr2.length) return "N/A";
+        let diff = arr1.map((v, i) => v - arr2[i]);
+        let mean = diff.reduce((a,b)=>a+b,0) / diff.length;
+        let variance = diff.reduce((a,b)=>a+Math.pow(b-mean,2),0) / (diff.length - 1);
+        let sd = Math.sqrt(variance) || 0.0001;
+        let t = Math.abs(mean / (sd / Math.sqrt(arr1.length)));
+        let df = arr1.length - 1;
+        let x = df / (df + t * t);
+        let p = Math.pow(x, (df + 1) / 2);
+        if (df > 20) p = 2 * (1 - 1 / (1 + Math.exp(-1.654 * t)));
+        let pFinal = Math.max(0.0001, Math.min(p, 1.0));
+        return pFinal <= 0.001 ? "< 0.001" : "= " + pFinal.toFixed(3);
+    }
+
+    let subjStatsPVal = {};
+    data.forEach(d => {
+        if(!subjStatsPVal[d.subject]) subjStatsPVal[d.subject] = { C_err:0, C_parc:0, C_lin:0, S_err:0, S_parc:0, S_lin:0 };
+        let s = subjStatsPVal[d.subject];
+        if(d.chart === 'CLASSICO') { s.C_err += (5 - d.correct); s.C_lin++; if(d.correct > 0 && d.correct < 5) s.C_parc++; }
+        else if (d.chart === 'SLOAN20') { s.S_err += (5 - d.correct); s.S_lin++; if(d.correct > 0 && d.correct < 5) s.S_parc++; }
+    });
+
+    let vParcC_p = [], vParcS_p = [], vErrC_p = [], vErrS_p = [];
+    Object.values(subjStatsPVal).forEach(s => {
+        if(s.C_lin > 0 && s.S_lin > 0) {
+            vParcC_p.push((s.C_parc / s.C_lin)*100);
+            vParcS_p.push((s.S_parc / s.S_lin)*100);
+            vErrC_p.push(s.C_err);
+            vErrS_p.push(s.S_err);
+        }
+    });
+
+    let pValParciais = calcPValueParaPlacar(vParcC_p, vParcS_p);
+    let pValErros = calcPValueParaPlacar(vErrC_p, vErrS_p);
+
+    let pValRepro = "N/A";
+    // Para reprodutibilidade, calculamos o p-value da variação absoluta (delta) se houver múltiplos pacientes
+    if (pairsC.length > 1 && pairsS.length > 1 && pairsC.length === pairsS.length) {
+        let deltasC = pairsC.map(p => Math.abs(p[0] - p[1]));
+        let deltasS = pairsS.map(p => Math.abs(p[0] - p[1]));
+        pValRepro = calcPValueParaPlacar(deltasC, deltasS);
+    }
+    // =========================================================================
+
     let html = `
     <div class="metric-box">
         <h4>1. Performance Geral (${subjects.length} voluntários analisados)</h4>
@@ -2155,15 +2203,15 @@ function analyzeCSV(text){
             <p>Com base na análise matemática de 3 pilares independentes (Disputa de Melhor de 3), o teste que apresentou letras <b>mais homogeneamente discerníveis</b> e estáveis globalmente foi o <b><span style="color: ${corVencedor}; font-size: 17px; text-transform: uppercase;">${vencedorNome}</span></b> (Placar: ${pontosSloan} a ${pontosClassico}).</p>
             
             <p style="margin-top: 15px;"><b>1. Efeito "Parede de Tijolos" (Linhas Parciais):</b><br>
-            O L.U.N.A. set gerou <b>${tlpSloan20.toFixed(1)}%</b> de linhas parciais (acertos entre 1 e 4) contra <b>${tlpClassico.toFixed(1)}%</b> do Clássico. Uma menor proporção indica um limiar mais abrupto (sem "gaguejar" na linha).<br>
+            O L.U.N.A. set gerou <b>${tlpSloan20.toFixed(1)}%</b> de linhas parciais (acertos entre 1 e 4) contra <b>${tlpClassico.toFixed(1)}%</b> do Clássico. Uma menor proporção indica um limiar mais abrupto (sem "gaguejar" na linha) <b>(p ${pValParciais})</b>.<br>
             ➔ <b>Vantagem neste quesito: <span style="color:${venceuTLP === 'L.U.N.A. set' ? 'var(--success)' : (venceuTLP === 'Clássico' ? 'var(--primary)' : '#666')}; font-weight:bold;">${venceuTLP.toUpperCase()}</span></b></p>
 
             <p style="margin-top: 10px;"><b>2. Efeito Crowding (Confusão Visual):</b><br>
-            O L.U.N.A. set apresentou uma taxa de confusão global de <b>${taxaConfSloan20.toFixed(1)}%</b> contra <b>${taxaConfClassico.toFixed(1)}%</b> do Clássico. Valores menores mitigam o crowding e reduzem os erros por semelhança morfológica.<br>
+            O L.U.N.A. set apresentou uma taxa de confusão global de <b>${taxaConfSloan20.toFixed(1)}%</b> contra <b>${taxaConfClassico.toFixed(1)}%</b> do Clássico. Valores menores mitigam o crowding e reduzem os erros por semelhança morfológica <b>(p ${pValErros})</b>.<br>
             ➔ <b>Vantagem neste quesito: <span style="color:${venceuConf === 'L.U.N.A. set' ? 'var(--success)' : (venceuConf === 'Clássico' ? 'var(--primary)' : '#666')}; font-weight:bold;">${venceuConf.toUpperCase()}</span></b></p>
 
             ${repNome ? `<p style="margin-top: 10px;"><b>3. Reprodutibilidade (${repNome.split(' -')[0]}):</b><br> 
-            O L.U.N.A. set marcou <b>${repTextSloan}</b> vs <b>${repTextClassico}</b> do Clássico. O aumento da reprodutibilidade reflete a estabilidade da leitura.<br>
+            O L.U.N.A. set marcou <b>${repTextSloan}</b> vs <b>${repTextClassico}</b> do Clássico. O aumento da reprodutibilidade reflete a estabilidade da leitura ${pValRepro !== 'N/A' ? '<b>(p ' + pValRepro + ')</b>' : ''}.<br>
             ➔ <b>Vantagem neste quesito: <span style="color:${venceuRep === 'L.U.N.A. set' ? 'var(--success)' : (venceuRep === 'Clássico' ? 'var(--primary)' : '#666')}; font-weight:bold;">${venceuRep.toUpperCase()}</span></b></p>` : `<p style="margin-top: 10px;"><b>3. Reprodutibilidade:</b> <i>Dados insuficientes para calcular no reteste.</i></p>`}
         </div>
     </div>
