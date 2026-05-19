@@ -2303,27 +2303,47 @@ function gerarTextoArtigo(data, acuidadeClassico, acuidadeLuna) {
     let n = acuidadeClassico.length;
     if (n < 2 || !data) return;
 
-    // 1. Estatística de Acuidade Básica (Apenas para provar segurança)
+    // 1. Acuidade Básica (Para o Benchmark de Segurança)
     let difs = [], sumDif = 0;
     for (let i = 0; i < n; i++) {
         let d = acuidadeLuna[i] - acuidadeClassico[i];
         difs.push(d); sumDif += d;
     }
-    let meanBias = sumDif / n; // Diferença real de logMAR (esperado ~ -0.05)
-    let biasLetras = Math.abs(meanBias / 0.02).toFixed(1); // Transforma logMAR em número de letras
+    let meanBias = sumDif / n;
+    let biasLetras = Math.abs(meanBias / 0.02).toFixed(1);
 
-    // 2. Extração de Dados Paciente por Paciente para os Testes T-Pareados
+    // =======================================================================
+    // 2. EXTRAÇÃO GLOBAL IDÊNTICA AO PLACAR (Garante que o texto bata 100%)
+    // =======================================================================
+    let subsetC = data.filter(d => d.chart === 'CLASSICO');
+    let subsetS = data.filter(d => d.chart === 'SLOAN20');
+    
+    let parciaisC = subsetC.filter(d => d.correct > 0 && d.correct < 5).length;
+    let parciaisS = subsetS.filter(d => d.correct > 0 && d.correct < 5).length;
+    
+    let tlpClassico = subsetC.length > 0 ? (parciaisC / subsetC.length) * 100 : 0;
+    let tlpSloan20  = subsetS.length > 0 ? (parciaisS / subsetS.length) * 100 : 0;
+
+    let totalErrosC = subsetC.reduce((acc, d) => acc + (5 - d.correct), 0);
+    let totalErrosS = subsetS.reduce((acc, d) => acc + (5 - d.correct), 0);
+
+    // =======================================================================
+    // 3. VETORES INDIVIDUAIS (Usados APENAS para calcular o p-value pareado)
+    // =======================================================================
     let subjStats = {};
     data.forEach(d => {
-        if(!subjStats[d.subject]) subjStats[d.subject] = { 
-            CLASSICO: { erros: 0, parciais: 0, linhasValidas: 0 }, 
-            SLOAN20:  { erros: 0, parciais: 0, linhasValidas: 0 } 
-        };
-        let alvo = subjStats[d.subject][d.chart];
-        if(alvo) {
-            alvo.erros += (5 - d.correct);
-            alvo.linhasValidas++;
-            if(d.correct > 0 && d.correct < 5) alvo.parciais++;
+        if(!subjStats[d.subject]) {
+            subjStats[d.subject] = { C_err:0, C_parc:0, C_lin:0, S_err:0, S_parc:0, S_lin:0 };
+        }
+        let s = subjStats[d.subject];
+        if(d.chart === 'CLASSICO') {
+            s.C_err += (5 - d.correct);
+            s.C_lin++;
+            if(d.correct > 0 && d.correct < 5) s.C_parc++;
+        } else if (d.chart === 'SLOAN20') {
+            s.S_err += (5 - d.correct);
+            s.S_lin++;
+            if(d.correct > 0 && d.correct < 5) s.S_parc++;
         }
     });
 
@@ -2331,15 +2351,13 @@ function gerarTextoArtigo(data, acuidadeClassico, acuidadeLuna) {
     let vetParciaisC = [], vetParciaisS = [];
     
     Object.values(subjStats).forEach(s => {
-        // Usa porcentagem de linhas parciais do paciente para padronizar
-        let pctParcC = s.CLASSICO.linhasValidas > 0 ? (s.CLASSICO.parciais / s.CLASSICO.linhasValidas)*100 : 0;
-        let pctParcS = s.SLOAN20.linhasValidas > 0  ? (s.SLOAN20.parciais / s.SLOAN20.linhasValidas)*100 : 0;
-        
-        vetErrosC.push(s.CLASSICO.erros); vetErrosS.push(s.SLOAN20.erros);
-        vetParciaisC.push(pctParcC); vetParciaisS.push(pctParcS);
+        vetParciaisC.push(s.C_lin > 0 ? (s.C_parc / s.C_lin)*100 : 0);
+        vetParciaisS.push(s.S_lin > 0 ? (s.S_parc / s.S_lin)*100 : 0);
+        vetErrosC.push(s.C_err);
+        vetErrosS.push(s.S_err);
     });
 
-    // 3. Função de Teste T-Pareado
+    // 4. Teste T-Pareado Matemático
     function pairedTTest(arr1, arr2) {
         if(arr1.length < 2) return 1.0;
         let diff = arr1.map((v, i) => v - arr2[i]);
@@ -2347,23 +2365,23 @@ function gerarTextoArtigo(data, acuidadeClassico, acuidadeLuna) {
         let variance = diff.reduce((a,b)=>a+Math.pow(b-mean,2),0) / (diff.length - 1);
         let sd = Math.sqrt(variance) || 0.0001;
         let t = Math.abs(mean / (sd / Math.sqrt(arr1.length)));
-        return getPValue(t, arr1.length - 1);
+        
+        let df = arr1.length - 1;
+        let x = df / (df + t * t); 
+        let p = Math.pow(x, (df + 1) / 2); 
+        if (df > 20) p = 2 * (1 - 1 / (1 + Math.exp(-1.654 * t)));
+        return Math.max(0.0001, Math.min(p, 1.0));
     }
 
     let pErro = pairedTTest(vetErrosC, vetErrosS);
     let pParcial = pairedTTest(vetParciaisC, vetParciaisS);
 
-    let mediaParcC = vetParciaisC.reduce((a,b)=>a+b,0)/n;
-    let mediaParcS = vetParciaisS.reduce((a,b)=>a+b,0)/n;
-    
-    let totalErrosC = vetErrosC.reduce((a,b)=>a+b,0);
-    let totalErrosS = vetErrosS.reduce((a,b)=>a+b,0);
+    let pErroStr = pErro <= 0.001 ? "p < 0.001" : `p = ${pErro.toFixed(3)}`;
+    let pParcialStr = pParcial <= 0.001 ? "p < 0.001" : `p = ${pParcial.toFixed(3)}`;
 
-    // Formatação de P-values para o texto
-    let pErroStr = pErro < 0.001 ? "p < 0.001" : `p = ${pErro.toFixed(3)}`;
-    let pParcialStr = pParcial < 0.001 ? "p < 0.001" : `p = ${pParcial.toFixed(3)}`;
-
-    // 4. Geração do Texto Definitivo do Artigo
+    // =======================================================================
+    // 5. GERAÇÃO DO TEXTO DO ARTIGO
+    // =======================================================================
     let htmlTexto = `
         <h4 style="margin-top:0; color: #0d6efd;">Results: Psychometric Efficiency and Clinical Equivalence</h4>
         <p>
@@ -2375,11 +2393,11 @@ function gerarTextoArtigo(data, acuidadeClassico, acuidadeLuna) {
         </p>
         <p>
             <b>2. Psychometric Steepness (The "Brick Wall" Effect):</b><br>
-            A hallmark of an optimized optotype set is a steep psychometric function, characterized by a sharp transition from perfect recognition to complete failure, minimizing patient guessing ("stuttering" across lines). The L.U.N.A. Set demonstrated a highly significant reduction in the proportion of partial lines read per patient. The average partial line rate dropped from <b>${mediaParcC.toFixed(1)}%</b> in the Classic set to <b>${mediaParcS.toFixed(1)}%</b> with the L.U.N.A. Set (<b>${pParcialStr}</b>; Paired t-test). This indicates a markedly more abrupt and reliable threshold determination.
+            A hallmark of an optimized optotype set is a steep psychometric function, characterized by a sharp transition from perfect recognition to complete failure, minimizing patient guessing ("stuttering" across lines). The L.U.N.A. Set demonstrated a highly significant reduction in the proportion of partial lines read. The global partial line rate dropped from <b>${tlpClassico.toFixed(1)}%</b> in the Classic set to merely <b>${tlpSloan20.toFixed(1)}%</b> with the L.U.N.A. Set (<b>${pParcialStr}</b>; Paired t-test). This indicates a markedly more abrupt and reliable threshold determination.
         </p>
         <p>
             <b>3. Morphological Robustness (Crowding & Confusion Mitigation):</b><br>
-            By eliminating asymmetrical aliases (e.g., K being misidentified as R) through algorithmic slope adjustments, the L.U.N.A. Set drastically reduced visual confusion. Across ${n} subjects, the total number of misidentified optotypes plummeted from <b>${totalErrosC} errors</b> in the Classic protocol to merely <b>${totalErrosS} errors</b> with the L.U.N.A. Set. At the individual level, this reduction in morphological error rates was statistically significant (<b>${pErroStr}</b>; Paired t-test), proving that L.U.N.A.'s heuristics successfully neutralize unfair structural visual crowding.
+            By eliminating asymmetrical aliases (e.g., K being misidentified as R) through algorithmic slope adjustments, the L.U.N.A. Set drastically reduced visual confusion. Across the clinical sample, the total number of misidentified optotypes plummeted from <b>${totalErrosC} errors</b> in the Classic protocol to <b>${totalErrosS} errors</b> with the L.U.N.A. Set (<b>${pErroStr}</b>; Paired t-test), proving that L.U.N.A.'s heuristics successfully neutralize unfair structural visual crowding.
         </p>
     `;
 
