@@ -8,7 +8,7 @@
 <title>L.U.N.A. set – Plataforma Científica e Clínica</title>
 <!-- SCRIPT DE AUTO-ATUALIZAÇÃO (FORÇA LIMPEZA DE CACHE) -->
 <script>
-    const versaoOptoLab = "6.2.5"; // ⚠️ MUDE ESTE NÚMERO TODA VEZ QUE ATUALIZAR O CÓDIGO NO GITHUB
+    const versaoOptoLab = "6.2.6"; // ⚠️ MUDE ESTE NÚMERO TODA VEZ QUE ATUALIZAR O CÓDIGO NO GITHUB
     
     if (localStorage.getItem("versao_luna") !== versaoOptoLab) {
         localStorage.setItem("versao_luna", versaoOptoLab);
@@ -2384,13 +2384,24 @@ if (!data || data.length === 0) return;
         </p>
     `;
 
+    // SEGURANÇA: Tenta encontrar a div, se não achar, cria dentro do container de resultados
     let box = document.getElementById("texto_artigo_estatistica");
-    if(box) { 
-        box.innerHTML = htmlTexto; 
-        box.style.display = "block"; 
+    if (!box) {
+        let container = document.getElementById(window.currentClinicTarget || "clinicalAnalysisOutput");
+        if (container) {
+            box = document.createElement("div");
+            box.id = "texto_artigo_estatistica";
+            // Aplica os estilos necessários
+            box.style.cssText = "margin-top: 30px; padding: 20px; background: #fff; border: 1px solid #dee2e6; border-radius: 8px; text-align: justify; display: block;";
+            container.appendChild(box);
+        }
     }
     
-    box.style.display = "block"; // Isso é o que faz aparecer!
+    if (box) {
+        box.innerHTML = htmlTexto;
+        box.style.display = "block";
+    }
+    
 }
 </script>
 </body>
