@@ -1959,9 +1959,19 @@ function analyzeCSV(text){
         results[ch].correct += d.correct; results[ch].errors += (5 - d.correct); results[ch].time += d.time;
         if(d.letters && d.responses){
             let target = (ch === 'CLASSICO') ? confClassico : confSloan20;
-            for(let i=0; i<d.letters.length; i++){
-                let L = d.letters[i], R = d.responses[i];
-                if(!target[L]) target[L] = {}; if(!target[L][R]) target[L][R] = 0; target[L][R]++;
+            for (let i = 0; i < d.letters.length; i++) {
+                let L = d.letters[i];
+                
+                // Aqui nós interceptamos o "Undefined" e o transformamos em "0"
+                let R = d.responses[i] || "0"; 
+                
+                // Proteção extra: Não registra omissões ("0" ou "-") como letras falsas no gráfico 
+                if (R === "0" || R === "-" || R === " ") continue;
+                
+                if (!target[L]) target[L] = {}; 
+                if (!target[L][R]) target[L][R] = 0; 
+                
+                target[L][R]++;
             }
         }
     });
