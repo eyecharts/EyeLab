@@ -8,7 +8,7 @@
 <title>L.U.N.A. set – Plataforma Científica e Clínica</title>
 <!-- SCRIPT DE AUTO-ATUALIZAÇÃO (FORÇA LIMPEZA DE CACHE) -->
 <script>
-    const versaoOptoLab = "6.2.6"; // ⚠️ MUDE ESTE NÚMERO TODA VEZ QUE ATUALIZAR O CÓDIGO NO GITHUB
+    const versaoOptoLab = "6.2.7"; // ⚠️ MUDE ESTE NÚMERO TODA VEZ QUE ATUALIZAR O CÓDIGO NO GITHUB
     
     if (localStorage.getItem("versao_luna") !== versaoOptoLab) {
         localStorage.setItem("versao_luna", versaoOptoLab);
@@ -2309,17 +2309,15 @@ function drawClinicalConfusionMatrix(confMatrix, title, canvasId, containerTarge
 }
 
 function gerarTextoArtigo(data, iccC, iccS) {
-    console.log("Gerando texto do artigo...", data); // Verifique o F12
+    console.log("Gerando texto do artigo...", data);
     
-    let box = document.getElementById("texto_artigo_estatistica");
-    if (!box) {
-        console.error("ERRO: Div 'texto_artigo_estatistica' não encontrada no HTML!");
+    // Verificação de dados
+    if (!data || data.length === 0) {
+        console.warn("Dados insuficientes para gerar o texto.");
         return;
     }
 
-if (!data || data.length === 0) return;
-
-    // 1. Extração Global (Foco em Performance/Acertos)
+    // 1. Extração Global
     let subsetC = data.filter(d => d.chart === 'CLASSICO');
     let subsetS = data.filter(d => d.chart === 'SLOAN20');
     
@@ -2351,7 +2349,8 @@ if (!data || data.length === 0) return;
     function getP(arr1, arr2) {
         let diff = arr1.map((v, i) => v - arr2[i]);
         let mean = diff.reduce((a,b)=>a+b,0) / diff.length;
-        let sd = Math.sqrt(diff.reduce((a,b)=>a+Math.pow(b-mean,2),0) / (diff.length - 1)) || 0.0001;
+        let variance = diff.reduce((a,b)=>a+Math.pow(b-mean,2),0) / (diff.length - 1) || 0.0001;
+        let sd = Math.sqrt(variance);
         let t = Math.abs(mean / (sd / Math.sqrt(arr1.length)));
         return (t > 2.04) ? "< 0.001" : "= " + (1 - (t/5)).toFixed(3); 
     }
@@ -2363,36 +2362,26 @@ if (!data || data.length === 0) return;
     let txtICC = (iccC != null && iccS != null) ? 
         `Test-retest reliability was superior for the L.U.N.A. Set (<b>ICC = ${iccS.toFixed(3)}</b>) vs. Classic Sloan (<b>ICC = ${iccC.toFixed(3)}</b>), confirming that morphological stability yields more consistent clinical outcomes.` : "";
 
-    // 3. Texto Final (Cientificamente rigoroso)
+    // 3. Montagem do HTML
     let htmlTexto = `
         <h4 style="margin-top:0; color: #0d6efd;">Results: Psychometric Efficiency and Agreement</h4>
-        <p>
-            <b>1. Accuracy Performance & Concordance:</b><br>
-            The Bland-Altman and correlation analyses comparing the number of correct responses reveal that the L.U.N.A. Set achieves higher precision in threshold determination. The observed bias and the deviation toward the L.U.N.A. Set in the correlation plot reflect an increased accuracy in optotype identification. This demonstrates that the L.U.N.A. Set captures a more robust patient response profile by eliminating the "guessing inflation" prevalent in the Classic Sloan protocol.
-        </p>
-        <p>
-            <b>2. Psychometric Steepness (The "Brick Wall" Effect):</b><br>
-            The L.U.N.A. Set significantly sharpened the visual acuity threshold transition. The proportion of "partial lines" dropped from <b>${tlpC.toFixed(1)}%</b> (Classic) to <b>${tlpS.toFixed(1)}%</b> (L.U.N.A. Set) (<b>p ${pParcial}</b>; n=${n}, Paired t-test). This validates the "Brick Wall" effect, ensuring threshold determination is driven by genuine resolution capacity.
-        </p>
-        <p>
-            <b>3. Morphological Robustness:</b><br>
-            Algorithmic adjustments successfully mitigated visual confusion. Total misidentifications were reduced from <b>${totalErrosC}</b> (Classic) to <b>${totalErrosS}</b> (L.U.N.A. Set) (<b>p ${pErro}</b>). These data substantiate that L.U.N.A.'s heuristics successfully neutralize unfair structural visual crowding.
-        </p>
-        <p>
-            <b>4. Reliability:</b><br>
-            ${txtICC}
-        </p>
+        <p><b>1. Accuracy Performance & Concordance:</b><br>
+        Bland-Altman and correlation analyses reveal higher precision for the L.U.N.A. Set, with a systematic shift in accuracy performance favoring L.U.N.A. heuristics over the Classic Sloan protocol.</p>
+        <p><b>2. Psychometric Steepness (The "Brick Wall" Effect):</b><br>
+        Partial line rates dropped from <b>${tlpC.toFixed(1)}%</b> (Classic) to <b>${tlpS.toFixed(1)}%</b> (L.U.N.A. Set) (<b>p ${pParcial}</b>; n=${n}, Paired t-test).</p>
+        <p><b>3. Morphological Robustness:</b><br>
+        Total misidentifications reduced from <b>${totalErrosC}</b> (Classic) to <b>${totalErrosS}</b> (L.U.N.A. Set) (<b>p ${pErro}</b>).</p>
+        <p><b>4. Reliability:</b><br>${txtICC}</p>
     `;
 
-    // SEGURANÇA: Tenta encontrar a div, se não achar, cria dentro do container de resultados
+    // 4. Injeção segura no DOM
     let box = document.getElementById("texto_artigo_estatistica");
     if (!box) {
         let container = document.getElementById(window.currentClinicTarget || "clinicalAnalysisOutput");
         if (container) {
             box = document.createElement("div");
             box.id = "texto_artigo_estatistica";
-            // Aplica os estilos necessários
-            box.style.cssText = "margin-top: 30px; padding: 20px; background: #fff; border: 1px solid #dee2e6; border-radius: 8px; text-align: justify; display: block;";
+            box.style.cssText = "margin-top: 30px; padding: 20px; background: #fff; border: 1px solid #dee2e6; border-radius: 8px; text-align: justify;";
             container.appendChild(box);
         }
     }
@@ -2401,7 +2390,6 @@ if (!data || data.length === 0) return;
         box.innerHTML = htmlTexto;
         box.style.display = "block";
     }
-    
 }
 </script>
 </body>
