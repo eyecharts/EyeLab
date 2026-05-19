@@ -1899,6 +1899,8 @@ function processCSV(){
         };
         reader.readAsText(f);
     }
+
+    gerarTextoArtigo(arrayX_Classico, arrayY_Luna);
 }
 function getPValue(t, df) {
     t = Math.abs(t); let x = df / (df + t * t); let p = Math.pow(x, (df + 1) / 2); 
