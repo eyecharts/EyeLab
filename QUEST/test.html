@@ -2285,7 +2285,7 @@ function drawClinicalConfusionMatrix(confMatrix, title, canvasId, containerTarge
         
         // Escreve a porcentagem de erro real na lateral direita
         let taxaErro = totalApresentacoes[a] > 0 ? (totalErros[a] / totalApresentacoes[a]) * 100 : 0;
-        ctx.fillStyle = "black"; ctx.font = "bold 11px Arial"; ctx.textAlign = "left"; ctx.fillText(`Erro: ${taxaErro.toFixed(1)}%`, offsetX + size * grid + 10, offsetY + i * grid + grid / 2);
+        ctx.fillStyle = "black"; ctx.font = "bold 11px Arial"; ctx.textAlign = "left"; ctx.fillText(`Error: ${taxaErro.toFixed(1)}%`, offsetX + size * grid + 10, offsetY + i * grid + grid / 2);
     });
 
     ctx.fillStyle = "black"; ctx.font = "bold 13px Arial"; ctx.textAlign = "center";
