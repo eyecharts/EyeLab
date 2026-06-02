@@ -2283,28 +2283,33 @@ function drawBlandAltman(a, b, containerId){
     ctx.fillText(`Bias: ${meanDiff.toFixed(2)}`, 455, meanY + 4); ctx.fillText(`+1.96 SD: ${(meanDiff + 1.96*sdDiff).toFixed(2)}`, 455, upperY + 4); ctx.fillText(`-1.96 SD: ${(meanDiff - 1.96*sdDiff).toFixed(2)}`, 455, lowerY + 4);
 }
 
-function drawClinicalConfusionMatrix(confMatrix, title, canvasId, containerTargetId) {
-    let lettersSet = new Set();
+    function drawClinicalConfusionMatrix(confMatrix, title, canvasId, containerTargetId) {
+    // 1. EIXO Y (Linhas): Apenas as letras que foram de fato testadas (apresentadas na tela)
+    let letrasY = Object.keys(confMatrix).filter(l => l !== "0").sort();
     
-    // Filtra o "0" para que ele não vire uma coluna/linha visual no gráfico
-    Object.keys(confMatrix).forEach(l => { 
-        if(l !== "0") lettersSet.add(l); 
+    if (letrasY.length === 0) return;
+
+    // 2. EIXO X (Colunas): Letras do teste + qualquer outra letra que o paciente tenha chutado
+    let lettersXSet = new Set(letrasY); 
+    letrasY.forEach(l => { 
         Object.keys(confMatrix[l]).forEach(r => {
-            if(r !== "0" && r.match(/[A-Z]/i)) lettersSet.add(r.toUpperCase());
+            if(r !== "0" && r.match(/[A-Z]/i)) lettersXSet.add(r.toUpperCase());
         }); 
     });
-    
-    let letras = Array.from(lettersSet).sort(); if (letras.length === 0) return;
+    let letrasX = Array.from(lettersXSet).sort(); 
 
     let canvasContainer = document.createElement("div");
-    canvasContainer.style.display = "inline-block"; canvasContainer.style.margin = "10px 20px 20px 0"; canvasContainer.style.verticalAlign = "top";
+    canvasContainer.style.display = "inline-block"; 
+    canvasContainer.style.margin = "10px 20px 20px 0"; 
+    canvasContainer.style.verticalAlign = "top";
     document.getElementById(containerTargetId).appendChild(canvasContainer);
     
-    let size = letras.length, grid = Math.min(35, 450 / size);
+    // Ajusta o tamanho dos quadrados para caber os eixos independentemente
+    let grid = Math.min(35, 450 / Math.max(letrasX.length, letrasY.length));
     let maxVal = 0, totalApresentacoes = {}, totalErros = {}, globalErrors = 0, globalPresentations = 0;
 
-    // MATEMÁTICA CORRETA: Conta o "0" (omissão) como erro e como apresentação
-    letras.forEach(a => {
+    // Matemática focada apenas nas letras do Eixo Y
+    letrasY.forEach(a => {
         totalApresentacoes[a] = 0; totalErros[a] = 0;
         Object.keys(confMatrix[a] || {}).forEach(resposta => {
             let val = confMatrix[a][resposta];
@@ -2314,38 +2319,74 @@ function drawClinicalConfusionMatrix(confMatrix, title, canvasId, containerTarge
             if (a !== resposta) { 
                 totalErros[a] += val; 
                 globalErrors += val; 
-                // Para o mapa de calor das cores, ignoramos o 0 para não distorcer a escala de vermelho
                 if (resposta !== "0") maxVal = Math.max(maxVal, val); 
             }
         });
     });
 
     let mediaConfundibilidade = globalPresentations > 0 ? (globalErrors / globalPresentations) * 100 : 0;
-    canvasContainer.innerHTML = `<div class='metric-box' style='padding:15px;'><h4 style="margin-bottom: 5px;">${title}</h4><div style="font-size: 14px; font-weight: bold; color: var(--danger); margin-bottom: 15px;">Confundibilidade Média: ${mediaConfundibilidade.toFixed(1)}%</div><canvas id='${canvasId}'></canvas></div>`;
+    
+    // Adicionei uma legenda visual para ajudar o leitor a entender os eixos
+    canvasContainer.innerHTML = `
+        <div class='metric-box' style='padding:15px; position:relative;'>
+            <h4 style="margin-bottom: 5px;">${title}</h4>
+            <div style="font-size: 14px; font-weight: bold; color: var(--danger); margin-bottom: 5px;">Confundibilidade Média: ${mediaConfundibilidade.toFixed(1)}%</div>
+            <div style="font-size: 11px; color: #666; margin-bottom: 10px;"><b>Eixo Y:</b> Letra Apresentada | <b>Eixo X:</b> Resposta</div>
+            <canvas id='${canvasId}'></canvas>
+        </div>`;
       
     let canvas = document.getElementById(canvasId);
-    canvas.width = Math.max(350, size * grid + 150); canvas.height = Math.max(350, size * grid + 80);
+    
+    // A Lógica Chave: Largura baseada no X e Altura baseada no Y
+    canvas.width = Math.max(350, letrasX.length * grid + 150); 
+    canvas.height = Math.max(300, letrasY.length * grid + 80);
+    
     let ctx = canvas.getContext("2d"), offsetX = 40, offsetY = 40;
 
-    letras.forEach((a, i) => {
-        letras.forEach((b, j) => {
+    // Desenha as células
+    letrasY.forEach((a, i) => { // Linhas
+        letrasX.forEach((b, j) => { // Colunas
             let val = confMatrix[a]?.[b] || 0;
-            if (a === b && val > 0) ctx.fillStyle = "#e6f2ff"; else if (a === b && val === 0) ctx.fillStyle = "#f9f9f9"; else if (val === 0) ctx.fillStyle = "#ffffff";
-            else { let intensity = Math.max(0.15, val / (maxVal || 1)); ctx.fillStyle = `rgba(220, 53, 69, ${intensity})`; }
+            
+            // Define as Cores
+            if (a === b && val > 0) ctx.fillStyle = "#e6f2ff"; // Acerto
+            else if (a === b && val === 0) ctx.fillStyle = "#f9f9f9"; // Acerto zero
+            else if (val === 0) ctx.fillStyle = "#ffffff"; // Sem erro
+            else { 
+                let intensity = Math.max(0.15, val / (maxVal || 1)); 
+                ctx.fillStyle = `rgba(220, 53, 69, ${intensity})`; // Mapa de Calor para Erros
+            }
 
             let x = offsetX + j * grid, y = offsetY + i * grid;
-            ctx.fillRect(x, y, grid, grid); ctx.strokeStyle = "#ddd"; ctx.strokeRect(x, y, grid, grid);
-            if (val > 0) { ctx.fillStyle = (a !== b) ? "white" : "black"; if(a!==b && val/(maxVal||1) < 0.4) ctx.fillStyle = "black"; ctx.font = "12px Arial"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(val, x + grid / 2, y + grid / 2); }
+            ctx.fillRect(x, y, grid, grid); 
+            ctx.strokeStyle = "#ddd"; 
+            ctx.strokeRect(x, y, grid, grid);
+            
+            // Escreve os números dentro das células
+            if (val > 0) { 
+                ctx.fillStyle = (a !== b) ? "white" : "black"; 
+                if(a !== b && val/(maxVal||1) < 0.4) ctx.fillStyle = "black"; 
+                ctx.font = "12px Arial"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; 
+                ctx.fillText(val, x + grid / 2, y + grid / 2); 
+            }
         });
         
-        // Escreve a porcentagem de erro real na lateral direita
+        // Escreve a porcentagem de erro isolada na lateral direita de cada linha Y
         let taxaErro = totalApresentacoes[a] > 0 ? (totalErros[a] / totalApresentacoes[a]) * 100 : 0;
-        ctx.fillStyle = "black"; ctx.font = "bold 11px Arial"; ctx.textAlign = "left"; ctx.fillText(`Error: ${taxaErro.toFixed(1)}%`, offsetX + size * grid + 10, offsetY + i * grid + grid / 2);
+        ctx.fillStyle = "black"; ctx.font = "bold 11px Arial"; ctx.textAlign = "left"; 
+        ctx.fillText(`Error: ${taxaErro.toFixed(1)}%`, offsetX + letrasX.length * grid + 10, offsetY + i * grid + grid / 2);
     });
 
+    // Escreve os Títulos de X e Y
     ctx.fillStyle = "black"; ctx.font = "bold 13px Arial"; ctx.textAlign = "center";
-    letras.forEach((l, i) => { ctx.fillText(l, offsetX + i * grid + grid / 2, offsetY - 10); ctx.fillText(l, offsetX - 15, offsetY + i * grid + grid / 2); });
-}
+    letrasX.forEach((l, j) => { 
+        ctx.fillText(l, offsetX + j * grid + grid / 2, offsetY - 10); // Letras do X (Respostas)
+    });
+    letrasY.forEach((l, i) => { 
+        ctx.fillText(l, offsetX - 15, offsetY + i * grid + grid / 2); // Letras do Y (Apresentadas)
+    });
+            }
+    
 
 function gerarTextoArtigo(data, vC, vS) {
     // 1. Extração de segurança dos vetores de acuidade se não vierem calculados
