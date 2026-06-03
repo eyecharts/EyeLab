@@ -8,7 +8,7 @@
 <title>L.U.N.A. set – Plataforma Científica e Clínica</title>
 <!-- SCRIPT DE AUTO-ATUALIZAÇÃO (FORÇA LIMPEZA DE CACHE) -->
 <script>
-    const versaoOptoLab = "6.2.7"; // ⚠️ MUDE ESTE NÚMERO TODA VEZ QUE ATUALIZAR O CÓDIGO NO GITHUB
+    const versaoOptoLab = "6.2.8"; // ⚠️ MUDE ESTE NÚMERO TODA VEZ QUE ATUALIZAR O CÓDIGO NO GITHUB
     
     if (localStorage.getItem("versao_luna") !== versaoOptoLab) {
         localStorage.setItem("versao_luna", versaoOptoLab);
@@ -2292,13 +2292,12 @@ function drawClinicalConfusionMatrix(confMatrix, title, canvasId, containerTarge
     // 2. EIXO X (Colunas): Construção Inteligente com Filtro
     let extraGuessesSet = new Set(); 
     
-    // 👇 NOVA REGRA: Letras que não devem aparecer de forma alguma no Eixo X
+    // Letras que não devem aparecer de forma alguma no Eixo X
     const letrasIgnoradas = ['W', 'T', 'I', 'J']; 
 
     letrasY.forEach(l => { 
         Object.keys(confMatrix[l]).forEach(r => {
             let resp = r.toUpperCase();
-            // Ignora o 0, ignora se não for letra, ignora se for do eixo Y, e IGNORA W, T, I
             if(resp !== "0" && resp.match(/[A-Z]/i) && !letrasY.includes(resp) && !letrasIgnoradas.includes(resp)) {
                 extraGuessesSet.add(resp);
             }
@@ -2359,12 +2358,20 @@ function drawClinicalConfusionMatrix(confMatrix, title, canvasId, containerTarge
             let val = confMatrix[a]?.[b] || 0;
             
             // Define as Cores
-            if (a === b && val > 0) ctx.fillStyle = "#e6f2ff"; // Acerto (Cor da Diagonal)
-            else if (a === b && val === 0) ctx.fillStyle = "#f9f9f9"; // Acerto zero (Diagonal vazia)
-            else if (val === 0) ctx.fillStyle = "#ffffff"; // Sem erro
-            else { 
-                let intensity = Math.max(0.15, val / (maxVal || 1)); 
-                ctx.fillStyle = `rgba(220, 53, 69, ${intensity})`; // Erros em vermelho
+            if (a === b && val > 0) {
+                ctx.fillStyle = "#e6f2ff"; // Acerto (Cor da Diagonal)
+            } else if (a === b && val === 0) {
+                ctx.fillStyle = "#f9f9f9"; // Acerto zero (Diagonal vazia)
+            } else if (val === 0) {
+                ctx.fillStyle = "#ffffff"; // Sem erro
+            } else { 
+                // 👇 NOVA REGRA: Vermelho FORTE para erros acima de 20
+                if (val > 20) {
+                    ctx.fillStyle = "rgba(153, 0, 0, 1)"; // Vermelho Escuro e Sólido
+                } else {
+                    let intensity = Math.max(0.15, val / (maxVal || 1)); 
+                    ctx.fillStyle = `rgba(220, 53, 69, ${intensity})`; // Vermelho padrão em mapa de calor
+                }
             }
 
             let x = offsetX + j * grid, y = offsetY + i * grid;
@@ -2375,13 +2382,19 @@ function drawClinicalConfusionMatrix(confMatrix, title, canvasId, containerTarge
             // Escreve os números dentro das células
             if (val > 0) { 
                 ctx.fillStyle = (a !== b) ? "white" : "black"; 
-                if(a !== b && val/(maxVal||1) < 0.4) ctx.fillStyle = "black"; 
-                ctx.font = "12px Arial"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; 
+                // Se a cor de fundo for muito clara E o valor não for os > 20 (que são escuros), a fonte fica preta
+                if (a !== b && val <= 20 && val/(maxVal||1) < 0.4) {
+                    ctx.fillStyle = "black"; 
+                }
+                // Destaque em negrito para os erros graves
+                ctx.font = (val > 20 && a !== b) ? "bold 13px Arial" : "12px Arial"; 
+                ctx.textAlign = "center"; 
+                ctx.textBaseline = "middle"; 
                 ctx.fillText(val, x + grid / 2, y + grid / 2); 
             }
         });
         
-        // Escreve a percentagem de erro isolada na lateral direita de cada linha Y
+        // Escreve a porcentagem de erro isolada na lateral direita de cada linha Y
         let taxaErro = totalApresentacoes[a] > 0 ? (totalErros[a] / totalApresentacoes[a]) * 100 : 0;
         ctx.fillStyle = "black"; ctx.font = "bold 11px Arial"; ctx.textAlign = "left"; 
         ctx.fillText(`Error: ${taxaErro.toFixed(1)}%`, offsetX + letrasX.length * grid + 10, offsetY + i * grid + grid / 2);
