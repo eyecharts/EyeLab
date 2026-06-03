@@ -2289,21 +2289,24 @@ function drawClinicalConfusionMatrix(confMatrix, title, canvasId, containerTarge
     
     if (letrasY.length === 0) return;
 
-    // 2. EIXO X (Colunas): Construção Inteligente
-    // Passo A: Identificar os "chutes" errados (letras fora do set)
+    // 2. EIXO X (Colunas): Construção Inteligente com Filtro
     let extraGuessesSet = new Set(); 
+    
+    // 👇 NOVA REGRA: Letras que não devem aparecer de forma alguma no Eixo X
+    const letrasIgnoradas = ['W', 'T', 'I']; 
+
     letrasY.forEach(l => { 
         Object.keys(confMatrix[l]).forEach(r => {
             let resp = r.toUpperCase();
-            if(resp !== "0" && resp.match(/[A-Z]/i) && !letrasY.includes(resp)) {
+            // Ignora o 0, ignora se não for letra, ignora se for do eixo Y, e IGNORA W, T, I
+            if(resp !== "0" && resp.match(/[A-Z]/i) && !letrasY.includes(resp) && !letrasIgnoradas.includes(resp)) {
                 extraGuessesSet.add(resp);
             }
         }); 
     });
     let extraGuesses = Array.from(extraGuessesSet).sort(); 
 
-    // Passo B: O Eixo X final será = [As 10 letras originais (Y)] + [Os Chutes Extras]
-    // Isso garante a DIAGONAL PERFEITA nos acertos.
+    // O Eixo X final será = [As 10 letras originais (Y)] + [Os Chutes Extras Filtrados]
     let letrasX = [...letrasY, ...extraGuesses];
 
     let canvasContainer = document.createElement("div");
@@ -2378,7 +2381,7 @@ function drawClinicalConfusionMatrix(confMatrix, title, canvasId, containerTarge
             }
         });
         
-        // Escreve a porcentagem de erro isolada na lateral direita de cada linha Y
+        // Escreve a percentagem de erro isolada na lateral direita de cada linha Y
         let taxaErro = totalApresentacoes[a] > 0 ? (totalErros[a] / totalApresentacoes[a]) * 100 : 0;
         ctx.fillStyle = "black"; ctx.font = "bold 11px Arial"; ctx.textAlign = "left"; 
         ctx.fillText(`Error: ${taxaErro.toFixed(1)}%`, offsetX + letrasX.length * grid + 10, offsetY + i * grid + grid / 2);
