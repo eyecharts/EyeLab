@@ -2293,7 +2293,7 @@ function drawClinicalConfusionMatrix(confMatrix, title, canvasId, containerTarge
     let extraGuessesSet = new Set(); 
     
     // 👇 NOVA REGRA: Letras que não devem aparecer de forma alguma no Eixo X
-    const letrasIgnoradas = ['W', 'T', 'I']; 
+    const letrasIgnoradas = ['W', 'T', 'I', 'J']; 
 
     letrasY.forEach(l => { 
         Object.keys(confMatrix[l]).forEach(r => {
