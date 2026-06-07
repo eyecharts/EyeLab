@@ -2226,8 +2226,8 @@ function analyzeCSV(text){
             drawBlandAltman(vC, vS, safeContainer); 
             gerarTextoArtigo(data, vC, vS); // <--- A MÁGICA ENTRA AQUI!
         }
-        drawClinicalConfusionMatrix(confClassico, "5. Matriz: Clássico", "canvasConfClassico_" + uid, targetId);
-        drawClinicalConfusionMatrix(confSloan20, "5. Matriz: L.U.N.A. set", "canvasConfSloan20_" + uid, targetId);
+        drawClinicalConfusionMatrix(confClassico, "Matrix: Classic Sloan", "canvasConfClassico_" + uid, targetId);
+drawClinicalConfusionMatrix(confSloan20, "Matrix: L.U.N.A. Set", "canvasConfSloan20_" + uid, targetId);
     }, 100);
 }
 function drawScatter(x, y, containerId){
@@ -2293,7 +2293,7 @@ function drawClinicalConfusionMatrix(confMatrix, title, canvasId, containerTarge
     let extraGuessesSet = new Set(); 
     
     // Letras que não devem aparecer de forma alguma no Eixo X
-    const letrasIgnoradas = ['W', 'T', 'I', 'J']; 
+    const letrasIgnoradas = ['W', 'T', 'I']; 
 
     letrasY.forEach(l => { 
         Object.keys(confMatrix[l]).forEach(r => {
@@ -2336,11 +2336,12 @@ function drawClinicalConfusionMatrix(confMatrix, title, canvasId, containerTarge
 
     let mediaConfundibilidade = globalPresentations > 0 ? (globalErrors / globalPresentations) * 100 : 0;
     
+    // 👇 AQUI: Textos alterados para INGLÊS
     canvasContainer.innerHTML = `
         <div class='metric-box' style='padding:15px; position:relative;'>
             <h4 style="margin-bottom: 5px;">${title}</h4>
-            <div style="font-size: 14px; font-weight: bold; color: var(--danger); margin-bottom: 5px;">Confundibilidade Média: ${mediaConfundibilidade.toFixed(1)}%</div>
-            <div style="font-size: 11px; color: #666; margin-bottom: 10px;"><b>Eixo Y:</b> Apresentada | <b>Eixo X:</b> Resposta</div>
+            <div style="font-size: 14px; font-weight: bold; color: var(--danger); margin-bottom: 5px;">Mean Confusion: ${mediaConfundibilidade.toFixed(1)}%</div>
+            <div style="font-size: 11px; color: #666; margin-bottom: 10px;"><b>Y-Axis:</b> Presented | <b>X-Axis:</b> Response</div>
             <canvas id='${canvasId}'></canvas>
         </div>`;
       
@@ -2357,7 +2358,7 @@ function drawClinicalConfusionMatrix(confMatrix, title, canvasId, containerTarge
         letrasX.forEach((b, j) => { // Colunas (X)
             let val = confMatrix[a]?.[b] || 0;
             
-            // Define as Cores
+            // Define as Cores (Mapa de calor continua baseado no valor real para não quebrar a proporção visual)
             if (a === b && val > 0) {
                 ctx.fillStyle = "#e6f2ff"; // Acerto (Cor da Diagonal)
             } else if (a === b && val === 0) {
@@ -2365,7 +2366,6 @@ function drawClinicalConfusionMatrix(confMatrix, title, canvasId, containerTarge
             } else if (val === 0) {
                 ctx.fillStyle = "#ffffff"; // Sem erro
             } else { 
-                // 👇 NOVA REGRA: Vermelho FORTE para erros acima de 20
                 if (val > 20) {
                     ctx.fillStyle = "rgba(153, 0, 0, 1)"; // Vermelho Escuro e Sólido
                 } else {
@@ -2386,11 +2386,13 @@ function drawClinicalConfusionMatrix(confMatrix, title, canvasId, containerTarge
                 if (a !== b && val <= 20 && val/(maxVal||1) < 0.4) {
                     ctx.fillStyle = "black"; 
                 }
-                // Destaque em negrito para os erros graves
+                
                 ctx.font = (val > 20 && a !== b) ? "bold 13px Arial" : "12px Arial"; 
                 ctx.textAlign = "center"; 
                 ctx.textBaseline = "middle"; 
-                ctx.fillText(val, x + grid / 2, y + grid / 2); 
+                
+                // 👇 AQUI: Valor exibido dentro da célula foi multiplicado por 2, conforme solicitado!
+                ctx.fillText((val * 2), x + grid / 2, y + grid / 2); 
             }
         });
         
