@@ -2228,6 +2228,9 @@ function analyzeCSV(text){
         }
         drawClinicalConfusionMatrix(confClassico, "Matrix: Classic Sloan", "canvasConfClassico_" + uid, targetId);
 drawClinicalConfusionMatrix(confSloan20, "Matrix: L.U.N.A. Set", "canvasConfSloan20_" + uid, targetId);
+        // Cria a terceira matriz forçando a ordem com o 'T' inserido artificialmente
+const lunaSetComT = ['E', 'N', 'O', 'P', 'R', 'T', 'U', 'V', 'X', 'Z'];
+drawClinicalConfusionMatrix(confSloan20, "Matrix: L.U.N.A. (Variant T)", "canvasConfSloan20T_" + uid, targetId, lunaSetComT);
     }, 100);
 }
 function drawScatter(x, y, containerId){
