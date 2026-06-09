@@ -2228,9 +2228,7 @@ function analyzeCSV(text){
         }
         drawClinicalConfusionMatrix(confClassico, "Matrix: Classic Sloan", "canvasConfClassico_" + uid, targetId);
 drawClinicalConfusionMatrix(confSloan20, "Matrix: L.U.N.A. Set", "canvasConfSloan20_" + uid, targetId);
-   // Cria a terceira matriz forçando a ordem com o 'A' inserido artificialmente
-const lunaSetComA = ['A', 'E', 'N', 'O', 'P', 'R', 'U', 'V', 'X', 'Z'];
-drawClinicalConfusionMatrix(confSloan20, "Matrix: L.U.N.A. (Variant A)", "canvasConfSloan20A_" + uid, targetId, lunaSetComA);
+
     }, 100);
 }
 function drawScatter(x, y, containerId){
@@ -2343,7 +2341,7 @@ function drawClinicalConfusionMatrix(confMatrix, title, canvasId, containerTarge
             <canvas id='${canvasId}'></canvas>
             
             <div style="margin-top: 12px; font-size: 14px; font-weight: bold; color: #dc3545; text-align: center; border-top: 1px solid #eee; padding-top: 8px;">
-                Total Errors: ${globalErrors * 2}
+                Total Errors: ${globalErrors}
             </div>
         </div>`;
       
@@ -2359,8 +2357,6 @@ function drawClinicalConfusionMatrix(confMatrix, title, canvasId, containerTarge
         letrasX.forEach((b, j) => { 
             let val = confMatrix[a]?.[b] || 0;
             
-            // Define o teto do mapa de calor para 20 (que será exibido como 40).
-            // Isso evita que valores extremos esmaguem o degradê dos valores intermediários.
             let tetoDegrade = Math.min(maxVal, 20); 
             
             // Define as Cores
@@ -2372,9 +2368,8 @@ function drawClinicalConfusionMatrix(confMatrix, title, canvasId, containerTarge
                 ctx.fillStyle = "#ffffff"; // Sem erro
             } else { 
                 if (val > 20) {
-                    ctx.fillStyle = "rgba(153, 0, 0, 1)"; // Erros exibidos > 40 (Sólido/Forte)
+                    ctx.fillStyle = "rgba(153, 0, 0, 1)"; // Erros exibidos > 20 (Sólido/Forte)
                 } else {
-                    // Erros intermediários (calculados com base no teto de 20 para garantir contraste)
                     let intensity = Math.max(0.15, val / (tetoDegrade || 1)); 
                     ctx.fillStyle = `rgba(220, 53, 69, ${intensity})`; 
                 }
@@ -2385,11 +2380,10 @@ function drawClinicalConfusionMatrix(confMatrix, title, canvasId, containerTarge
             ctx.strokeStyle = "#ddd"; 
             ctx.strokeRect(x, y, grid, grid);
             
-            // Escreve os números multiplicados por 2
+            // 👇 AQUI: Escreve os números REAIS (sem o * 2)
             if (val > 0) { 
                 ctx.fillStyle = (a !== b) ? "white" : "black"; 
                 
-                // Avalia se o fundo está muito claro para forçar a fonte a ficar preta
                 if (a !== b && val <= 20 && (val / (tetoDegrade || 1)) < 0.45) {
                     ctx.fillStyle = "black"; 
                 }
@@ -2397,7 +2391,7 @@ function drawClinicalConfusionMatrix(confMatrix, title, canvasId, containerTarge
                 ctx.font = (val > 20 && a !== b) ? "bold 13px Arial" : "12px Arial"; 
                 ctx.textAlign = "center"; 
                 ctx.textBaseline = "middle"; 
-                ctx.fillText((val * 2), x + grid / 2, y + grid / 2); 
+                ctx.fillText(val, x + grid / 2, y + grid / 2); 
             }
         });
         
