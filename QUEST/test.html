@@ -1221,14 +1221,18 @@ function letterSetOptimization(tabela, matriz, variabilidadeLetra){
         if (maxVariab > 0.055) penalty += 2000 + 10000 * (maxVariab - 0.055); 
         if (maxPairConf > limCmax) penalty += 1000 + 5000 * (maxPairConf - limCmax);
 
-        // A equação volta a ter 5 parâmetros limpos e não-redundantes!
+      // Calculamos a confusão média de todas as duplas do grupo
+        let meanConf = pairs > 0 ? (confSum / pairs) : 0;
+
+        // A equação agora pune a PIOR DUPLA (maxPairConf) E a CONFUSÃO GERAL (meanConf)
         let score = 
-            (10.0 * maxPairConf) +  
+            (10.0 * maxPairConf) + 
+            (20.0 * meanConf) +     // <-- NOVO PARÂMETRO: Punição pesada para a confusão média!
             (10.0 * LPI) +          
             (40.0 * meanVariab) +   
             (20.0 * span) -         
             (5.0 * meanDist) +
-            penalty;                
+            penalty;            
 
         if(score < melhorScore){
             melhorScore = score;
