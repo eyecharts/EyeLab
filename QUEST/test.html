@@ -1554,8 +1554,8 @@ let tabela=[];
         <p style="font-size:13px; color:var(--text-muted); text-align:justify; margin-bottom:15px;"><b>Table 2.</b> Psychometric properties of individual optotypes. <b>Th75</b> is the raw detection threshold (~75% correct). <b>Th90 (Slope-Adjusted)</b> represents the clinical legibility threshold projected for 90% correct recognition, inherently penalizing optotypes with shallow slopes.</p>
         <table class="res-table" id="table_psychometric_results_${uid}">
     <tr>
-        <th>Optotype</th><th>Th75</th><th>Th90 (Slope-Adj)</th><th>95% CI</th><th>Slope</th>
-        <th>Cmax (Local)</th><th>V (Variab)</th><th>LPI (Dev)</th><th>Score Indiv.</th>
+        <th>Optotype</th><th onclick="sortTableByColumn('table_psychometric_results_${uid}', 0, false)">Th75</th><th>Th90 (Slope-Adj)</th><th onclick="sortTableByColumn('table_psychometric_results_${uid}', 1, false)">95% CI</th><th>Slope</th>
+        <th onclick="sortTableByColumn('table_psychometric_results_${uid}', 2, false)">Cmax (Local)</th><th onclick="sortTableByColumn('table_psychometric_results_${uid}', 3, false)">V (Variab)</th><th>LPI (Dev)</th><th onclick="sortTableByColumn('table_psychometric_results_${uid}', 4, false)">Score Indiv.</th>
         <th>Status</th>
     </tr>
     ${avancado.map(r => {
@@ -1570,7 +1570,8 @@ let tabela=[];
         let localCmax = 0;
         avancado.forEach(other => {
             if (letraClean !== other.letra) {
-                let conf = (matriz[letraClean]?.[other.letra] || 0) + (matriz[other.letra]?.[letraClean] || 0);
+// Substitua o cálculo da variável 'conf' por este:
+let conf = (matriz[l.letra]?.[other.letra] || 0) + (matriz[other.letra]?.[l.letra] || 0);
                 if(conf > localCmax) localCmax = conf;
             }
         });
@@ -2516,6 +2517,33 @@ function gerarTextoArtigo(data, vC, vS) {
         box.innerHTML = htmlTexto;
         box.style.display = "block";
     }
+}
+    function sortTableByColumn(tableId, colIndex, isNumeric) {
+    let table = document.getElementById(tableId);
+    let rows = Array.from(table.rows).slice(1); // Ignora o cabeçalho
+    
+    rows.sort((a, b) => {
+        let valA = a.cells[colIndex].innerText.replace('x', '').trim();
+        let valB = b.cells[colIndex].innerText.replace('x', '').trim();
+        
+        if (isNumeric) {
+            return parseFloat(valA) - parseFloat(valB);
+        }
+        return valA.localeCompare(valB);
+    });
+    
+    // Inverte a ordem se já estiver ordenado
+    if (table.dataset.sortCol == colIndex && table.dataset.sortDir == 'asc') {
+        rows.reverse();
+        table.dataset.sortDir = 'desc';
+    } else {
+        table.dataset.sortDir = 'asc';
+    }
+    table.dataset.sortCol = colIndex;
+
+    // Reaplica as linhas ordenadas
+    let tbody = table.tBodies[0];
+    rows.forEach(row => tbody.appendChild(row));
 }
 </script>
 </body>
