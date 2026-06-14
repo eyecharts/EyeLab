@@ -1405,7 +1405,7 @@ function atualizarSloanCustomizado(uid) {
 
     // 4. Atualiza os blocos visuais usando o Th90
     let htmlSec4 = `
-        <div style="display:flex; gap:50px; align-items:center; justify-content:center; padding:20px; flex-wrap:wrap; background:white; border-radius:8px; border:1px solid #dee2e6;">
+        <div style="display:flex; gap:50px; align-items:center; justify-content:center; padding:20px; flex-wrap:wrap; background:white; border-radius:8px; border:1px solid #dee2e6; margin-bottom: 20px;">
             ${subsetTabela.map(l => {
                 let calcFactor = Math.pow(10, (l.th90 - minThr) * 0.42);
                 let finalFactor = heuristicFactors[l.letra] !== undefined ? heuristicFactors[l.letra] : calcFactor;
@@ -1414,19 +1414,54 @@ function atualizarSloanCustomizado(uid) {
             }).join("")}
         </div>
         <p style="font-size:14px; text-align:justify; margin-bottom:20px;">
-            Each optotype is scaled according to its estimated threshold. <b>Note:</b> The L.U.N.A. Set includes heuristic supra-threshold adjustments to compensate for slope variance and morphological aliasing (e.g., P and V).
+            Each optotype is scaled according to its estimated threshold. <b>Note:</b> The L.U.N.A. Set includes heuristic supra-threshold adjustments.
         </p>
-        <table class="res-table">
-            <tr><th>Letra</th><th>Threshold (Th90)</th><th>Fator Matemático</th><th>Fator Ajustado (L.U.N.A.)</th></tr>
+        <table class="res-table" style="width:100%; font-size:12px;">
+            <tr>
+                <th>Letra</th><th>Th90</th><th>Fator Ajustado</th>
+                <th>Cmax</th><th>LPI</th><th>V</th><th>Δ</th><th>Score Indiv.</th>
+            </tr>
             ${subsetTabela.map(l => {
+                // Cálculos de fatores existentes
                 let calcFactor = Math.pow(10, (l.th90 - minThr) * 0.42);
                 let finalFactor = heuristicFactors[l.letra] !== undefined ? heuristicFactors[l.letra] : calcFactor;
-                let isAdjusted = Math.abs(finalFactor - calcFactor) > 0.005;
+                
+                // 1. Cmax Local
+                let localCmax = 0;
+                subsetTabela.forEach(other => {
+                    if(l.letra !== other.letra) {
+                        let conf = (matriz[l.letra]?.[other.letra] || 0) + (matriz[other.letra]?.[l.letra] || 0);
+                        if(conf > localCmax) localCmax = conf;
+                    }
+                });
+
+                // 2. LPI Local (Desvio da média deste set)
+                let meanTh = subsetTabela.reduce((a,b) => a + (b.th90 || b.threshold), 0) / subsetTabela.length;
+                let localLPI = Math.abs((l.th90 || l.threshold) - meanTh);
+
+                // 3. V Local
+                let localV = variabilidadeLetra?.[l.letra] || 0;
+
+                // 4. Delta Local (Distância média para os outros)
+                let distSum = 0;
+                subsetTabela.forEach(other => {
+                    distSum += Math.abs((l.th90 || l.threshold) - (other.th90 || other.threshold));
+                });
+                let localDelta = distSum / (subsetTabela.length - 1);
+
+                // 5. Score Individual (Baseado na sua fórmula)
+                // Usamos 10*Cmax + 10*LPI + 40*V - 5*Delta
+                let localScore = (10.0 * localCmax) + (10.0 * localLPI) + (40.0 * localV) - (5.0 * localDelta);
+
                 return `<tr>
                     <td><b>${l.letra}</b></td>
-                    <td>${l.th90.toFixed(3)}</td>
-                    <td>${calcFactor.toFixed(3)}</td>
-                    <td style="${isAdjusted ? 'font-weight:bold; color:var(--primary); background:#e9ecef;' : ''}">${finalFactor.toFixed(3)}</td>
+                    <td>${(l.th90 || l.threshold).toFixed(3)}</td>
+                    <td>${finalFactor.toFixed(3)}</td>
+                    <td>${localCmax}</td>
+                    <td>${localLPI.toFixed(3)}</td>
+                    <td>${localV.toFixed(3)}</td>
+                    <td>${localDelta.toFixed(3)}</td>
+                    <td style="font-weight:bold; color:var(--primary);">${localScore.toFixed(2)}</td>
                 </tr>`;
             }).join("")}
         </table>
