@@ -1404,95 +1404,34 @@ function atualizarSloanCustomizado(uid) {
     let baseSizePx = 40 * Math.pow(10, minThr);
 
     // 4. Atualiza os blocos visuais usando o Th90
-   // === INÍCIO DO CÓDIGO DA SEÇÃO 4 (CORRIGIDO) ===
-    
-    // 1. Calcula a média para os desvios locais
-    let thArray = subsetTabela.map(l => l.th90);
-    let meanThr = thArray.reduce((a, b) => a + b, 0) / thArray.length;
-
-    // 2. Mantém o seu layout visual original INTACTO e expande apenas a Tabela
     let htmlSec4 = `
-        <div style="display:flex; gap:50px; align-items:center; justify-content:center; padding:20px; flex-wrap:wrap; background:white; border-radius:8px; border:1px solid #dee2e6; margin-bottom: 20px;">
+        <div style="display:flex; gap:50px; align-items:center; justify-content:center; padding:20px; flex-wrap:wrap; background:white; border-radius:8px; border:1px solid #dee2e6;">
             ${subsetTabela.map(l => {
                 let calcFactor = Math.pow(10, (l.th90 - minThr) * 0.42);
                 let finalFactor = heuristicFactors[l.letra] !== undefined ? heuristicFactors[l.letra] : calcFactor;
                 let fontSize = baseSizePx * finalFactor;
-                return \`<span style="font-family:'Sloan',Arial; font-size:\${Math.max(22,Math.min(80, fontSize))}px;">\${l.letra}</span>\`;
+                return `<span style="font-family:'Sloan',Arial; font-size:${Math.max(22,Math.min(80, fontSize))}px;">${l.letra}</span>`;
             }).join("")}
         </div>
         <p style="font-size:14px; text-align:justify; margin-bottom:20px;">
             Each optotype is scaled according to its estimated threshold. <b>Note:</b> The L.U.N.A. Set includes heuristic supra-threshold adjustments to compensate for slope variance and morphological aliasing (e.g., P and V).
         </p>
-
-        <table class="res-table" id="tabela2_dinamica" style="width: 100%; text-align: center;">
-            <thead>
-                <tr style="cursor: pointer; background: #e9ecef;" title="Clique para ordenar">
-                    <th onclick="sortTableTabela2(0, 'str')">Letra ↕</th>
-                    <th onclick="sortTableTabela2(1, 'num')">Th90 ↕</th>
-                    <th onclick="sortTableTabela2(2, 'num')">Fator Mat.</th>
-                    <th onclick="sortTableTabela2(3, 'num')">Fator L.U.N.A.</th>
-                    <th onclick="sortTableTabela2(4, 'num')">Cmax Local ↕</th>
-                    <th onclick="sortTableTabela2(5, 'num')">LPI (Desvio) ↕</th>
-                    <th onclick="sortTableTabela2(6, 'num')">V (Variab.) ↕</th>
-                    <th onclick="sortTableTabela2(7, 'num')">Δ Local ↕</th>
-                    <th onclick="sortTableTabela2(8, 'num')">Score Individual ↕</th>
-                </tr>
-            </thead>
-            <tbody>
+        <table class="res-table">
+            <tr><th>Letra</th><th>Threshold (Th90)</th><th>Fator Matemático</th><th>Fator Ajustado (L.U.N.A.)</th></tr>
             ${subsetTabela.map(l => {
-                // Fatores de escala originais
                 let calcFactor = Math.pow(10, (l.th90 - minThr) * 0.42);
                 let finalFactor = heuristicFactors[l.letra] !== undefined ? heuristicFactors[l.letra] : calcFactor;
                 let isAdjusted = Math.abs(finalFactor - calcFactor) > 0.005;
-
-                // 1. Cmax Local (Pior confusão DESTA letra em relação apenas às outras 9 do Set)
-                let localCmax = 0;
-                subsetTabela.forEach(other => {
-                    if (l.letra !== other.letra) {
-                        let conf = (matriz[l.letra]?.[other.letra] || 0) + (matriz[other.letra]?.[l.letra] || 0);
-                        if (conf > localCmax) localCmax = conf;
-                    }
-                });
-
-                // 2. LPI Local (Desvio absoluto da média)
-                let localLPI = Math.abs(l.th90 - meanThr);
-
-                // 3. Variabilidade (V) extraída do banco
-                let localV = variabilidadeLetra?.[l.letra] || 0;
-
-                // 4. Delta Local (Média das distâncias de legibilidade desta letra para as outras 9)
-                let sumDist = 0;
-                subsetTabela.forEach(other => {
-                    if (l.letra !== other.letra) {
-                        sumDist += Math.abs(l.th90 - other.th90);
-                    }
-                });
-                let localDelta = sumDist / (subsetTabela.length - 1);
-
-                // 5. Score Individual (O peso que esta letra puxa no Score final do grupo)
-                let localScore = (10.0 * localCmax) + (10.0 * localLPI) + (40.0 * localV) - (5.0 * localDelta);
-
-                return \`<tr>
-                    <td><b>\${l.letra}</b></td>
-                    <td>\${l.th90.toFixed(3)}</td>
-                    <td>\${calcFactor.toFixed(3)}</td>
-                    <td style="\${isAdjusted ? 'font-weight:bold; color:var(--primary); background:#e9ecef;' : ''}">\${finalFactor.toFixed(3)}</td>
-                    <td style="color:#dc3545;">\${localCmax}</td>
-                    <td>\${localLPI.toFixed(4)}</td>
-                    <td>\${localV.toFixed(4)}</td>
-                    <td>\${localDelta.toFixed(4)}</td>
-                    <td style="font-weight:bold; color:#0d6efd;">\${localScore.toFixed(2)}</td>
-                </tr>\`;
+                return `<tr>
+                    <td><b>${l.letra}</b></td>
+                    <td>${l.th90.toFixed(3)}</td>
+                    <td>${calcFactor.toFixed(3)}</td>
+                    <td style="${isAdjusted ? 'font-weight:bold; color:var(--primary); background:#e9ecef;' : ''}">${finalFactor.toFixed(3)}</td>
+                </tr>`;
             }).join("")}
-            </tbody>
         </table>
-        <small style="color: #666; margin-top:8px; display:block;">* <b>Nota:</b> O "Score Individual" reflete o peso desta letra (10·Cmax + 10·LPI + 40·V - 5·Δ). O <b>Span</b> e a <b>Penalty</b> são métricas globais exclusivas do conjunto como um todo.</small>
     `;
-    
     document.getElementById("render_section4_" + uid).innerHTML = htmlSec4;
-
-    // === FIM DO CÓDIGO DA SEÇÃO 4 ===
-    // === FIM DA SUBSTITUIÇÃO ===
 
     // 5. Atualiza a Tabela de Métricas Comparativas da Seção 5
     let htmlSec5 = `
@@ -2550,108 +2489,6 @@ function gerarTextoArtigo(data, vC, vS) {
         box.innerHTML = htmlTexto;
         box.style.display = "block";
     }
-}
-
-    // 1. Função que constrói o HTML da Tabela 2 com Painel Global e Métricas Individuais
-function gerarHtmlTabela2(scoreFinal, metrics, setSelecionado, matriz, variabilidadeLetra) {
-    // Calcula a Média (Mean-Anchoring) para a conservação da área angular
-    let thArray = setSelecionado.map(l => l.th90 || l.threshold);
-    let meanThr = thArray.reduce((a, b) => a + b, 0) / thArray.length;
-
-    // Tratamento de segurança para as variáveis globais
-    let score = (scoreFinal && scoreFinal !== Infinity) ? scoreFinal.toFixed(1) : "N/A";
-    let cmax = metrics?.maxConf || 0;
-    let confMedia = metrics?.meanConf ? metrics.meanConf.toFixed(2) : "0.00";
-    let span = metrics?.span ? metrics.span.toFixed(4) : "0.0000";
-    let variab = metrics?.variability ? metrics.variability.toFixed(4) : "0.0000";
-    let lpi = metrics?.LPI ? metrics.LPI.toFixed(4) : "0.0000";
-
-    return `
-    <div style="margin-top:20px; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 15px;">
-        <h4 style="color:var(--primary); margin-bottom: 15px;">2. Optotype-Level Psychometric Results</h4>
-        
-        <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; background: #e6f2ff; padding: 15px; border-radius: 5px; border: 1px solid #b8daff;">
-            <div style="flex: 1; min-width: 100px;"><b>Score Final:</b><br><span style="font-size:18px; color:#004085; font-weight:bold;">${score}</span></div>
-            <div style="flex: 1; min-width: 100px;"><b>Cmax Global:</b><br><span style="font-size:18px; color:#004085;">${cmax}</span></div>
-            <div style="flex: 1; min-width: 100px;"><b>Conf. Média:</b><br><span style="font-size:18px; color:#004085;">${confMedia}</span></div>
-            <div style="flex: 1; min-width: 100px;"><b>Span (Range):</b><br><span style="font-size:18px; color:#004085;">${span}</span></div>
-            <div style="flex: 1; min-width: 100px;"><b>Variab. (V):</b><br><span style="font-size:18px; color:#004085;">${variab}</span></div>
-            <div style="flex: 1; min-width: 100px;"><b>LPI:</b><br><span style="font-size:18px; color:#004085;">${lpi}</span></div>
-        </div>
-
-        <table id="tabela2_dinamica" class="table table-bordered table-hover text-center" style="background:#fff; font-size:14px; margin-bottom: 0;">
-            <thead style="background:#e9ecef; cursor:pointer; user-select: none;" title="Clique para ordenar">
-                <tr>
-                    <th onclick="sortTableTabela2(0, 'str')">Letra ↕</th>
-                    <th onclick="sortTableTabela2(1, 'num')">Th90 ↕</th>
-                    <th onclick="sortTableTabela2(2, 'num')">Fator de Correção ↕</th>
-                    <th onclick="sortTableTabela2(3, 'num')">Cmax Local ↕</th>
-                    <th onclick="sortTableTabela2(4, 'num')">Variab. Local (V) ↕</th>
-                </tr>
-            </thead>
-            <tbody>
-                ${setSelecionado.map(l => {
-                    let valTh90 = l.th90 || l.threshold;
-                    let calcFactor = Math.pow(10, valTh90 - meanThr);
-                    
-                    // Cálculo do Cmax EXCLUSIVO desta letra dentro do Set
-                    let localCmax = 0;
-                    setSelecionado.forEach(other => {
-                        if(l.letra !== other.letra) {
-                            let conf = (matriz[l.letra]?.[other.letra] || 0) + (matriz[other.letra]?.[l.letra] || 0);
-                            if(conf > localCmax) localCmax = conf;
-                        }
-                    });
-
-                    let varInd = variabilidadeLetra?.[l.letra] || 0;
-
-                    return `<tr>
-                        <td><b>${l.letra}</b></td>
-                        <td>${valTh90.toFixed(3)}</td>
-                        <td>${calcFactor.toFixed(3)}x</td>
-                        <td>${localCmax}</td>
-                        <td>${varInd.toFixed(4)}</td>
-                    </tr>`;
-                }).join("")}
-            </tbody>
-        </table>
-        <small style="color: #666; margin-top:8px; display:block;">* Clique nos títulos das colunas (↕) para ordenar em ordem crescente/decrescente.</small>
-    </div>`;
-}
-
-// 2. Função otimizada para Ordenação da Tabela (Rápida, sem travar a tela)
-function sortTableTabela2(n, type) {
-    let table = document.getElementById("tabela2_dinamica");
-    if (!table) return;
-    
-    let tbody = table.querySelector("tbody");
-    let rows = Array.from(tbody.rows);
-    
-    // Alterna a direção da ordenação
-    let currentDir = table.getAttribute("data-sort-dir") || "asc";
-    let newDir = currentDir === "asc" ? "desc" : "asc";
-    table.setAttribute("data-sort-dir", newDir);
-
-    // Faz a ordenação do array de linhas
-    rows.sort((a, b) => {
-        let valA = a.cells[n].innerText.replace('x', '').trim();
-        let valB = b.cells[n].innerText.replace('x', '').trim();
-
-        if (type === 'num') {
-            valA = parseFloat(valA) || 0;
-            valB = parseFloat(valB) || 0;
-        } else {
-            valA = valA.toLowerCase();
-            valB = valB.toLowerCase();
-        }
-
-        if (valA < valB) return newDir === "asc" ? -1 : 1;
-        if (valA > valB) return newDir === "asc" ? 1 : -1;
-        return 0;
-    });
-
-    // Reinsere as linhas ordenadas no HTML (instantâneo)
-    rows.forEach(row => tbody.appendChild(row));
 }
 </script>
 </body>
