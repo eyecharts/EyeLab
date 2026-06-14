@@ -1226,8 +1226,8 @@ function letterSetOptimization(tabela, matriz, variabilidadeLetra){
 
         // A equação agora pune a PIOR DUPLA (maxPairConf) E a CONFUSÃO GERAL (meanConf)
         let score = 
-            (50.0 * maxPairConf) + 
-            (50.0 * meanConf) +     // <-- NOVO PARÂMETRO: Punição pesada para a confusão média!
+            (10.0 * maxPairConf) + 
+            (20.0 * meanConf) +     // <-- NOVO PARÂMETRO: Punição pesada para a confusão média!
             (10.0 * LPI) +          
             (40.0 * meanVariab) +   
             (20.0 * span) -         
@@ -1405,7 +1405,7 @@ function atualizarSloanCustomizado(uid) {
 
     // 4. Atualiza os blocos visuais usando o Th90
     let htmlSec4 = `
-        <div style="display:flex; gap:50px; align-items:center; justify-content:center; padding:20px; flex-wrap:wrap; background:white; border-radius:8px; border:1px solid #dee2e6; margin-bottom: 20px;">
+        <div style="display:flex; gap:50px; align-items:center; justify-content:center; padding:20px; flex-wrap:wrap; background:white; border-radius:8px; border:1px solid #dee2e6;">
             ${subsetTabela.map(l => {
                 let calcFactor = Math.pow(10, (l.th90 - minThr) * 0.42);
                 let finalFactor = heuristicFactors[l.letra] !== undefined ? heuristicFactors[l.letra] : calcFactor;
@@ -1414,54 +1414,19 @@ function atualizarSloanCustomizado(uid) {
             }).join("")}
         </div>
         <p style="font-size:14px; text-align:justify; margin-bottom:20px;">
-            Each optotype is scaled according to its estimated threshold. <b>Note:</b> The L.U.N.A. Set includes heuristic supra-threshold adjustments.
+            Each optotype is scaled according to its estimated threshold. <b>Note:</b> The L.U.N.A. Set includes heuristic supra-threshold adjustments to compensate for slope variance and morphological aliasing (e.g., P and V).
         </p>
-        <table class="res-table" style="width:100%; font-size:12px;">
-            <tr>
-                <th>Letra</th><th>Th90</th><th>Fator Ajustado</th>
-                <th>Cmax</th><th>LPI</th><th>V</th><th>Δ</th><th>Score Indiv.</th>
-            </tr>
+        <table class="res-table">
+            <tr><th>Letra</th><th>Threshold (Th90)</th><th>Fator Matemático</th><th>Fator Ajustado (L.U.N.A.)</th></tr>
             ${subsetTabela.map(l => {
-                // Cálculos de fatores existentes
                 let calcFactor = Math.pow(10, (l.th90 - minThr) * 0.42);
                 let finalFactor = heuristicFactors[l.letra] !== undefined ? heuristicFactors[l.letra] : calcFactor;
-                
-                // 1. Cmax Local
-                let localCmax = 0;
-                subsetTabela.forEach(other => {
-                    if(l.letra !== other.letra) {
-                        let conf = (matriz[l.letra]?.[other.letra] || 0) + (matriz[other.letra]?.[l.letra] || 0);
-                        if(conf > localCmax) localCmax = conf;
-                    }
-                });
-
-                // 2. LPI Local (Desvio da média deste set)
-                let meanTh = subsetTabela.reduce((a,b) => a + (b.th90 || b.threshold), 0) / subsetTabela.length;
-                let localLPI = Math.abs((l.th90 || l.threshold) - meanTh);
-
-                // 3. V Local
-                let localV = variabilidadeLetra?.[l.letra] || 0;
-
-                // 4. Delta Local (Distância média para os outros)
-                let distSum = 0;
-                subsetTabela.forEach(other => {
-                    distSum += Math.abs((l.th90 || l.threshold) - (other.th90 || other.threshold));
-                });
-                let localDelta = distSum / (subsetTabela.length - 1);
-
-                // 5. Score Individual (Baseado na sua fórmula)
-                // Usamos 10*Cmax + 10*LPI + 40*V - 5*Delta
-                let localScore = (10.0 * localCmax) + (10.0 * localLPI) + (40.0 * localV) - (5.0 * localDelta);
-
+                let isAdjusted = Math.abs(finalFactor - calcFactor) > 0.005;
                 return `<tr>
                     <td><b>${l.letra}</b></td>
-                    <td>${(l.th90 || l.threshold).toFixed(3)}</td>
-                    <td>${finalFactor.toFixed(3)}</td>
-                    <td>${localCmax}</td>
-                    <td>${localLPI.toFixed(3)}</td>
-                    <td>${localV.toFixed(3)}</td>
-                    <td>${localDelta.toFixed(3)}</td>
-                    <td style="font-weight:bold; color:var(--primary);">${localScore.toFixed(2)}</td>
+                    <td>${l.th90.toFixed(3)}</td>
+                    <td>${calcFactor.toFixed(3)}</td>
+                    <td style="${isAdjusted ? 'font-weight:bold; color:var(--primary); background:#e9ecef;' : ''}">${finalFactor.toFixed(3)}</td>
                 </tr>`;
             }).join("")}
         </table>
@@ -1588,28 +1553,55 @@ let tabela=[];
         <h4>2. Optotype-Level Psychometric Results</h4>
         <p style="font-size:13px; color:var(--text-muted); text-align:justify; margin-bottom:15px;"><b>Table 2.</b> Psychometric properties of individual optotypes. <b>Th75</b> is the raw detection threshold (~75% correct). <b>Th90 (Slope-Adjusted)</b> represents the clinical legibility threshold projected for 90% correct recognition, inherently penalizing optotypes with shallow slopes.</p>
         <table class="res-table" id="table_psychometric_results_${uid}">
-            <tr><th>Optotype</th><th>Th75 (Raw)</th><th>Th90 (Slope-Adjusted)</th><th>95% CI</th><th>Slope (1/β)</th><th>Confusion Rate</th><th>Primary Confusion</th><th>Selection Status</th></tr>
-            ${avancado.map(r => {
-                let letraClean = r.letra;
-                let isSet = letrasSet.includes(letraClean);
-                let isSloan = SLOAN.includes(letraClean);
-                let cls = (isSet && isSloan) ? "bothLetter" : (isSet ? "bestLetter" : (isSloan ? "sloanLetter" : ""));
-                let status = isSet ? 2 : (isSloan ? 1 : 0);
-                let conf = confusaoLetra[letraClean] || 0;
-                let confTop = confusaoPrincipal[letraClean] || "";
+    <tr>
+        <th>Optotype</th><th>Th75</th><th>Th90 (Slope-Adj)</th><th>95% CI</th><th>Slope</th>
+        <th>Cmax (Local)</th><th>V (Variab)</th><th>LPI (Dev)</th><th>Score Indiv.</th>
+        <th>Status</th>
+    </tr>
+    ${avancado.map(r => {
+        let letraClean = r.letra;
+        let isSet = letrasSet.includes(letraClean);
+        let isSloan = SLOAN.includes(letraClean);
+        let cls = (isSet && isSloan) ? "bothLetter" : (isSet ? "bestLetter" : (isSloan ? "sloanLetter" : ""));
+        let status = isSet ? 2 : (isSloan ? 1 : 0);
+        
+        // --- CÁLCULOS NOVOS PARA CADA LETRA ---
+        // 1. Cmax Local (Confusão desta letra com as outras do set)
+        let localCmax = 0;
+        avancado.forEach(other => {
+            if (letraClean !== other.letra) {
+                let conf = (matriz[letraClean]?.[other.letra] || 0) + (matriz[other.letra]?.[letraClean] || 0);
+                if(conf > localCmax) localCmax = conf;
+            }
+        });
 
-                return `<tr id="row_${uid}_${letraClean}" class="${cls}">
-                    <td><b>${letraClean}</b></td>
-                    <td>${r.threshold.toFixed(3)}</td>
-                    <td style="background-color:#fff3cd; font-weight:bold; color:#856404;">${r.th90.toFixed(3)}</td>
-                    <td>${r.icLow.toFixed(3)} – ${r.icHigh.toFixed(3)}</td>
-                    <td>${r.slope.toFixed(2)}</td>
-                    <td>${conf.toFixed(3)}</td>
-                    <td>${confTop}</td>
-                    <td><span id="status_${uid}_${letraClean}">${status}</span></td>
-                </tr>`;
-            }).join("")}
-        </table>
+        // 2. Variabilidade (V) e LPI (Desvio em relação à média do set)
+        let localV = variabilidadeLetra?.[letraClean] || 0;
+        let meanTh90 = avancado.reduce((a, b) => a + b.th90, 0) / avancado.length;
+        let localLPI = Math.abs(r.th90 - meanTh90); // Desvio individual
+        
+        // 3. Delta Local (Distância média para os outros em termos de Th90)
+        let distSum = 0;
+        avancado.forEach(other => distSum += Math.abs(r.th90 - other.th90));
+        let localDelta = distSum / (avancado.length - 1);
+
+        // 4. Score Individual baseado na sua fórmula (sem Span e Penalty que são globais)
+        let individualScore = (10.0 * localCmax) + (10.0 * localLPI) + (40.0 * localV) - (5.0 * localDelta);
+
+        return `<tr id="row_${uid}_${letraClean}" class="${cls}">
+            <td><b>${letraClean}</b></td>
+            <td>${r.threshold.toFixed(3)}</td>
+            <td style="background-color:#fff3cd; font-weight:bold;">${r.th90.toFixed(3)}</td>
+            <td>${r.icLow.toFixed(2)}–${r.icHigh.toFixed(2)}</td>
+            <td>${r.slope.toFixed(2)}</td>
+            <td>${localCmax}</td>
+            <td>${localV.toFixed(4)}</td>
+            <td>${localLPI.toFixed(4)}</td>
+            <td style="font-weight:bold; color:var(--primary);">${individualScore.toFixed(2)}</td>
+            <td><span id="status_${uid}_${letraClean}">${status}</span></td>
+        </tr>`;
+    }).join("")}
+</table>
     </div>
 
     <div class="metric-box">
