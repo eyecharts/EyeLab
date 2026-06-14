@@ -1552,7 +1552,7 @@ let tabela=[];
     <div class="metric-box">
         <h4>2. Optotype-Level Psychometric Results</h4>
         <p style="font-size:13px; color:var(--text-muted); text-align:justify; margin-bottom:15px;"><b>Table 2.</b> Psychometric properties of individual optotypes. <b>Th75</b> is the raw detection threshold (~75% correct). <b>Th90 (Slope-Adjusted)</b> represents the clinical legibility threshold projected for 90% correct recognition, inherently penalizing optotypes with shallow slopes.</p>
-       <table class="res-table" id="table_psychometric_results_${uid}">
+      <table class="res-table" id="table_psychometric_results_${uid}">
     <thead>
         <tr style="cursor: pointer; background: #f8f9fa;">
             <th onclick="sortTableByColumn('table_psychometric_results_${uid}', 0, false)">Optotype ↕</th>
@@ -1560,16 +1560,16 @@ let tabela=[];
             <th onclick="sortTableByColumn('table_psychometric_results_${uid}', 2, true)">Th90 ↕</th>
             <th onclick="sortTableByColumn('table_psychometric_results_${uid}', 3, false)">95% CI ↕</th>
             <th onclick="sortTableByColumn('table_psychometric_results_${uid}', 4, true)">Slope ↕</th>
-            <th onclick="sortTableByColumn('table_psychometric_results_${uid}', 5, true)">Cmax ↕</th>
-            <th onclick="sortTableByColumn('table_psychometric_results_${uid}', 6, true)">V ↕</th>
-            <th onclick="sortTableByColumn('table_psychometric_results_${uid}', 7, true)">LPI ↕</th>
-            <th onclick="sortTableByColumn('table_psychometric_results_${uid}', 8, true)">Score Indiv. ↕</th>
-            <th onclick="sortTableByColumn('table_psychometric_results_${uid}', 9, true)">Status ↕</th>
+            <th onclick="sortTableByColumn('table_psychometric_results_${uid}', 5, true)">Confusion Rate ↕</th>
+            <th onclick="sortTableByColumn('table_psychometric_results_${uid}', 6, true)">Cmax ↕</th>
+            <th onclick="sortTableByColumn('table_psychometric_results_${uid}', 7, true)">V ↕</th>
+            <th onclick="sortTableByColumn('table_psychometric_results_${uid}', 8, true)">LPI ↕</th>
+            <th onclick="sortTableByColumn('table_psychometric_results_${uid}', 9, true)">Score Indiv. ↕</th>
+            <th onclick="sortTableByColumn('table_psychometric_results_${uid}', 10, true)">Status ↕</th>
         </tr>
     </thead>
     <tbody>
         ${(() => {
-            // 1. Calculamos a média global uma única vez
             let globalMeanTh90 = avancado.reduce((a, b) => a + b.th90, 0) / avancado.length;
 
             return avancado.map(r => {
@@ -1579,14 +1579,15 @@ let tabela=[];
                 let cls = (isSet && isSloan) ? "bothLetter" : (isSet ? "bestLetter" : (isSloan ? "sloanLetter" : ""));
                 let status = isSet ? 2 : (isSloan ? 1 : 0);
                 
-                // 2. Cmax Unidirecional (Mostrada -> Respondida Errada)
+                // Confusion Rate (resgatada do seu objeto global original)
+                let confRate = confusaoLetra[letraClean] || 0;
+                
+                // Cmax Unidirecional
                 let localCmax = 0;
                 let topConfusor = ""; 
                 avancado.forEach(other => {
                     if (letraClean !== other.letra) {
-                        // CORREÇÃO: Apenas confusão da letra mostrada para a respondida
                         let conf = matriz[letraClean]?.[other.letra] || 0;
-                        
                         if(conf > localCmax) {
                             localCmax = conf;
                             topConfusor = other.letra;
@@ -1594,15 +1595,13 @@ let tabela=[];
                     }
                 });
 
-                // 3. Variabilidade, LPI e Delta
                 let localV = variabilidadeLetra?.[letraClean] || 0;
                 let localLPI = Math.abs(r.th90 - globalMeanTh90);
-                
                 let distSum = 0;
                 avancado.forEach(other => distSum += Math.abs(r.th90 - other.th90));
                 let localDelta = distSum / (avancado.length - 1);
-
-                // 4. Score Individual
+                
+                // O score individual mostrado na tabela
                 let individualScore = (10.0 * localCmax) + (10.0 * localLPI) + (40.0 * localV) - (5.0 * localDelta);
 
                 return `<tr id="row_${uid}_${letraClean}" class="${cls}">
@@ -1611,6 +1610,7 @@ let tabela=[];
                     <td style="background-color:#fff3cd; font-weight:bold;">${r.th90.toFixed(3)}</td>
                     <td>${r.icLow.toFixed(2)}–${r.icHigh.toFixed(2)}</td>
                     <td>${r.slope.toFixed(2)}</td>
+                    <td>${confRate.toFixed(3)}</td>
                     <td title="Confunde mais com: ${topConfusor}">${localCmax}</td>
                     <td>${localV.toFixed(4)}</td>
                     <td>${localLPI.toFixed(4)}</td>
