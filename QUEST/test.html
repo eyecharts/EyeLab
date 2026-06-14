@@ -1552,7 +1552,7 @@ let tabela=[];
     <div class="metric-box">
         <h4>2. Optotype-Level Psychometric Results</h4>
         <p style="font-size:13px; color:var(--text-muted); text-align:justify; margin-bottom:15px;"><b>Table 2.</b> Psychometric properties of individual optotypes. <b>Th75</b> is the raw detection threshold (~75% correct). <b>Th90 (Slope-Adjusted)</b> represents the clinical legibility threshold projected for 90% correct recognition, inherently penalizing optotypes with shallow slopes.</p>
-        <table class="res-table" id="table_psychometric_results_${uid}">
+       <table class="res-table" id="table_psychometric_results_${uid}">
     <thead>
         <tr style="cursor: pointer; background: #f8f9fa;">
             <th onclick="sortTableByColumn('table_psychometric_results_${uid}', 0, false)">Optotype ↕</th>
@@ -1569,7 +1569,7 @@ let tabela=[];
     </thead>
     <tbody>
         ${(() => {
-            // 1. Calculamos a média global uma única vez para usar no LPI
+            // 1. Calculamos a média global uma única vez
             let globalMeanTh90 = avancado.reduce((a, b) => a + b.th90, 0) / avancado.length;
 
             return avancado.map(r => {
@@ -1579,12 +1579,14 @@ let tabela=[];
                 let cls = (isSet && isSloan) ? "bothLetter" : (isSet ? "bestLetter" : (isSloan ? "sloanLetter" : ""));
                 let status = isSet ? 2 : (isSloan ? 1 : 0);
                 
-                // 2. Cmax Bidirecional
+                // 2. Cmax Unidirecional (Mostrada -> Respondida Errada)
                 let localCmax = 0;
                 let topConfusor = ""; 
                 avancado.forEach(other => {
                     if (letraClean !== other.letra) {
-                        let conf = (matriz[letraClean]?.[other.letra] || 0) + (matriz[other.letra]?.[letraClean] || 0);
+                        // CORREÇÃO: Apenas confusão da letra mostrada para a respondida
+                        let conf = matriz[letraClean]?.[other.letra] || 0;
+                        
                         if(conf > localCmax) {
                             localCmax = conf;
                             topConfusor = other.letra;
@@ -1592,7 +1594,7 @@ let tabela=[];
                     }
                 });
 
-                // 3. Variabilidade, LPI (Desvio da média global) e Delta
+                // 3. Variabilidade, LPI e Delta
                 let localV = variabilidadeLetra?.[letraClean] || 0;
                 let localLPI = Math.abs(r.th90 - globalMeanTh90);
                 
