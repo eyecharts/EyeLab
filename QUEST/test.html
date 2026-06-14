@@ -1226,7 +1226,7 @@ function letterSetOptimization(tabela, matriz, variabilidadeLetra){
 
         // A equação agora pune a PIOR DUPLA (maxPairConf) E a CONFUSÃO GERAL (meanConf)
         let score = 
-            (10.0 * maxPairConf) + 
+            (30.0 * maxPairConf) + 
             (20.0 * meanConf) +     // <-- NOVO PARÂMETRO: Punição pesada para a confusão média!
             (10.0 * LPI) +          
             (40.0 * meanVariab) +   
