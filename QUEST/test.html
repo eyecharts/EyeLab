@@ -1568,57 +1568,55 @@ let tabela=[];
         </tr>
     </thead>
     <tbody>
-    ${avancado.map(r => {
-        let letraClean = r.letra;
-        let isSet = letrasSet.includes(letraClean);
-        let isSloan = SLOAN.includes(letraClean);
-        let cls = (isSet && isSloan) ? "bothLetter" : (isSet ? "bestLetter" : (isSloan ? "sloanLetter" : ""));
-        let status = isSet ? 2 : (isSloan ? 1 : 0);
-        
-        // 1. Cmax Local + Identificação do "Culpado"
-        let localCmax = 0;
-        let topConfusor = ""; 
-        avancado.forEach(other => {
-            if (letraClean !== other.letra) {
-                let conf = (matriz[letraClean]?.[other.letra] || 0) + (matriz[other.letra]?.[letraClean] || 0);
-                if(conf > localCmax) {
-                    localCmax = conf;
-                    topConfusor = other.letra;
-                }
-            }
-        });
+        ${(() => {
+            // 1. Calculamos a média global uma única vez para usar no LPI
+            let globalMeanTh90 = avancado.reduce((a, b) => a + b.th90, 0) / avancado.length;
 
-        // 2. Variabilidade e LPI (Desvio da média do set)
-        let localV = variabilidadeLetra?.[letraClean] || 0;
-        let meanTh90 = avancado.reduce((a, b) => a + b.th90, 0) / avancado.length;
-        let localLPI = Math.abs(r.th90 - meanTh90);
-        
-        // 3. Delta Local
-        let distSum = 0;
-        avancado.forEach(other => distSum += Math.abs(r.th90 - other.th90));
-        let localDelta = distSum / (avancado.length - 1);
+            return avancado.map(r => {
+                let letraClean = r.letra;
+                let isSet = letrasSet.includes(letraClean);
+                let isSloan = SLOAN.includes(letraClean);
+                let cls = (isSet && isSloan) ? "bothLetter" : (isSet ? "bestLetter" : (isSloan ? "sloanLetter" : ""));
+                let status = isSet ? 2 : (isSloan ? 1 : 0);
+                
+                // 2. Cmax Bidirecional
+                let localCmax = 0;
+                let topConfusor = ""; 
+                avancado.forEach(other => {
+                    if (letraClean !== other.letra) {
+                        let conf = (matriz[letraClean]?.[other.letra] || 0) + (matriz[other.letra]?.[letraClean] || 0);
+                        if(conf > localCmax) {
+                            localCmax = conf;
+                            topConfusor = other.letra;
+                        }
+                    }
+                });
 
-        // 4. Score Individual
-        let individualScore = (10.0 * localCmax) + (10.0 * localLPI) + (40.0 * localV) - (5.0 * localDelta);
+                // 3. Variabilidade, LPI (Desvio da média global) e Delta
+                let localV = variabilidadeLetra?.[letraClean] || 0;
+                let localLPI = Math.abs(r.th90 - globalMeanTh90);
+                
+                let distSum = 0;
+                avancado.forEach(other => distSum += Math.abs(r.th90 - other.th90));
+                let localDelta = distSum / (avancado.length - 1);
 
-        // DEBUG: Imprime no console quem confunde com quem (pressione F12 para ver)
-        if(letraClean === 'P') {
-            console.log(`Debug P: Cmax=${localCmax} (Confunde mais com: ${topConfusor})`);
-        }
+                // 4. Score Individual
+                let individualScore = (10.0 * localCmax) + (10.0 * localLPI) + (40.0 * localV) - (5.0 * localDelta);
 
-        return `<tr id="row_${uid}_${letraClean}" class="${cls}">
-            <td><b>${letraClean}</b></td>
-            <td>${r.threshold.toFixed(3)}</td>
-            <td style="background-color:#fff3cd; font-weight:bold;">${r.th90.toFixed(3)}</td>
-            <td>${r.icLow.toFixed(2)}–${r.icHigh.toFixed(2)}</td>
-            <td>${r.slope.toFixed(2)}</td>
-            <td title="Confunde mais com ${topConfusor}">${localCmax}</td>
-            <td>${localV.toFixed(4)}</td>
-            <td>${localLPI.toFixed(4)}</td>
-            <td style="font-weight:bold; color:var(--primary);">${individualScore.toFixed(2)}</td>
-            <td><span id="status_${uid}_${letraClean}">${status}</span></td>
-        </tr>`;
-    }).join("")}
+                return `<tr id="row_${uid}_${letraClean}" class="${cls}">
+                    <td><b>${letraClean}</b></td>
+                    <td>${r.threshold.toFixed(3)}</td>
+                    <td style="background-color:#fff3cd; font-weight:bold;">${r.th90.toFixed(3)}</td>
+                    <td>${r.icLow.toFixed(2)}–${r.icHigh.toFixed(2)}</td>
+                    <td>${r.slope.toFixed(2)}</td>
+                    <td title="Confunde mais com: ${topConfusor}">${localCmax}</td>
+                    <td>${localV.toFixed(4)}</td>
+                    <td>${localLPI.toFixed(4)}</td>
+                    <td style="font-weight:bold; color:var(--primary);">${individualScore.toFixed(2)}</td>
+                    <td><span id="status_${uid}_${letraClean}">${status}</span></td>
+                </tr>`;
+            }).join("");
+        })()}
     </tbody>
 </table>
     </div>
