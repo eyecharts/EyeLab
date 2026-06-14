@@ -1553,11 +1553,21 @@ let tabela=[];
         <h4>2. Optotype-Level Psychometric Results</h4>
         <p style="font-size:13px; color:var(--text-muted); text-align:justify; margin-bottom:15px;"><b>Table 2.</b> Psychometric properties of individual optotypes. <b>Th75</b> is the raw detection threshold (~75% correct). <b>Th90 (Slope-Adjusted)</b> represents the clinical legibility threshold projected for 90% correct recognition, inherently penalizing optotypes with shallow slopes.</p>
         <table class="res-table" id="table_psychometric_results_${uid}">
-    <tr>
-        <th>Optotype</th><th>Th75</th><th>Th90 (Slope-Adj)</th><th>95% CI</th><th>Slope</th>
-        <th>Cmax (Local)</th><th>V (Variab)</th><th>LPI (Dev)</th><th>Score Indiv.</th>
-        <th>Status</th>
-    </tr>
+    <thead>
+        <tr style="cursor: pointer; background: #f8f9fa;">
+            <th onclick="sortTableByColumn('table_psychometric_results_${uid}', 0, false)">Optotype ↕</th>
+            <th onclick="sortTableByColumn('table_psychometric_results_${uid}', 1, true)">Th75 ↕</th>
+            <th onclick="sortTableByColumn('table_psychometric_results_${uid}', 2, true)">Th90 ↕</th>
+            <th onclick="sortTableByColumn('table_psychometric_results_${uid}', 3, false)">95% CI ↕</th>
+            <th onclick="sortTableByColumn('table_psychometric_results_${uid}', 4, true)">Slope ↕</th>
+            <th onclick="sortTableByColumn('table_psychometric_results_${uid}', 5, true)">Cmax ↕</th>
+            <th onclick="sortTableByColumn('table_psychometric_results_${uid}', 6, true)">V ↕</th>
+            <th onclick="sortTableByColumn('table_psychometric_results_${uid}', 7, true)">LPI ↕</th>
+            <th onclick="sortTableByColumn('table_psychometric_results_${uid}', 8, true)">Score Indiv. ↕</th>
+            <th onclick="sortTableByColumn('table_psychometric_results_${uid}', 9, true)">Status ↕</th>
+        </tr>
+    </thead>
+    <tbody>
     ${avancado.map(r => {
         let letraClean = r.letra;
         let isSet = letrasSet.includes(letraClean);
@@ -1565,8 +1575,7 @@ let tabela=[];
         let cls = (isSet && isSloan) ? "bothLetter" : (isSet ? "bestLetter" : (isSloan ? "sloanLetter" : ""));
         let status = isSet ? 2 : (isSloan ? 1 : 0);
         
-        // --- CÁLCULOS NOVOS PARA CADA LETRA ---
-        // 1. Cmax Local (Confusão desta letra com as outras do set)
+        // 1. Cmax Local (Bidirecional)
         let localCmax = 0;
         avancado.forEach(other => {
             if (letraClean !== other.letra) {
@@ -1575,17 +1584,17 @@ let tabela=[];
             }
         });
 
-        // 2. Variabilidade (V) e LPI (Desvio em relação à média do set)
+        // 2. Variabilidade e LPI
         let localV = variabilidadeLetra?.[letraClean] || 0;
         let meanTh90 = avancado.reduce((a, b) => a + b.th90, 0) / avancado.length;
-        let localLPI = Math.abs(r.th90 - meanTh90); // Desvio individual
+        let localLPI = Math.abs(r.th90 - meanTh90);
         
-        // 3. Delta Local (Distância média para os outros em termos de Th90)
+        // 3. Delta Local (Distância para os outros)
         let distSum = 0;
         avancado.forEach(other => distSum += Math.abs(r.th90 - other.th90));
         let localDelta = distSum / (avancado.length - 1);
 
-        // 4. Score Individual baseado na sua fórmula (sem Span e Penalty que são globais)
+        // 4. Score Individual
         let individualScore = (10.0 * localCmax) + (10.0 * localLPI) + (40.0 * localV) - (5.0 * localDelta);
 
         return `<tr id="row_${uid}_${letraClean}" class="${cls}">
@@ -1601,6 +1610,7 @@ let tabela=[];
             <td><span id="status_${uid}_${letraClean}">${status}</span></td>
         </tr>`;
     }).join("")}
+    </tbody>
 </table>
     </div>
 
